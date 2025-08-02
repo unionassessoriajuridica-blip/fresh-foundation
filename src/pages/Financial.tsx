@@ -28,13 +28,17 @@ const Financial = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [financeiro, setFinanceiro] = useState<FinanceiroItem[]>([]);
+  const [clientes, setClientes] = useState<{nome: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
+  const [filtroMes, setFiltroMes] = useState<string>('TODOS');
+  const [filtroCliente, setFiltroCliente] = useState<string>('TODOS');
 
   useEffect(() => {
     if (user) {
       fetchFinanceiro();
+      fetchClientes();
     }
   }, [user]);
 
@@ -58,6 +62,21 @@ const Financial = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('nome')
+        .eq('user_id', user?.id)
+        .order('nome');
+
+      if (error) throw error;
+      setClientes(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
     }
   };
 
@@ -91,7 +110,21 @@ const Financial = () => {
   const filteredData = financeiro.filter(item => {
     const statusMatch = filtroStatus === 'TODOS' || item.status === filtroStatus;
     const tipoMatch = filtroTipo === 'TODOS' || item.tipo === filtroTipo;
-    return statusMatch && tipoMatch;
+    const clienteMatch = filtroCliente === 'TODOS' || item.cliente_nome === filtroCliente;
+    
+    // Filtro por mês
+    let mesMatch = true;
+    if (filtroMes !== 'TODOS') {
+      const vencimentoDate = new Date(item.vencimento);
+      const mesVencimento = vencimentoDate.getMonth() + 1;
+      const anoVencimento = vencimentoDate.getFullYear();
+      const anoAtual = new Date().getFullYear();
+      
+      const [mesFiltro, anoFiltro] = filtroMes.split('-').map(Number);
+      mesMatch = mesVencimento === mesFiltro && anoVencimento === (anoFiltro || anoAtual);
+    }
+    
+    return statusMatch && tipoMatch && clienteMatch && mesMatch;
   });
 
   const isVencido = (vencimento: string, status: string) => {
@@ -149,13 +182,13 @@ const Financial = () => {
                 <CardTitle>Filtros</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Status:</label>
                     <select 
                       value={filtroStatus} 
                       onChange={(e) => setFiltroStatus(e.target.value)}
-                      className="px-3 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-background"
                     >
                       <option value="TODOS">Todos</option>
                       <option value="PENDENTE">Pendente</option>
@@ -168,12 +201,51 @@ const Financial = () => {
                     <select 
                       value={filtroTipo} 
                       onChange={(e) => setFiltroTipo(e.target.value)}
-                      className="px-3 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-background"
                     >
                       <option value="TODOS">Todos</option>
                       <option value="Honorários">Honorários</option>
                       <option value="Entrada">Entrada</option>
                       <option value="TMP">TMP</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Mês:</label>
+                    <select 
+                      value={filtroMes} 
+                      onChange={(e) => setFiltroMes(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="TODOS">Todos</option>
+                      <option value="1">Janeiro</option>
+                      <option value="2">Fevereiro</option>
+                      <option value="3">Março</option>
+                      <option value="4">Abril</option>
+                      <option value="5">Maio</option>
+                      <option value="6">Junho</option>
+                      <option value="7">Julho</option>
+                      <option value="8">Agosto</option>
+                      <option value="9">Setembro</option>
+                      <option value="10">Outubro</option>
+                      <option value="11">Novembro</option>
+                      <option value="12">Dezembro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Cliente:</label>
+                    <select 
+                      value={filtroCliente} 
+                      onChange={(e) => setFiltroCliente(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="TODOS">Todos</option>
+                      {clientes.map((cliente) => (
+                        <option key={cliente.nome} value={cliente.nome}>
+                          {cliente.nome}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
