@@ -609,7 +609,7 @@ const NewProcess = () => {
               {financeiroData.valorEntrada && financeiroData.dataEntrada && (
                 <div className="bg-background p-4 rounded-lg border">
                   <h5 className="font-medium mb-3 text-green-700">Entrada</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
                     <div>
                       <span className="font-medium">Valor:</span>
                       <p className="text-green-600 font-semibold">{financeiroData.valorEntrada}</p>
@@ -621,6 +621,12 @@ const NewProcess = () => {
                     <div>
                       <span className="font-medium">Status:</span>
                       <p className="text-orange-600">Pendente</p>
+                    </div>
+                    <div>
+                      <Button size="sm" disabled className="opacity-50">
+                        Dar Baixa
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
                     </div>
                   </div>
                 </div>
@@ -636,7 +642,7 @@ const NewProcess = () => {
                     dataVencimento.setMonth(dataVencimento.getMonth() + index);
                     
                     return (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm py-2 border-b border-muted">
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
                         <div>
                           <span className="font-medium">Parcela {index + 1}:</span>
                           <p className="text-blue-600 font-semibold">{formatCurrency(resumo.valorParcela)}</p>
@@ -648,6 +654,12 @@ const NewProcess = () => {
                         <div>
                           <span className="font-medium">Status:</span>
                           <p className="text-orange-600">Pendente</p>
+                        </div>
+                        <div>
+                          <Button size="sm" disabled className="opacity-50">
+                            Dar Baixa
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
                         </div>
                       </div>
                     );
@@ -666,7 +678,7 @@ const NewProcess = () => {
                       dataVencimento.setMonth(dataVencimento.getMonth() + index);
                       
                       return (
-                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm py-2 border-b border-muted">
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
                           <div>
                             <span className="font-medium">TMP {index + 1}:</span>
                             <p className="text-orange-600 font-semibold">{financeiroData.valorTMP}</p>
@@ -678,6 +690,12 @@ const NewProcess = () => {
                           <div>
                             <span className="font-medium">Status:</span>
                             <p className="text-orange-600">Pendente</p>
+                          </div>
+                          <div>
+                            <Button size="sm" disabled className="opacity-50">
+                              Dar Baixa
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
                           </div>
                         </div>
                       );
@@ -709,13 +727,79 @@ const NewProcess = () => {
                       )
                     }</p>
                     <p className="text-muted-foreground text-xs mt-2">
-                      Após salvar o processo, você poderá gerenciar estas parcelas na seção Financeiro
+                      Após salvar o processo, você poderá gerenciar e dar baixa nestas parcelas na seção Financeiro
                     </p>
                   </div>
                 </div>
               </div>
             </div>
           )}
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="incluirTMP"
+                checked={financeiroData.incluirTMP}
+                onCheckedChange={(checked) => setFinanceiroData({ ...financeiroData, incluirTMP: checked as boolean })}
+              />
+              <Label htmlFor="incluirTMP">Incluir TMP (Taxa de Manutenção Processual)</Label>
+            </div>
+
+            {financeiroData.incluirTMP && (
+              <div className="bg-muted p-4 rounded-lg space-y-4">
+                <h4 className="font-medium">Configuração da TMP:</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="valorTMP">Valor da TMP *</Label>
+                    <Input
+                      id="valorTMP"
+                      value={financeiroData.valorTMP}
+                      onChange={(e) => handleCurrencyChange('valorTMP', e.target.value)}
+                      placeholder="R$ 0,00"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="vencimentoTMP">Primeiro Vencimento da TMP *</Label>
+                    <Input
+                      id="vencimentoTMP"
+                      type="date"
+                      value={financeiroData.vencimentoTMP}
+                      onChange={(e) => setFinanceiroData({ ...financeiroData, vencimentoTMP: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="quantidadeMesesTMP">Quantidade de Meses da TMP *</Label>
+                  <Input
+                    id="quantidadeMesesTMP"
+                    type="number"
+                    min="1"
+                    value={financeiroData.quantidadeMesesTMP}
+                    onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeMesesTMP: e.target.value })}
+                    placeholder="Ex: 12"
+                    required
+                  />
+                </div>
+
+                {financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && (
+                  <div className="bg-background p-3 rounded border">
+                    <p className="text-sm">
+                      <span className="font-medium">Total TMP:</span> {formatCurrency(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP))}
+                      <br />
+                      <span className="font-medium">Valor Mensal:</span> {financeiroData.valorTMP}
+                      <br />
+                      <span className="font-medium">Duração:</span> {financeiroData.quantidadeMesesTMP} meses
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-between pt-6">
             <Button variant="outline" onClick={handlePrevStep}>
