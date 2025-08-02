@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Bot, User, Globe, Zap, Search } from "lucide-react";
+import { ArrowLeft, Bot, User, Globe, Zap, Search, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdvancedChatInput } from "@/components/AdvancedChatInput";
@@ -12,7 +12,7 @@ interface Message {
   type: 'user' | 'ai';
   content: string;
   timestamp: Date;
-  mode?: 'chat' | 'agent' | 'research';
+  mode?: 'chat' | 'agent' | 'research' | 'investigate';
   files?: any[];
   toolCalls?: any[];
   sources?: any[];
@@ -34,14 +34,14 @@ const IAFacilita = () => {
     {
       id: 1,
       type: 'ai',
-      content: 'Olá! Sou a IA-Facilita, sua assistente jurídica avançada. Agora com novos modos:\n\n🤖 **Chat** - Conversa normal\n⚡ **Agente** - Análise autônoma estruturada\n🔍 **Pesquisa** - Busca informações atualizadas na web\n\nVocê também pode anexar arquivos para análise. Como posso ajudá-lo hoje?',
+      content: 'Olá! Sou a IA-Facilita, sua assistente jurídica avançada. Agora com novos modos:\n\n🤖 **Chat** - Conversa normal\n⚡ **Agente** - Análise autônoma estruturada\n🔍 **Pesquisa** - Busca informações atualizadas na web\n👁️ **Investigar** - Investigação detalhada com múltiplas fontes\n\nVocê também pode anexar arquivos para análise. Como posso ajudá-lo hoje?',
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendMessage = async (message: string, mode: 'chat' | 'agent' | 'research', files: UploadedFile[]) => {
+  const handleSendMessage = async (message: string, mode: 'chat' | 'agent' | 'research' | 'investigate', files: UploadedFile[]) => {
     if (!message.trim() && files.length === 0) return;
 
     const userMessage: Message = {
@@ -63,6 +63,31 @@ const IAFacilita = () => {
       let additionalData = {};
 
       switch (mode) {
+        case 'investigate':
+          console.log('🔍 Modo Investigação ativado');
+          const { data: investigateData, error: investigateError } = await supabase.functions.invoke('agent-mode', {
+            body: {
+              message: `MODO INVESTIGAÇÃO ATIVADO - Realize uma investigação detalhada sobre: ${message}. 
+              Combine múltiplas abordagens: análise jurídica, busca de precedentes, verificação de fontes e análise de contexto.`,
+              context: 'Sistema jurídico - modo investigação avançada',
+              files: files.map(f => ({ name: f.name, type: f.type })),
+              previousMessages: messages.slice(-3).map(m => ({
+                role: m.type === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            }
+          });
+
+          if (investigateError) throw investigateError;
+
+          aiContent = investigateData.response;
+          additionalData = {
+            toolCalls: investigateData.toolCalls,
+            reasoning: investigateData.reasoning,
+            investigation: true
+          };
+          break;
+
         case 'research':
           console.log('🔍 Modo Pesquisa ativado');
           const { data: searchData, error: searchError } = await supabase.functions.invoke('web-search', {
@@ -156,6 +181,7 @@ const IAFacilita = () => {
     switch (mode) {
       case 'agent': return <Zap className="w-4 h-4 text-purple-600" />;
       case 'research': return <Search className="w-4 h-4 text-green-600" />;
+      case 'investigate': return <Eye className="w-4 h-4 text-orange-600" />;
       case 'chat':
       default: return <Bot className="w-4 h-4 text-blue-600" />;
     }
@@ -165,6 +191,7 @@ const IAFacilita = () => {
     switch (mode) {
       case 'agent': return 'Agente';
       case 'research': return 'Pesquisa';
+      case 'investigate': return 'Investigar';
       case 'chat':
       default: return 'Chat';
     }

@@ -9,7 +9,8 @@ import {
   Search, 
   Globe,
   Zap,
-  Paperclip
+  Paperclip,
+  Eye
 } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 
@@ -25,7 +26,7 @@ interface UploadedFile {
 interface AdvancedChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: (message: string, mode: 'chat' | 'agent' | 'research', files: UploadedFile[]) => void;
+  onSend: (message: string, mode: 'chat' | 'agent' | 'research' | 'investigate', files: UploadedFile[]) => void;
   disabled?: boolean;
   loading?: boolean;
 }
@@ -37,7 +38,7 @@ export const AdvancedChatInput: React.FC<AdvancedChatInputProps> = ({
   disabled = false,
   loading = false
 }) => {
-  const [mode, setMode] = useState<'chat' | 'agent' | 'research'>('chat');
+  const [mode, setMode] = useState<'chat' | 'agent' | 'research' | 'investigate'>('chat');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -83,6 +84,12 @@ export const AdvancedChatInput: React.FC<AdvancedChatInputProps> = ({
       label: 'Pesquisa',
       description: 'Busca informações na web',
       color: 'bg-green-100 text-green-800 hover:bg-green-200'
+    },
+    investigate: {
+      icon: Eye,
+      label: 'Investigar',
+      description: 'Investigação detalhada com múltiplas fontes',
+      color: 'bg-orange-100 text-orange-800 hover:bg-orange-200'
     }
   };
 
@@ -149,7 +156,9 @@ export const AdvancedChatInput: React.FC<AdvancedChatInputProps> = ({
               ? "Digite sua pergunta jurídica..."
               : mode === 'agent'
               ? "Descreva o problema para análise autônoma..."
-              : "O que você gostaria de pesquisar na web?"
+              : mode === 'research'
+              ? "O que você gostaria de pesquisar na web?"
+              : "Descreva o que você quer investigar em detalhes..."
           }
           disabled={disabled || loading}
           className="min-h-[80px] pr-24 resize-none"
