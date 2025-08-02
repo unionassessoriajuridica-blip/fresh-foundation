@@ -55,7 +55,7 @@ const Dashboard = () => {
         .from('processos')
         .select(`
           *,
-          clientes!inner (
+          clientes (
             nome
           )
         `)
