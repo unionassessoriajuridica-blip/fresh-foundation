@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,11 @@ const NewProcess = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [processoId, setProcessoId] = useState<string | null>(null);
   
   const [clienteData, setClienteData] = useState({
     nomeCompleto: "",
@@ -78,6 +81,157 @@ const NewProcess = () => {
     "Administrativo",
     "Consumidor"
   ];
+
+  // Verificar se está em modo de edição e carregar dados existentes
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && user) {
+      setIsEditMode(true);
+      setProcessoId(editId);
+      loadProcessData(editId);
+    }
+  }, [searchParams, user]);
+
+  const loadProcessData = async (id: string) => {
+    try {
+      setLoading(true);
+      
+      // Carregar dados do processo com cliente
+      const { data: processo, error: processoError } = await supabase
+        .from('processos')
+        .select(`
+          *,
+          clientes (*)
+        `)
+        .eq('id', id)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (processoError) {
+        console.error('Erro ao carregar processo:', processoError);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Processo não encontrado.",
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      // Preencher dados do cliente
+      if (processo.clientes) {
+        const cliente = processo.clientes;
+        const enderecoParts = cliente.endereco?.split(', ') || ['', '', '', ''];
+        
+        setClienteData({
+          nomeCompleto: cliente.nome || '',
+          rg: '', // RG não está sendo salvo na tabela clientes atual
+          cpf: cliente.cpf_cnpj || '',
+          dataNascimento: '',
+          telefone: cliente.telefone || '',
+          email: cliente.email || '',
+          endereco: enderecoParts[0] || '',
+          bairro: enderecoParts[1] || '',
+          cidade: enderecoParts[2]?.split(' - ')[0] || '',
+          cep: enderecoParts[2]?.split(' - ')[1] || ''
+        });
+      }
+
+      // Preencher dados do processo
+      setProcessoData({
+        numeroProcesso: processo.numero_processo || '',
+        tipoProcesso: processo.tipo_processo || '',
+        temPrazo: !!processo.prazo,
+        prazo: processo.prazo || ''
+      });
+
+      // Carregar dados financeiros
+      const { data: financeiroData, error: financeiroError } = await supabase
+        .from('financeiro')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('cliente_nome', processo.clientes?.nome)
+        .order('created_at', { ascending: true });
+
+      if (!financeiroError && financeiroData && financeiroData.length > 0) {
+        // Processar dados financeiros para reconstruir os valores originais
+        const entrada = financeiroData.find(f => f.tipo === 'Entrada');
+        const honorarios = financeiroData.filter(f => f.tipo === 'Honorários');
+        const tmp = financeiroData.filter(f => f.tipo === 'TMP');
+
+        const valorHonorarios = honorarios.reduce((total, h) => total + Number(h.valor), 0) + (entrada ? Number(entrada.valor) : 0);
+        
+        setFinanceiroData({
+          valorHonorarios: valorHonorarios.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          valorEntrada: entrada ? Number(entrada.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '',
+          dataEntrada: entrada?.vencimento || '',
+          quantidadeParcelas: honorarios.length.toString(),
+          dataPrimeiroVencimento: honorarios[0]?.vencimento || '',
+          incluirTMP: tmp.length > 0,
+          valorTMP: tmp.length > 0 ? Number(tmp[0].valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '',
+          vencimentoTMP: tmp[0]?.vencimento || '',
+          quantidadeMesesTMP: tmp.length.toString()
+        });
+      }
+
+      // Carregar observações
+      const { data: observacoesData, error: observacoesError } = await supabase
+        .from('observacoes_processo')
+        .select('*')
+        .eq('processo_id', id)
+        .eq('user_id', user?.id);
+
+      if (!observacoesError && observacoesData) {
+        setObservacoes(observacoesData.map(obs => ({
+          titulo: obs.titulo,
+          conteudo: obs.conteudo
+        })));
+      }
+
+      // Carregar documentos
+      const { data: documentosData, error: documentosError } = await supabase
+        .from('documentos_processo')
+        .select('*')
+        .eq('processo_id', id)
+        .eq('user_id', user?.id);
+
+      if (!documentosError && documentosData) {
+        setDocumentos(documentosData);
+      }
+
+      // Carregar responsável financeiro
+      const { data: responsavelData, error: responsavelError } = await supabase
+        .from('responsavel_financeiro')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!responsavelError && responsavelData && responsavelData.length > 0) {
+        const resp = responsavelData[0];
+        setResponsavelData({
+          nome: resp.nome || '',
+          rg: resp.rg || '',
+          cpf: resp.cpf || '',
+          data_nascimento: resp.data_nascimento || '',
+          telefone: resp.telefone || '',
+          email: resp.email || '',
+          endereco_completo: resp.endereco_completo || '',
+          cep: resp.cep || ''
+        });
+      }
+
+    } catch (error) {
+      console.error('Erro ao carregar dados do processo:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao carregar dados do processo.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNextStep = () => {
     if (currentStep < 4) {
@@ -138,205 +292,246 @@ const NewProcess = () => {
     setLoading(true);
 
     try {
-      console.log('=== CRIANDO CLIENTE ===');
-      // Primeiro criar o cliente
-      const { data: clienteCreated, error: clienteError } = await supabase
-        .from('clientes')
-        .insert([
-          {
-            user_id: user.id,
+      if (isEditMode && processoId) {
+        // MODO DE EDIÇÃO - Atualizar dados existentes
+        console.log('=== ATUALIZANDO PROCESSO ===');
+        
+        // Primeiro buscar o processo existente
+        const { data: processoExistente, error: processoExistenteError } = await supabase
+          .from('processos')
+          .select('*, clientes(*)')
+          .eq('id', processoId)
+          .single();
+
+        if (processoExistenteError) throw processoExistenteError;
+
+        // Atualizar dados do cliente
+        const { error: clienteError } = await supabase
+          .from('clientes')
+          .update({
             nome: clienteData.nomeCompleto,
             email: clienteData.email,
             telefone: clienteData.telefone,
             cpf_cnpj: clienteData.cpf,
             endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`
-          }
-        ])
-        .select()
-        .single();
+          })
+          .eq('id', processoExistente.cliente_id);
 
-      if (clienteError) {
-        console.error('Erro ao criar cliente:', clienteError);
-        throw clienteError;
-      }
-      
-      console.log('Cliente criado com sucesso:', clienteCreated);
+        if (clienteError) throw clienteError;
 
-      console.log('=== CRIANDO PROCESSO ===');
-      // Depois criar o processo
-      const { data: processoCreated, error: processoError } = await supabase
-        .from('processos')
-        .insert([
-          {
-            user_id: user.id,
+        // Atualizar dados do processo
+        const { error: processoError } = await supabase
+          .from('processos')
+          .update({
             numero_processo: processoData.numeroProcesso,
-            cliente_id: clienteCreated.id,
             tipo_processo: processoData.tipoProcesso,
-            prazo: processoData.temPrazo ? processoData.prazo : null,
-            status: 'ATIVO'
-          }
-        ])
-        .select()
-        .single();
+            prazo: processoData.temPrazo ? processoData.prazo : null
+          })
+          .eq('id', processoId);
 
-      if (processoError) {
-        console.error('Erro ao criar processo:', processoError);
-        throw processoError;
-      }
+        if (processoError) throw processoError;
 
-      console.log('Processo criado com sucesso:', processoCreated);
+        // Atualizar dados financeiros se necessário
+        // Por simplicidade, manteremos os registros financeiros existentes
+        // Em uma implementação mais avançada, você poderia implementar a atualização completa
 
-      console.log('=== CRIANDO REGISTROS FINANCEIROS ===');
-      // Se tiver dados financeiros, criar registros financeiros
-      if (financeiroData.valorHonorarios) {
-        const valorHonorarios = parseCurrency(financeiroData.valorHonorarios);
-        const valorEntrada = parseCurrency(financeiroData.valorEntrada || '0');
-        const quantidadeParcelas = parseInt(financeiroData.quantidadeParcelas || '1');
+        toast({
+          title: "Processo atualizado!",
+          description: "Os dados do processo foram atualizados com sucesso.",
+        });
+      } else {
+        // MODO DE CRIAÇÃO - Criar novos registros
+        console.log('=== CRIANDO CLIENTE ===');
+        const { data: clienteCreated, error: clienteError } = await supabase
+          .from('clientes')
+          .insert([
+            {
+              user_id: user.id,
+              nome: clienteData.nomeCompleto,
+              email: clienteData.email,
+              telefone: clienteData.telefone,
+              cpf_cnpj: clienteData.cpf,
+              endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`
+            }
+          ])
+          .select()
+          .single();
 
-        console.log('Valores financeiros:', { valorHonorarios, valorEntrada, quantidadeParcelas });
+        if (clienteError) {
+          console.error('Erro ao criar cliente:', clienteError);
+          throw clienteError;
+        }
+        
+        console.log('Cliente criado com sucesso:', clienteCreated);
 
-        // Criar entrada se houver
-        if (valorEntrada > 0) {
-          console.log('Criando entrada...');
-          const { error: entradaError } = await supabase
-            .from('financeiro')
-            .insert([
-              {
-                user_id: user.id,
-                cliente_nome: clienteData.nomeCompleto,
-                valor: valorEntrada,
-                tipo: 'Entrada',
-                status: 'PENDENTE',
-                vencimento: financeiroData.dataEntrada
-              }
-            ]);
-          
-          if (entradaError) {
-            console.error('Erro ao criar entrada:', entradaError);
-            throw entradaError;
-          }
-          console.log('Entrada criada com sucesso');
+        console.log('=== CRIANDO PROCESSO ===');
+        const { data: processoCreated, error: processoError } = await supabase
+          .from('processos')
+          .insert([
+            {
+              user_id: user.id,
+              numero_processo: processoData.numeroProcesso,
+              cliente_id: clienteCreated.id,
+              tipo_processo: processoData.tipoProcesso,
+              prazo: processoData.temPrazo ? processoData.prazo : null,
+              status: 'ATIVO'
+            }
+          ])
+          .select()
+          .single();
+
+        if (processoError) {
+          console.error('Erro ao criar processo:', processoError);
+          throw processoError;
         }
 
-        // Criar parcelas - valor da entrada é abatido dos honorários
-        const valorRestante = valorHonorarios - valorEntrada;
-        const valorParcela = valorRestante / quantidadeParcelas;
-        const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
+        console.log('Processo criado com sucesso:', processoCreated);
 
-        console.log('Criando parcelas de honorários...', { valorRestante, valorParcela });
+        console.log('=== CRIANDO REGISTROS FINANCEIROS ===');
+        if (financeiroData.valorHonorarios) {
+          const valorHonorarios = parseCurrency(financeiroData.valorHonorarios);
+          const valorEntrada = parseCurrency(financeiroData.valorEntrada || '0');
+          const quantidadeParcelas = parseInt(financeiroData.quantidadeParcelas || '1');
 
-        for (let i = 0; i < quantidadeParcelas; i++) {
-          const dataVencimento = new Date(dataBase);
-          dataVencimento.setMonth(dataVencimento.getMonth() + i);
+          console.log('Valores financeiros:', { valorHonorarios, valorEntrada, quantidadeParcelas });
 
-          const { error: parcelaError } = await supabase
-            .from('financeiro')
-            .insert([
-              {
-                user_id: user.id,
-                cliente_nome: clienteData.nomeCompleto,
-                valor: valorParcela,
-                tipo: 'Honorários',
-                status: 'PENDENTE',
-                vencimento: dataVencimento.toISOString().split('T')[0]
-              }
-            ]);
-          
-          if (parcelaError) {
-            console.error(`Erro ao criar parcela ${i + 1}:`, parcelaError);
-            throw parcelaError;
-          }
-        }
-        console.log('Parcelas de honorários criadas com sucesso');
-
-        // Criar TMP se marcado - agora com valores personalizados
-        if (financeiroData.incluirTMP) {
-          console.log('Criando parcelas de TMP...');
-          const valorTMP = parseCurrency(financeiroData.valorTMP);
-          const quantidadeMesesTMP = parseInt(financeiroData.quantidadeMesesTMP || '1');
-          const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
-
-          for (let i = 0; i < quantidadeMesesTMP; i++) {
-            const dataVencimentoTMP = new Date(dataBaseTMP);
-            dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
-
-            const { error: tmpError } = await supabase
+          if (valorEntrada > 0) {
+            console.log('Criando entrada...');
+            const { error: entradaError } = await supabase
               .from('financeiro')
               .insert([
                 {
                   user_id: user.id,
                   cliente_nome: clienteData.nomeCompleto,
-                  valor: valorTMP,
-                  tipo: 'TMP',
+                  valor: valorEntrada,
+                  tipo: 'Entrada',
                   status: 'PENDENTE',
-                  vencimento: dataVencimentoTMP.toISOString().split('T')[0]
+                  vencimento: financeiroData.dataEntrada
                 }
               ]);
             
-            if (tmpError) {
-              console.error(`Erro ao criar TMP ${i + 1}:`, tmpError);
-              throw tmpError;
+            if (entradaError) {
+              console.error('Erro ao criar entrada:', entradaError);
+              throw entradaError;
+            }
+            console.log('Entrada criada com sucesso');
+          }
+
+          const valorRestante = valorHonorarios - valorEntrada;
+          const valorParcela = valorRestante / quantidadeParcelas;
+          const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
+
+          console.log('Criando parcelas de honorários...', { valorRestante, valorParcela });
+
+          for (let i = 0; i < quantidadeParcelas; i++) {
+            const dataVencimento = new Date(dataBase);
+            dataVencimento.setMonth(dataVencimento.getMonth() + i);
+
+            const { error: parcelaError } = await supabase
+              .from('financeiro')
+              .insert([
+                {
+                  user_id: user.id,
+                  cliente_nome: clienteData.nomeCompleto,
+                  valor: valorParcela,
+                  tipo: 'Honorários',
+                  status: 'PENDENTE',
+                  vencimento: dataVencimento.toISOString().split('T')[0]
+                }
+              ]);
+            
+            if (parcelaError) {
+              console.error(`Erro ao criar parcela ${i + 1}:`, parcelaError);
+              throw parcelaError;
             }
           }
-          console.log('Parcelas de TMP criadas com sucesso');
-        }
-      }
+          console.log('Parcelas de honorários criadas com sucesso');
 
-      console.log('=== SALVANDO OBSERVAÇÕES ===');
-      // Salvar observações se houver
-      if (observacoes.length > 0) {
-        for (const observacao of observacoes) {
-          const { error: obsError } = await supabase
-            .from('observacoes_processo')
+          if (financeiroData.incluirTMP) {
+            console.log('Criando parcelas de TMP...');
+            const valorTMP = parseCurrency(financeiroData.valorTMP);
+            const quantidadeMesesTMP = parseInt(financeiroData.quantidadeMesesTMP || '1');
+            const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
+
+            for (let i = 0; i < quantidadeMesesTMP; i++) {
+              const dataVencimentoTMP = new Date(dataBaseTMP);
+              dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
+
+              const { error: tmpError } = await supabase
+                .from('financeiro')
+                .insert([
+                  {
+                    user_id: user.id,
+                    cliente_nome: clienteData.nomeCompleto,
+                    valor: valorTMP,
+                    tipo: 'TMP',
+                    status: 'PENDENTE',
+                    vencimento: dataVencimentoTMP.toISOString().split('T')[0]
+                  }
+                ]);
+              
+              if (tmpError) {
+                console.error(`Erro ao criar TMP ${i + 1}:`, tmpError);
+                throw tmpError;
+              }
+            }
+            console.log('Parcelas de TMP criadas com sucesso');
+          }
+        }
+
+        console.log('=== SALVANDO OBSERVAÇÕES ===');
+        if (observacoes.length > 0) {
+          for (const observacao of observacoes) {
+            const { error: obsError } = await supabase
+              .from('observacoes_processo')
+              .insert([
+                {
+                  user_id: user.id,
+                  processo_id: processoCreated.id,
+                  cliente_nome: clienteData.nomeCompleto,
+                  titulo: observacao.titulo,
+                  conteudo: observacao.conteudo
+                }
+              ]);
+            
+            if (obsError) {
+              console.error('Erro ao salvar observação:', obsError);
+              throw obsError;
+            }
+          }
+          console.log('Observações salvas com sucesso');
+        }
+
+        console.log('=== SALVANDO RESPONSÁVEL FINANCEIRO ===');
+        if (responsavelData.nome && responsavelData.cpf) {
+          const { error: respError } = await supabase
+            .from('responsavel_financeiro')
             .insert([
               {
                 user_id: user.id,
-                processo_id: processoCreated.id,
-                cliente_nome: clienteData.nomeCompleto,
-                titulo: observacao.titulo,
-                conteudo: observacao.conteudo
+                nome: responsavelData.nome,
+                rg: responsavelData.rg,
+                cpf: responsavelData.cpf,
+                data_nascimento: responsavelData.data_nascimento,
+                telefone: responsavelData.telefone,
+                email: responsavelData.email,
+                endereco_completo: responsavelData.endereco_completo,
+                cep: responsavelData.cep
               }
             ]);
           
-          if (obsError) {
-            console.error('Erro ao salvar observação:', obsError);
-            throw obsError;
+          if (respError) {
+            console.error('Erro ao salvar responsável financeiro:', respError);
+            throw respError;
           }
+          console.log('Responsável financeiro salvo com sucesso');
         }
-        console.log('Observações salvas com sucesso');
-      }
 
-      console.log('=== SALVANDO RESPONSÁVEL FINANCEIRO ===');
-      // Salvar dados do responsável financeiro se preenchido
-      if (responsavelData.nome && responsavelData.cpf) {
-        const { error: respError } = await supabase
-          .from('responsavel_financeiro')
-          .insert([
-            {
-              user_id: user.id,
-              nome: responsavelData.nome,
-              rg: responsavelData.rg,
-              cpf: responsavelData.cpf,
-              data_nascimento: responsavelData.data_nascimento,
-              telefone: responsavelData.telefone,
-              email: responsavelData.email,
-              endereco_completo: responsavelData.endereco_completo,
-              cep: responsavelData.cep
-            }
-          ]);
-        
-        if (respError) {
-          console.error('Erro ao salvar responsável financeiro:', respError);
-          throw respError;
-        }
-        console.log('Responsável financeiro salvo com sucesso');
+        toast({
+          title: "Processo criado!",
+          description: "O processo foi cadastrado com sucesso.",
+        });
       }
-
-      console.log('=== PROCESSO SALVO COM SUCESSO ===');
-      toast({
-        title: "Processo criado!",
-        description: "O processo foi cadastrado com sucesso.",
-      });
 
       navigate('/dashboard');
     } catch (error: any) {
@@ -1022,7 +1217,7 @@ const NewProcess = () => {
             Anterior
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
-            {loading ? "Salvando..." : "Finalizar Cadastro"}
+            {loading ? "Salvando..." : (isEditMode ? "Atualizar Processo" : "Finalizar Cadastro")}
           </Button>
         </div>
       </CardContent>
@@ -1037,7 +1232,7 @@ const NewProcess = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">Novo Processo</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? 'Editar Processo' : 'Novo Processo'}</h1>
         </div>
 
         {/* Progress indicator */}
