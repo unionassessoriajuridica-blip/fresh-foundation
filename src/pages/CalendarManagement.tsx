@@ -4,18 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Calendar, Clock, Plus } from 'lucide-react';
 import { GoogleCalendarCard } from '@/components/GoogleCalendarCard';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 const CalendarManagement = () => {
   const navigate = useNavigate();
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
-  const handleConnectGoogle = () => {
-    // Simular conexão com Google Calendar
-    setIsGoogleConnected(true);
+  // Configuração real do Google OAuth
+  const googleAuth = useGoogleAuth({
+    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com',
+    scopes: [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/calendar'
+    ]
+  });
+
+  const handleConnectGoogle = async () => {
+    await googleAuth.signIn();
   };
 
-  const handleDisconnectGoogle = () => {
-    setIsGoogleConnected(false);
+  const handleDisconnectGoogle = async () => {
+    await googleAuth.signOut();
   };
 
   const upcomingEvents = [
@@ -63,7 +72,7 @@ const CalendarManagement = () => {
           {/* Google Calendar Integration */}
           <div className="lg:col-span-2">
             <GoogleCalendarCard
-              isConnected={isGoogleConnected}
+              isConnected={googleAuth.isAuthenticated}
               onConnect={handleConnectGoogle}
               onDisconnect={handleDisconnectGoogle}
             />

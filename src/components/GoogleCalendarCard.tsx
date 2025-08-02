@@ -20,6 +20,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import {
   Dialog,
   DialogContent,
@@ -68,8 +70,6 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
   calendarId = 'primary'
 }) => {
   const { toast } = useToast();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showNewEventDialog, setShowNewEventDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newEvent, setNewEvent] = useState({
@@ -81,6 +81,19 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     attendees: '',
     type: 'reuniao' as const
   });
+
+  // Configuração real do Google OAuth
+  const googleAuth = useGoogleAuth({
+    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com',
+    scopes: [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/calendar'
+    ]
+  });
+
+  // Hook para integração real com Google Calendar
+  const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
 
   // Simulação de eventos para demonstração
   const mockEvents: CalendarEvent[] = [
@@ -117,27 +130,10 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
   ];
 
   useEffect(() => {
-    if (isConnected) {
-      loadEvents();
+    if (googleAuth.isAuthenticated) {
+      googleCalendar.loadEvents(calendarId);
     }
-  }, [isConnected]);
-
-  const loadEvents = async () => {
-    setLoading(true);
-    try {
-      // Simular carregamento de eventos do Google Calendar
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setEvents(mockEvents);
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os eventos da agenda",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [googleAuth.isAuthenticated, calendarId]);
 
   const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.start || !newEvent.end) {
@@ -149,21 +145,18 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
       return;
     }
 
-    try {
-      // Simular criação de evento no Google Calendar
-      const eventData: CalendarEvent = {
-        id: Date.now().toString(),
-        title: newEvent.title,
-        description: newEvent.description,
-        start: new Date(newEvent.start),
-        end: new Date(newEvent.end),
-        location: newEvent.location,
-        attendees: newEvent.attendees ? newEvent.attendees.split(',').map(e => e.trim()) : [],
-        type: newEvent.type,
-        status: 'confirmed'
-      };
+    const eventData = {
+      summary: newEvent.title,
+      description: newEvent.description,
+      start: new Date(newEvent.start).toISOString(),
+      end: new Date(newEvent.end).toISOString(),
+      location: newEvent.location,
+      attendees: newEvent.attendees ? newEvent.attendees.split(',').map(e => e.trim()) : [],
+    };
 
-      setEvents(prev => [...prev, eventData]);
+    const success = await googleCalendar.createEvent(eventData, calendarId);
+    
+    if (success) {
       setShowNewEventDialog(false);
       setNewEvent({
         title: '',
@@ -173,17 +166,6 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
         location: '',
         attendees: '',
         type: 'reuniao'
-      });
-
-      toast({
-        title: "Sucesso",
-        description: "Evento criado e sincronizado com Google Calendar",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o evento",
-        variant: "destructive",
       });
     }
   };
@@ -206,7 +188,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     }
   };
 
-  if (!isConnected) {
+  if (!googleAuth.isAuthenticated) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -251,9 +233,9 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
             </div>
           </div>
 
-          <Button onClick={onConnect} className="w-full">
+          <Button onClick={googleAuth.signIn} disabled={googleAuth.isLoading} className="w-full">
             <Calendar className="w-4 h-4 mr-2" />
-            Conectar Google Calendar
+            {googleAuth.isLoading ? 'Conectando...' : 'Conectar Google Calendar'}
           </Button>
         </CardContent>
       </Card>
@@ -281,8 +263,8 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
           </div>
           
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadEvents} disabled={loading}>
-              {loading ? (
+            <Button variant="outline" size="sm" onClick={() => googleCalendar.loadEvents(calendarId)} disabled={googleCalendar.loading}>
+              {googleCalendar.loading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
@@ -400,12 +382,12 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {loading ? (
+        {googleCalendar.loading ? (
           <div className="text-center py-8">
             <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Carregando eventos...</p>
           </div>
-        ) : events.length === 0 ? (
+        ) : googleCalendar.events.length === 0 ? (
           <div className="text-center py-8">
             <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Nenhum evento encontrado</p>
@@ -415,10 +397,10 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="font-medium">Próximos Eventos</h4>
-              <Badge variant="outline">{events.length} eventos</Badge>
+              <Badge variant="outline">{googleCalendar.events.length} eventos</Badge>
             </div>
             
-            {events.map((event) => (
+            {googleCalendar.events.map((event) => (
               <div key={event.id} className="flex gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                 <div className="flex flex-col items-center min-w-[60px]">
                   <div className="text-xs text-muted-foreground">
@@ -465,9 +447,9 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
 
         <div className="pt-4 border-t">
           <div className="flex items-center justify-between text-sm">
-            <Button variant="outline" size="sm" onClick={onDisconnect}>
+            <Button variant="outline" size="sm" onClick={googleAuth.signOut}>
               <Settings className="w-4 h-4 mr-2" />
-              Configurações
+              Desconectar
             </Button>
             
             <Button variant="ghost" size="sm" asChild>

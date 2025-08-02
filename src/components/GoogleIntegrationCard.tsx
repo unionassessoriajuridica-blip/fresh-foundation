@@ -13,6 +13,7 @@ import {
   User
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 interface GoogleIntegrationCardProps {
   onConnect?: (permissions: string[]) => void;
@@ -32,7 +33,17 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   userInfo
 }) => {
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState(false);
+  
+  // Configuração real do Google OAuth
+  const googleAuth = useGoogleAuth({
+    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com', // Substitua pelo seu Client ID real
+    scopes: [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/calendar'
+    ]
+  });
 
   const permissions = [
     {
@@ -56,60 +67,41 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   ];
 
   const handleConnect = async () => {
-    setIsConnecting(true);
-    
     try {
-      // Configurar os escopos necessários para Google OAuth
-      const scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/gmail.send',
-        'https://www.googleapis.com/auth/calendar'
-      ];
-
-      // Simular processo de autenticação OAuth
-      // Em produção, isso seria uma chamada real para Google OAuth
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      onConnect?.(scopes);
-      
-      toast({
-        title: "Conectado com sucesso!",
-        description: "Sua conta Google foi conectada e as permissões foram concedidas.",
-      });
+      await googleAuth.signIn();
+      onConnect?.(['gmail', 'calendar']);
     } catch (error) {
-      toast({
-        title: "Erro na conexão",
-        description: "Não foi possível conectar com sua conta Google. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(false);
+      console.error('Erro na autenticação:', error);
     }
   };
 
-  const handleDisconnect = () => {
-    onDisconnect?.();
-    toast({
-      title: "Desconectado",
-      description: "Sua conta Google foi desconectada com sucesso.",
-    });
+  const handleDisconnect = async () => {
+    try {
+      await googleAuth.signOut();
+      onDisconnect?.();
+    } catch (error) {
+      console.error('Erro ao desconectar:', error);
+    }
   };
 
-  if (isConnected && userInfo) {
+  // Usar dados reais do Google Auth quando disponível
+  const currentUserInfo = googleAuth.userInfo || userInfo;
+  const isReallyConnected = googleAuth.isAuthenticated || isConnected;
+
+  if (isReallyConnected && currentUserInfo) {
     return (
       <Card className="w-full max-w-md mx-auto border-green-200 bg-green-50/50">
         <CardHeader>
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={userInfo.avatar} alt={userInfo.name} />
+              <AvatarImage src={(currentUserInfo as any).picture || (currentUserInfo as any).avatar} alt={currentUserInfo.name} />
               <AvatarFallback className="bg-google text-white">
-                {userInfo.name.charAt(0)}
+                {currentUserInfo.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <CardTitle className="text-lg text-green-800">Conectado ao Google</CardTitle>
-              <p className="text-sm text-green-600">{userInfo.email}</p>
+              <p className="text-sm text-green-600">{currentUserInfo.email}</p>
             </div>
             <Badge variant="secondary" className="bg-green-100 text-green-800">
               <Check className="w-3 h-3 mr-1" />
@@ -205,10 +197,10 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         <div className="pt-2 space-y-3">
           <Button 
             onClick={handleConnect} 
-            disabled={isConnecting}
+            disabled={googleAuth.isLoading}
             className="w-full bg-google hover:bg-google/90"
           >
-            {isConnecting ? (
+            {googleAuth.isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Conectando...

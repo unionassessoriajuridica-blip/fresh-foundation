@@ -3,30 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Shield } from 'lucide-react';
 import { GoogleIntegrationCard } from '@/components/GoogleIntegrationCard';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 const GoogleIntegration = () => {
   const navigate = useNavigate();
-  const [isConnected, setIsConnected] = useState(false);
-  const [userInfo, setUserInfo] = useState<{
-    name: string;
-    email: string;
-    avatar?: string;
-  } | null>(null);
+
+  // Configuração real do Google OAuth
+  const googleAuth = useGoogleAuth({
+    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com', // Substitua pelo seu Client ID real
+    scopes: [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/calendar'
+    ]
+  });
 
   const handleConnect = (permissions: string[]) => {
-    // Simular dados do usuário após conectar
-    setUserInfo({
-      name: 'Rafael Anastácio',
-      email: 'rasa.anastacio@gmail.com',
-      avatar: 'https://ui-avatars.com/api/?name=Rafael+Anastacio&background=4285f4&color=fff'
-    });
-    setIsConnected(true);
     console.log('Permissões concedidas:', permissions);
   };
 
   const handleDisconnect = () => {
-    setIsConnected(false);
-    setUserInfo(null);
+    console.log('Conta desconectada');
   };
 
   return (
@@ -56,8 +54,8 @@ const GoogleIntegration = () => {
             <GoogleIntegrationCard
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
-              isConnected={isConnected}
-              userInfo={userInfo || undefined}
+              isConnected={googleAuth.isAuthenticated}
+              userInfo={googleAuth.userInfo || undefined}
             />
           </div>
 
