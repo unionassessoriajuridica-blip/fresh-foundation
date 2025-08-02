@@ -36,6 +36,18 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Recarregar dados quando a página receber foco
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        loadData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
+
   const loadData = async () => {
     try {
       // Carregar processos com dados do cliente
@@ -43,15 +55,19 @@ const Dashboard = () => {
         .from('processos')
         .select(`
           *,
-          clientes:cliente_id (
+          clientes!inner (
             nome
           )
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (processosError) throw processosError;
+      if (processosError) {
+        console.error('Erro ao carregar processos:', processosError);
+        throw processosError;
+      }
 
+      console.log('Processos carregados:', processosData);
       setProcessos(processosData || []);
       
       // Carregar dados financeiros para calcular receita mensal
