@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { processExcelRow, ValidationError } from '@/utils/dataValidation';
 
 interface ClienteData {
   nome: string;
@@ -12,8 +13,19 @@ interface ClienteData {
   endereco?: string;
 }
 
+interface ImportResult {
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  importedRows: number;
+  duplicatesSkipped: number;
+  errors: ValidationError[];
+}
+
 export const useClienteExcel = () => {
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
   const downloadClientesExcel = async () => {
@@ -82,10 +94,12 @@ export const useClienteExcel = () => {
     }
   };
 
-  const uploadClientesExcel = async (file: File) => {
-    setLoading(true);
+  const uploadClientesExcel = async (file: File): Promise<ImportResult | null> => {
+    setImporting(true);
+    setProgress(0);
+    
     try {
-      // Ler arquivo Excel
+      // Read Excel file
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -95,66 +109,121 @@ export const useClienteExcel = () => {
         throw new Error('Arquivo Excel está vazio');
       }
 
-      // Validar e processar dados
-      const clientesParaInserir: ClienteData[] = [];
-      const erros: string[] = [];
+      setProgress(10);
 
-      jsonData.forEach((row: any, index: number) => {
-        const linhaNum = index + 2; // +2 porque linha 1 é cabeçalho e index começa em 0
+      // Process and validate all rows
+      const processedRows = jsonData.map((row, index) => processExcelRow(row, index));
+      const validRows = processedRows.filter(row => row.errors.length === 0);
+      const invalidRows = processedRows.filter(row => row.errors.length > 0);
+      
+      setProgress(30);
 
-        // Validar nome obrigatório
-        if (!row['Nome'] && !row['nome']) {
-          erros.push(`Linha ${linhaNum}: Nome é obrigatório`);
-          return;
-        }
-
-        const cliente: ClienteData = {
-          nome: (row['Nome'] || row['nome'])?.toString().trim(),
-          email: (row['Email'] || row['email'])?.toString().trim() || null,
-          telefone: (row['Telefone'] || row['telefone'])?.toString().trim() || null,
-          cpf_cnpj: (row['CPF/CNPJ'] || row['cpf_cnpj'])?.toString().trim() || null,
-          endereco: (row['Endereço'] || row['endereco'] || row['Endereco'])?.toString().trim() || null,
-        };
-
-        // Validação básica de email
-        if (cliente.email && !cliente.email.includes('@')) {
-          erros.push(`Linha ${linhaNum}: Email inválido`);
-          return;
-        }
-
-        clientesParaInserir.push(cliente);
-      });
-
-      if (erros.length > 0) {
+      if (validRows.length === 0) {
+        const allErrors = processedRows.flatMap(row => row.errors);
+        await generateErrorReport(allErrors, file.name);
+        
         toast({
-          title: 'Erros na validação',
-          description: `${erros.length} erro(s) encontrado(s). Primeiro erro: ${erros[0]}`,
+          title: 'Nenhum registro válido',
+          description: `Todas as ${jsonData.length} linhas contêm erros. Relatório de erros gerado.`,
           variant: 'destructive',
         });
-        return;
+        return {
+          totalRows: jsonData.length,
+          validRows: 0,
+          invalidRows: jsonData.length,
+          importedRows: 0,
+          duplicatesSkipped: 0,
+          errors: allErrors
+        };
       }
 
-      // Inserir clientes no banco
+      // Get current user
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Usuário não autenticado');
 
-      const clientesComUserId = clientesParaInserir.map(cliente => ({
-        ...cliente,
-        user_id: user.user.id
-      }));
+      setProgress(50);
 
-      const { error } = await supabase
+      // Check for duplicates
+      const existingClientes = await supabase
         .from('clientes')
-        .insert(clientesComUserId);
+        .select('email, cpf_cnpj')
+        .eq('user_id', user.user.id);
 
-      if (error) throw error;
+      const existingEmails = new Set(existingClientes.data?.map(c => c.email).filter(Boolean));
+      const existingCpfCnpj = new Set(existingClientes.data?.map(c => c.cpf_cnpj).filter(Boolean));
 
-      toast({
-        title: 'Upload realizado',
-        description: `${clientesParaInserir.length} cliente(s) importado(s) com sucesso`,
+      const clientesToInsert = validRows.filter(row => {
+        const { email, cpf_cnpj } = row.data;
+        if (email && existingEmails.has(email)) return false;
+        if (cpf_cnpj && existingCpfCnpj.has(cpf_cnpj)) return false;
+        return true;
       });
 
-      return true;
+      const duplicatesSkipped = validRows.length - clientesToInsert.length;
+      
+      setProgress(70);
+
+      // Insert valid clients in batches
+      let importedCount = 0;
+      if (clientesToInsert.length > 0) {
+        const clientesComUserId = clientesToInsert.map(row => ({
+          ...row.data,
+          user_id: user.user.id
+        }));
+
+        // Insert in batches of 100
+        const batchSize = 100;
+        for (let i = 0; i < clientesComUserId.length; i += batchSize) {
+          const batch = clientesComUserId.slice(i, i + batchSize);
+          const { error } = await supabase
+            .from('clientes')
+            .insert(batch);
+
+          if (error) {
+            console.error('Error inserting batch:', error);
+            // Continue with next batch instead of failing completely
+          } else {
+            importedCount += batch.length;
+          }
+          
+          setProgress(70 + (i / clientesComUserId.length) * 25);
+        }
+      }
+
+      setProgress(95);
+
+      // Generate error report if there are errors
+      const allErrors = processedRows.flatMap(row => row.errors);
+      if (allErrors.length > 0) {
+        await generateErrorReport(allErrors, file.name);
+      }
+
+      setProgress(100);
+
+      const result: ImportResult = {
+        totalRows: jsonData.length,
+        validRows: validRows.length,
+        invalidRows: invalidRows.length,
+        importedRows: importedCount,
+        duplicatesSkipped,
+        errors: allErrors
+      };
+
+      // Show result toast
+      if (importedCount > 0) {
+        toast({
+          title: 'Importação concluída',
+          description: `${importedCount} cliente(s) importado(s) com sucesso${duplicatesSkipped > 0 ? `. ${duplicatesSkipped} duplicata(s) ignorada(s)` : ''}${allErrors.length > 0 ? `. ${allErrors.length} erro(s) encontrado(s)` : ''}`,
+        });
+      } else {
+        toast({
+          title: 'Nenhum cliente importado',
+          description: 'Todos os registros eram duplicatas ou continham erros',
+          variant: 'destructive',
+        });
+      }
+
+      return result;
 
     } catch (error: any) {
       console.error('Error uploading Excel:', error);
@@ -163,10 +232,43 @@ export const useClienteExcel = () => {
         description: error.message || 'Falha ao processar arquivo Excel',
         variant: 'destructive',
       });
-      return false;
+      return null;
     } finally {
-      setLoading(false);
+      setImporting(false);
+      setProgress(0);
     }
+  };
+
+  const generateErrorReport = async (errors: ValidationError[], originalFileName: string) => {
+    if (errors.length === 0) return;
+
+    const errorData = errors.map(error => ({
+      'Linha': error.line,
+      'Campo': error.field,
+      'Valor': error.value || '',
+      'Erro': error.message
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(errorData);
+    const workbook = XLSX.utils.book_new();
+    
+    const columnWidths = [
+      { wch: 8 },  // Linha
+      { wch: 15 }, // Campo
+      { wch: 25 }, // Valor
+      { wch: 40 }, // Erro
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Erros');
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+
+    const fileName = `erros_${originalFileName.replace('.xlsx', '')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    saveAs(blob, fileName);
   };
 
   const downloadTemplateExcel = () => {
@@ -211,8 +313,11 @@ export const useClienteExcel = () => {
 
   return {
     loading,
+    importing,
+    progress,
     downloadClientesExcel,
     uploadClientesExcel,
-    downloadTemplateExcel
+    downloadTemplateExcel,
+    generateErrorReport
   };
 };
