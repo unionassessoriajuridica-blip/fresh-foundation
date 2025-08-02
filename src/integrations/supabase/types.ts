@@ -184,6 +184,42 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          cliente_nome: string | null
+          created_at: string
+          id: string
+          lida: boolean
+          mensagem: string
+          tipo: string
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_nome?: string | null
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem: string
+          tipo: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_nome?: string | null
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       observacoes_processo: {
         Row: {
           cliente_nome: string
@@ -338,12 +374,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_parcelas_em_aberto: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      is_master_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      set_master_user: {
+        Args: { user_email: string }
+        Returns: undefined
       }
     }
     Enums: {
