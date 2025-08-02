@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Bell, X, AlertTriangle, Check } from "lucide-react";
+import { Bell, X, AlertTriangle, Check, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useEmailService } from "@/hooks/useEmailService";
 
 interface Notificacao {
   id: string;
@@ -21,6 +22,7 @@ interface Notificacao {
 export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { sendNotificationEmail, isLoading: emailLoading } = useEmailService();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -128,6 +130,23 @@ export const NotificationCenter: React.FC = () => {
     }
   };
 
+  const enviarNotificacaoPorEmail = async (notificacao: Notificacao) => {
+    if (!user?.email) {
+      toast({
+        title: "Erro",
+        description: "Email do usuário não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await sendNotificationEmail(
+      user.email,
+      notificacao.mensagem,
+      notificacao.cliente_nome
+    );
+  };
+
   const marcarTodasComoLidas = async () => {
     try {
       setLoading(true);
@@ -216,16 +235,28 @@ export const NotificationCenter: React.FC = () => {
                       {new Date(notificacao.created_at).toLocaleString('pt-BR')}
                     </p>
                   </div>
-                  {!notificacao.lida && (
+                  <div className="flex gap-1 ml-2">
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => marcarComoLida(notificacao.id)}
-                      className="ml-2"
+                      onClick={() => enviarNotificacaoPorEmail(notificacao)}
+                      disabled={emailLoading}
+                      className="text-blue-600 hover:text-blue-700"
+                      title="Enviar por email"
                     >
-                      <X className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                     </Button>
-                  )}
+                    {!notificacao.lida && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => marcarComoLida(notificacao.id)}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        <Check className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </Alert>
