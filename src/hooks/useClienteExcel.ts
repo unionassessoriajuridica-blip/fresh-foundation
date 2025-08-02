@@ -5,16 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { processExcelRow, ValidationError } from '@/utils/dataValidation';
 
-interface ClienteData {
-  nome: string;
-  email?: string;
-  telefone?: string;
-  cpf_cnpj?: string;
-  endereco?: string;
-  numero_processo?: string;
-  tipo_processo?: string;
-}
-
 interface ImportResult {
   totalRows: number;
   validRows: number;
@@ -22,6 +12,8 @@ interface ImportResult {
   importedRows: number;
   duplicatesSkipped: number;
   processesCreated: number;
+  financialRecordsCreated: number;
+  responsaveisCreated: number;
   errors: ValidationError[];
 }
 
@@ -139,6 +131,8 @@ export const useClienteExcel = () => {
           importedRows: 0,
           duplicatesSkipped: 0,
           processesCreated: 0,
+          financialRecordsCreated: 0,
+          responsaveisCreated: 0,
           errors: allErrors
         };
       }
@@ -265,6 +259,8 @@ export const useClienteExcel = () => {
         importedRows: importedCount,
         duplicatesSkipped,
         processesCreated,
+        financialRecordsCreated: 0, // TODO: Implementar criação de registros financeiros
+        responsaveisCreated: 0, // TODO: Implementar criação de responsáveis
         errors: allErrors
       };
 
@@ -331,16 +327,48 @@ export const useClienteExcel = () => {
   };
 
   const downloadTemplateExcel = () => {
-    // Criar template vazio
+    // Criar template completo com todos os campos
     const templateData = [
       {
-        'Nome': 'João Silva',
+        // Dados do Cliente
+        'Nome': 'João Silva Santos',
         'Email': 'joao@exemplo.com',
         'Telefone': '(11) 99999-9999',
         'CPF/CNPJ': '123.456.789-00',
-        'Endereço': 'Rua das Flores, 123 - São Paulo/SP',
+        'RG': '12.345.678-9',
+        'Data Nascimento': '1985-05-15',
+        'Endereço': 'Rua das Flores, 123',
+        'Bairro': 'Centro',
+        'Cidade': 'São Paulo',
+        'CEP': '01234-567',
+        
+        // Dados do Processo
         'Número do Processo': '0001234-56.2024.8.26.0100',
-        'Área do Processo': 'Criminal'
+        'Tipo de Processo': 'Criminal',
+        'Prazo': '2024-12-31',
+        'Descrição': 'Processo de defesa criminal',
+        'Cliente Preso': 'Não',
+        
+        // Dados Financeiros
+        'Valor Honorários': '15000',
+        'Valor Entrada': '3000',
+        'Data Entrada': '2024-01-15',
+        'Quantidade Parcelas': '12',
+        'Data Primeiro Vencimento': '2024-02-15',
+        'Incluir TMP': 'Sim',
+        'Valor TMP': '500',
+        'Vencimento TMP': '2024-01-31',
+        'Quantidade Meses TMP': '24',
+        
+        // Responsável Financeiro
+        'Responsável Nome': 'Maria Silva Santos',
+        'Responsável RG': '98.765.432-1',
+        'Responsável CPF': '987.654.321-00',
+        'Responsável Data Nascimento': '1980-03-20',
+        'Responsável Telefone': '(11) 88888-8888',
+        'Responsável Email': 'maria@exemplo.com',
+        'Responsável Endereço': 'Rua das Palmeiras, 456 - Jardim Europa',
+        'Responsável CEP': '98765-432'
       }
     ];
 
@@ -349,28 +377,53 @@ export const useClienteExcel = () => {
     
     // Ajustar larguras das colunas
     const columnWidths = [
-      { wch: 30 }, // Nome
+      { wch: 25 }, // Nome
       { wch: 25 }, // Email
       { wch: 15 }, // Telefone
-      { wch: 18 }, // CPF/CNPJ
-      { wch: 40 }, // Endereço
+      { wch: 15 }, // CPF/CNPJ
+      { wch: 15 }, // RG
+      { wch: 12 }, // Data Nascimento
+      { wch: 30 }, // Endereço
+      { wch: 15 }, // Bairro
+      { wch: 15 }, // Cidade
+      { wch: 10 }, // CEP
       { wch: 25 }, // Número do Processo
-      { wch: 20 }, // Área do Processo
+      { wch: 15 }, // Tipo de Processo
+      { wch: 12 }, // Prazo
+      { wch: 30 }, // Descrição
+      { wch: 12 }, // Cliente Preso
+      { wch: 15 }, // Valor Honorários
+      { wch: 15 }, // Valor Entrada
+      { wch: 12 }, // Data Entrada
+      { wch: 15 }, // Quantidade Parcelas
+      { wch: 18 }, // Data Primeiro Vencimento
+      { wch: 12 }, // Incluir TMP
+      { wch: 12 }, // Valor TMP
+      { wch: 15 }, // Vencimento TMP
+      { wch: 18 }, // Quantidade Meses TMP
+      { wch: 25 }, // Responsável Nome
+      { wch: 15 }, // Responsável RG
+      { wch: 15 }, // Responsável CPF
+      { wch: 18 }, // Responsável Data Nascimento
+      { wch: 15 }, // Responsável Telefone
+      { wch: 25 }, // Responsável Email
+      { wch: 40 }, // Responsável Endereço
+      { wch: 12 }, // Responsável CEP
     ];
     worksheet['!cols'] = columnWidths;
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Clientes');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Completo');
 
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
     });
 
-    saveAs(blob, 'template_clientes.xlsx');
+    saveAs(blob, 'template_processo_completo.xlsx');
 
     toast({
       title: 'Template baixado',
-      description: 'Arquivo template_clientes.xlsx baixado com sucesso',
+      description: 'Arquivo template_processo_completo.xlsx baixado com sucesso',
     });
   };
 

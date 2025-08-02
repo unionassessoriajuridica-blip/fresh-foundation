@@ -70,10 +70,10 @@ export const ClienteDataButton = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5 text-green-600" />
-            Gerenciar Dados de Clientes
+            Importação Completa de Processos
           </DialogTitle>
           <DialogDescription>
-            Faça download ou importe dados cadastrais de clientes via Excel.
+            Importe clientes, processos, dados financeiros e responsáveis via Excel. Sistema completo de migração de dados.
           </DialogDescription>
         </DialogHeader>
         
@@ -135,22 +135,48 @@ export const ClienteDataButton = () => {
                 <div className="flex items-start gap-2">
                   <Info className="w-4 h-4 text-blue-600 mt-0.5" />
                   <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Formato do Excel:</p>
-                    <ul className="text-xs space-y-0.5">
-                      <li>• Nome (obrigatório)</li>
-                      <li>• Email (opcional, mas deve ser válido)</li>
-                      <li>• Telefone (opcional)</li>
-                      <li>• CPF/CNPJ (opcional, 11 ou 14 dígitos)</li>
-                      <li>• Endereço (opcional)</li>
-                      <li>• Número do Processo (opcional)</li>
-                      <li>• Área do Processo (opcional)</li>
-                    </ul>
-                    <p className="mt-2 text-xs text-blue-600">
-                      ℹ️ Duplicatas serão ignoradas automaticamente
-                    </p>
-                    <p className="mt-1 text-xs text-blue-600">
-                      📋 Processos serão criados automaticamente quando os campos forem preenchidos
-                    </p>
+                    <p className="font-medium mb-1">Formato do Excel - Campos Disponíveis:</p>
+                    <div className="space-y-2 text-xs">
+                      <div className="border-b pb-1">
+                        <p className="font-medium text-blue-700">📋 Dados do Cliente:</p>
+                        <ul className="ml-2 space-y-0.5">
+                          <li>• Nome (obrigatório)</li>
+                          <li>• Email, Telefone, CPF/CNPJ, RG</li>
+                          <li>• Data Nascimento, Endereço, Bairro, Cidade, CEP</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="border-b pb-1">
+                        <p className="font-medium text-green-700">⚖️ Dados do Processo:</p>
+                        <ul className="ml-2 space-y-0.5">
+                          <li>• Número do Processo, Tipo de Processo</li>
+                          <li>• Prazo, Descrição, Cliente Preso (Sim/Não)</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="border-b pb-1">
+                        <p className="font-medium text-purple-700">💰 Dados Financeiros:</p>
+                        <ul className="ml-2 space-y-0.5">
+                          <li>• Valor Honorários, Valor Entrada, Data Entrada</li>
+                          <li>• Quantidade Parcelas, Data Primeiro Vencimento</li>
+                          <li>• Incluir TMP, Valor TMP, Vencimento TMP, Quantidade Meses TMP</li>
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium text-orange-700">👤 Responsável Financeiro:</p>
+                        <ul className="ml-2 space-y-0.5">
+                          <li>• Responsável Nome, RG, CPF, Data Nascimento</li>
+                          <li>• Responsável Telefone, Email, Endereço, CEP</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 space-y-1 text-xs text-blue-600">
+                      <p>ℹ️ Apenas o Nome é obrigatório - outros campos são opcionais</p>
+                      <p>📋 Processos e dados financeiros são criados automaticamente quando preenchidos</p>
+                      <p>⚠️ Duplicatas de email/CPF serão ignoradas automaticamente</p>
+                    </div>
                   </div>
                 </div>
               </div>
