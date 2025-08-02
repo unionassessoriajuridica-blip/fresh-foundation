@@ -28,7 +28,8 @@ const Dashboard = () => {
     processosAtivos: 0,
     audienciasHoje: 0,
     clientes: 0,
-    receitaMensal: "R$ 0,00"
+    receitaMensal: "R$ 0,00",
+    honorariosRecebidos: "R$ 0,00"
   });
   const [loading, setLoading] = useState(true);
 
@@ -72,27 +73,30 @@ const Dashboard = () => {
       console.log('Processos carregados:', processosData);
       setProcessos(processosData || []);
       
-      // Carregar dados financeiros para calcular receita mensal (valores pagos no mês atual)
+      // Carregar dados financeiros
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
       
       const { data: financeiroData, error: financeiroError } = await supabase
         .from('financeiro')
-        .select('valor, status, data_pagamento')
-        .eq('user_id', user?.id)
-        .eq('status', 'PAGO')
-        .not('data_pagamento', 'is', null);
+        .select('valor, status, vencimento, data_pagamento')
+        .eq('user_id', user?.id);
 
       if (financeiroError) throw financeiroError;
 
-      // Calcular receita mensal (valores pagos no mês atual)
+      // Calcular receita mensal (soma de todas as parcelas que vencem no mês atual)
       const receitaMensal = financeiroData
         ?.filter(item => {
-          if (!item.data_pagamento) return false;
-          const pagamentoDate = new Date(item.data_pagamento);
-          return pagamentoDate.getMonth() + 1 === currentMonth && 
-                 pagamentoDate.getFullYear() === currentYear;
+          if (!item.vencimento) return false;
+          const vencimentoDate = new Date(item.vencimento);
+          return vencimentoDate.getMonth() + 1 === currentMonth && 
+                 vencimentoDate.getFullYear() === currentYear;
         })
+        .reduce((total, item) => total + Number(item.valor), 0) || 0;
+
+      // Calcular honorários recebidos (apenas valores pagos)
+      const honorariosRecebidos = financeiroData
+        ?.filter(item => item.status === 'PAGO')
         .reduce((total, item) => total + Number(item.valor), 0) || 0;
 
       // Contar clientes únicos
@@ -111,7 +115,11 @@ const Dashboard = () => {
         receitaMensal: new Intl.NumberFormat('pt-BR', { 
           style: 'currency', 
           currency: 'BRL' 
-        }).format(receitaMensal)
+        }).format(receitaMensal),
+        honorariosRecebidos: new Intl.NumberFormat('pt-BR', { 
+          style: 'currency', 
+          currency: 'BRL' 
+        }).format(honorariosRecebidos)
       });
 
     } catch (error) {
@@ -169,6 +177,12 @@ const Dashboard = () => {
       value: stats.receitaMensal,
       icon: DollarSign,
       color: "text-warning"
+    },
+    {
+      title: "Honorários Recebidos",
+      value: stats.honorariosRecebidos,
+      icon: DollarSign,
+      color: "text-success"
     }
   ];
 
@@ -207,7 +221,7 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-6 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {statsData.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
