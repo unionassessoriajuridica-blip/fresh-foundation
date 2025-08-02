@@ -27,9 +27,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     processosAtivos: 0,
     audienciasHoje: 0,
-    clientes: 0,
-    receitaMensal: "R$ 0,00",
-    honorariosRecebidos: "R$ 0,00"
+    clientes: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -73,32 +71,6 @@ const Dashboard = () => {
       console.log('Processos carregados:', processosData);
       setProcessos(processosData || []);
       
-      // Carregar dados financeiros
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
-      
-      const { data: financeiroData, error: financeiroError } = await supabase
-        .from('financeiro')
-        .select('valor, status, vencimento, data_pagamento')
-        .eq('user_id', user?.id);
-
-      if (financeiroError) throw financeiroError;
-
-      // Calcular receita mensal (soma de todas as parcelas que vencem no mês atual)
-      const receitaMensal = financeiroData
-        ?.filter(item => {
-          if (!item.vencimento) return false;
-          const vencimentoDate = new Date(item.vencimento);
-          return vencimentoDate.getMonth() + 1 === currentMonth && 
-                 vencimentoDate.getFullYear() === currentYear;
-        })
-        .reduce((total, item) => total + Number(item.valor), 0) || 0;
-
-      // Calcular honorários recebidos (apenas valores pagos)
-      const honorariosRecebidos = financeiroData
-        ?.filter(item => item.status === 'PAGO')
-        .reduce((total, item) => total + Number(item.valor), 0) || 0;
-
       // Contar clientes únicos
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
@@ -111,15 +83,7 @@ const Dashboard = () => {
       setStats({
         processosAtivos: processosData?.length || 0,
         audienciasHoje: 0,
-        clientes: clientesData?.length || 0,
-        receitaMensal: new Intl.NumberFormat('pt-BR', { 
-          style: 'currency', 
-          currency: 'BRL' 
-        }).format(receitaMensal),
-        honorariosRecebidos: new Intl.NumberFormat('pt-BR', { 
-          style: 'currency', 
-          currency: 'BRL' 
-        }).format(honorariosRecebidos)
+        clientes: clientesData?.length || 0
       });
 
     } catch (error) {
@@ -171,18 +135,6 @@ const Dashboard = () => {
       value: stats.clientes.toString(), 
       icon: Users,
       color: "text-purple"
-    },
-    {
-      title: "Receita Mensal",
-      value: stats.receitaMensal,
-      icon: DollarSign,
-      color: "text-warning"
-    },
-    {
-      title: "Honorários Recebidos",
-      value: stats.honorariosRecebidos,
-      icon: DollarSign,
-      color: "text-success"
     }
   ];
 
@@ -221,7 +173,7 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-6 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {statsData.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
