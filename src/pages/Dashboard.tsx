@@ -110,18 +110,18 @@ const Dashboard = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => window.location.href = '/novo-processo'}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Processo
           </Button>
-          <Button variant="success">
+          <Button variant="success" onClick={() => window.location.href = '/financeiro'}>
             <DollarSign className="w-4 h-4 mr-2" />
             Financeiro
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => window.location.href = '/facilisign'}>
             FaciliSign ID
           </Button>
-          <Button variant="purple">
+          <Button variant="purple" onClick={() => window.location.href = '/ia-facilita'}>
             IA-Facilita
           </Button>
         </div>
