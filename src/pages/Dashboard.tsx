@@ -110,7 +110,8 @@ const Dashboard = () => {
   };
 
   const handleEditProcesso = (processoId: string) => {
-    window.location.href = `/processo/${processoId}`;
+    // Por enquanto, redireciona para novo processo - pode ser personalizado depois
+    window.location.href = `/novo-processo?edit=${processoId}`;
   };
 
   const handleDeleteProcesso = async (processoId: string) => {
