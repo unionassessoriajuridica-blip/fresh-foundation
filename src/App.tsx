@@ -6,15 +6,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import NewProcess from "./pages/NewProcess";
 import ProcessView from "./pages/ProcessView";
-import Financial from "./pages/Financial";
 import ProcessFinancial from "./pages/ProcessFinancial";
+import NewProcess from "./pages/NewProcess";
+import Financial from "./pages/Financial";
+import NotFound from "./pages/NotFound";
 import IAFacilita from "./pages/IAFacilita";
-import FaciliSign from "./pages/FaciliSign";
 import GoogleIntegration from "./pages/GoogleIntegration";
 import CalendarManagement from "./pages/CalendarManagement";
-import NotFound from "./pages/NotFound";
+import FaciliSign from "./pages/FaciliSign";
+import UserManagement from "./pages/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/novo-processo" element={<NewProcess />} />
           <Route path="/processo/:id" element={<ProcessView />} />
           <Route path="/financeiro" element={<Financial />} />

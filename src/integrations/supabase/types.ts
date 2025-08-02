@@ -420,6 +420,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          nome: string
+          permissions: Database["public"]["Enums"]["user_permission"][]
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          nome: string
+          permissions?: Database["public"]["Enums"]["user_permission"][]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          nome?: string
+          permissions?: Database["public"]["Enums"]["user_permission"][]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string
+          id: string
+          permission: Database["public"]["Enums"]["user_permission"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by: string
+          id?: string
+          permission: Database["public"]["Enums"]["user_permission"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["user_permission"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -450,6 +513,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_user_permissions: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["user_permission"][]
+      }
+      has_permission: {
+        Args: {
+          _user_id: string
+          _permission: Database["public"]["Enums"]["user_permission"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -468,6 +542,15 @@ export type Database = {
     }
     Enums: {
       app_role: "master" | "admin" | "user"
+      user_permission:
+        | "financeiro"
+        | "ia_facilita"
+        | "facilisign"
+        | "novo_processo"
+        | "google_integration"
+        | "agenda"
+        | "modificar_clientes"
+        | "excluir_processo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -596,6 +679,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["master", "admin", "user"],
+      user_permission: [
+        "financeiro",
+        "ia_facilita",
+        "facilisign",
+        "novo_processo",
+        "google_integration",
+        "agenda",
+        "modificar_clientes",
+        "excluir_processo",
+      ],
     },
   },
 } as const

@@ -49,8 +49,8 @@ export const useUserRole = () => {
     roles,
     loading,
     hasRole,
-    isMaster,
-    isAdmin,
+    isMaster: isMaster(),
+    isAdmin: isAdmin(),
     canDelete
   };
 };

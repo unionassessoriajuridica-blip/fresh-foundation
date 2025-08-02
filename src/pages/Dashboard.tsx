@@ -20,10 +20,12 @@ import {
  } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
-  const { canDelete, loading: roleLoading } = useUserRole();
+  const { canDelete, loading: roleLoading, isMaster } = useUserRole();
+  const navigate = useNavigate();
   const [processos, setProcessos] = useState<any[]>([]);
   const [stats, setStats] = useState({
     processosAtivos: 0,
@@ -188,6 +190,51 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/novo-processo")}>
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <Plus className="w-12 h-12 text-primary mb-4" />
+              <h3 className="font-semibold">Novo Processo</h3>
+              <p className="text-sm text-muted-foreground">Criar processo judicial</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/ia-facilita")}>
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <FileText className="w-12 h-12 text-blue-600 mb-4" />
+              <h3 className="font-semibold">IA Facilita</h3>
+              <p className="text-sm text-muted-foreground">Assistente inteligente</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/facilisign")}>
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <FileText className="w-12 h-12 text-indigo-600 mb-4" />
+              <h3 className="font-semibold">FaciliSign</h3>
+              <p className="text-sm text-muted-foreground">Assinatura digital</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/google-integration")}>
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <Calendar className="w-12 h-12 text-green-600 mb-4" />
+              <h3 className="font-semibold">Google</h3>
+              <p className="text-sm text-muted-foreground">Integrações Google</p>
+            </CardContent>
+          </Card>
+
+          {isMaster && (
+            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/user-management")}>
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Users className="w-12 h-12 text-purple-600 mb-4" />
+                <h3 className="font-semibold">Usuários</h3>
+                <p className="text-sm text-muted-foreground">Gerenciar usuários</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Action Buttons */}
