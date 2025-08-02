@@ -72,17 +72,27 @@ const Dashboard = () => {
       console.log('Processos carregados:', processosData);
       setProcessos(processosData || []);
       
-      // Carregar dados financeiros para calcular receita mensal
+      // Carregar dados financeiros para calcular receita mensal (valores pagos no mês atual)
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      
       const { data: financeiroData, error: financeiroError } = await supabase
         .from('financeiro')
-        .select('valor, status')
-        .eq('user_id', user?.id);
+        .select('valor, status, data_pagamento')
+        .eq('user_id', user?.id)
+        .eq('status', 'PAGO')
+        .not('data_pagamento', 'is', null);
 
       if (financeiroError) throw financeiroError;
 
-      // Calcular receita mensal (valores pagos)
+      // Calcular receita mensal (valores pagos no mês atual)
       const receitaMensal = financeiroData
-        ?.filter(item => item.status === 'PAGO')
+        ?.filter(item => {
+          if (!item.data_pagamento) return false;
+          const pagamentoDate = new Date(item.data_pagamento);
+          return pagamentoDate.getMonth() + 1 === currentMonth && 
+                 pagamentoDate.getFullYear() === currentYear;
+        })
         .reduce((total, item) => total + Number(item.valor), 0) || 0;
 
       // Contar clientes únicos
