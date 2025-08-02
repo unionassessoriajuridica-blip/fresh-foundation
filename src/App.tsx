@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NewProcess from "./pages/NewProcess";
 import Financial from "./pages/Financial";
+import ProcessFinancial from "./pages/ProcessFinancial";
 import IAFacilita from "./pages/IAFacilita";
 import FaciliSign from "./pages/FaciliSign";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/novo-processo" element={<NewProcess />} />
           <Route path="/financeiro" element={<Financial />} />
+          <Route path="/financial/client/:clienteNome" element={<ProcessFinancial />} />
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

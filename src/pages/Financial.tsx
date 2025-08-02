@@ -327,6 +327,13 @@ const Financial = () => {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => navigate(`/financial/client/${encodeURIComponent(item.cliente_nome)}`)}
+                        >
+                          Ver Parcelas
+                        </Button>
                       </div>
                     </div>
                   </div>

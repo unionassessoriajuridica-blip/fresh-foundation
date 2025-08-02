@@ -10,7 +10,7 @@ import { ArrowLeft, FileText, User, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCurrencyInput, parseCurrency } from "@/utils/currency";
+import { formatCurrencyInput, parseCurrency, formatCurrency } from "@/utils/currency";
 
 const NewProcess = () => {
   const navigate = useNavigate();
@@ -516,11 +516,11 @@ const NewProcess = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Valor a Parcelar:</span>
-                  <span className="font-medium">{formatCurrencyInput(String(resumo.valorRestante * 100))}</span>
+                  <span className="font-medium">{formatCurrency(resumo.valorRestante)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Valor por Parcela:</span>
-                  <span className="font-medium">{formatCurrencyInput(String(resumo.valorParcela * 100))}</span>
+                  <span className="font-medium">{formatCurrency(resumo.valorParcela)}</span>
                 </div>
               </div>
             </div>
@@ -580,7 +580,7 @@ const NewProcess = () => {
                 {financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && (
                   <div className="bg-background p-3 rounded border">
                     <p className="text-sm">
-                      <span className="font-medium">Total TMP:</span> {formatCurrencyInput(String(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP) * 100))}
+                      <span className="font-medium">Total TMP:</span> {formatCurrency(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP))}
                       <br />
                       <span className="font-medium">Valor Mensal:</span> {financeiroData.valorTMP}
                       <br />
