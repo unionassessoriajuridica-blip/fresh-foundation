@@ -10,6 +10,7 @@ import { formatCurrency } from "@/utils/currency";
 import ParcelaCard from "@/components/ParcelaCard";
 import FinanceiroSummary from "@/components/FinanceiroSummary";
 import { FinancialReports } from "@/components/FinancialReports";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { ResponsavelFinanceiro } from "@/components/ResponsavelFinanceiro";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -178,6 +179,9 @@ const Financial = () => {
           </TabsList>
           
           <TabsContent value="financeiro" className="space-y-6">
+            {/* Notificações de Parcelas em Aberto */}
+            <NotificationCenter />
+            
             {/* Filtros */}
             <Card>
               <CardHeader>
