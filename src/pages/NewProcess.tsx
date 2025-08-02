@@ -10,6 +10,7 @@ import { ArrowLeft, FileText, User, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatCurrencyInput, parseCurrency } from "@/utils/currency";
 
 const NewProcess = () => {
   const navigate = useNavigate();
@@ -44,7 +45,10 @@ const NewProcess = () => {
     dataEntrada: "",
     quantidadeParcelas: "",
     dataPrimeiroVencimento: "",
-    incluirTMP: false
+    incluirTMP: false,
+    valorTMP: "",
+    vencimentoTMP: "",
+    quantidadeMesesTMP: ""
   });
 
   const tiposProcesso = [
@@ -119,8 +123,8 @@ const NewProcess = () => {
 
       // Se tiver dados financeiros, criar registros financeiros
       if (financeiroData.valorHonorarios) {
-        const valorHonorarios = parseFloat(financeiroData.valorHonorarios.replace('R$ ', '').replace(',', '.'));
-        const valorEntrada = parseFloat(financeiroData.valorEntrada.replace('R$ ', '').replace(',', '.') || '0');
+        const valorHonorarios = parseCurrency(financeiroData.valorHonorarios);
+        const valorEntrada = parseCurrency(financeiroData.valorEntrada || '0');
         const quantidadeParcelas = parseInt(financeiroData.quantidadeParcelas || '1');
 
         // Criar entrada se houver
@@ -139,8 +143,9 @@ const NewProcess = () => {
             ]);
         }
 
-        // Criar parcelas
-        const valorParcela = (valorHonorarios - valorEntrada) / quantidadeParcelas;
+        // Criar parcelas - valor da entrada é abatido dos honorários
+        const valorRestante = valorHonorarios - valorEntrada;
+        const valorParcela = valorRestante / quantidadeParcelas;
         const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
 
         for (let i = 0; i < quantidadeParcelas; i++) {
@@ -161,20 +166,29 @@ const NewProcess = () => {
             ]);
         }
 
-        // Criar TMP se marcado
+        // Criar TMP se marcado - agora com valores personalizados
         if (financeiroData.incluirTMP) {
-          await supabase
-            .from('financeiro')
-            .insert([
-              {
-                user_id: user.id,
-                cliente_nome: clienteData.nomeCompleto,
-                valor: valorHonorarios * 0.02, // 2% do valor dos honorários
-                tipo: 'TMP',
-                status: 'PENDENTE',
-                vencimento: financeiroData.dataPrimeiroVencimento
-              }
-            ]);
+          const valorTMP = parseCurrency(financeiroData.valorTMP);
+          const quantidadeMesesTMP = parseInt(financeiroData.quantidadeMesesTMP || '1');
+          const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
+
+          for (let i = 0; i < quantidadeMesesTMP; i++) {
+            const dataVencimentoTMP = new Date(dataBaseTMP);
+            dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
+
+            await supabase
+              .from('financeiro')
+              .insert([
+                {
+                  user_id: user.id,
+                  cliente_nome: clienteData.nomeCompleto,
+                  valor: valorTMP,
+                  tipo: 'TMP',
+                  status: 'PENDENTE',
+                  vencimento: dataVencimentoTMP.toISOString().split('T')[0]
+                }
+              ]);
+          }
         }
       }
 
@@ -397,92 +411,200 @@ const NewProcess = () => {
     </Card>
   );
 
-  const renderStep3 = () => (
-    <Card>
-      <CardHeader className="text-center">
-        <div className="mx-auto mb-4">
-          <DollarSign className="w-16 h-16 text-primary mx-auto" />
-        </div>
-        <CardTitle className="text-2xl">Configuração Financeira</CardTitle>
-        <p className="text-muted-foreground">Configure os valores e formas de pagamento</p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <Label htmlFor="valorHonorarios">Valor dos Honorários *</Label>
-          <Input
-            id="valorHonorarios"
-            value={financeiroData.valorHonorarios}
-            onChange={(e) => setFinanceiroData({ ...financeiroData, valorHonorarios: e.target.value })}
-            placeholder="R$ 0,00"
-            required
-          />
-        </div>
+  const renderStep3 = () => {
+    const handleCurrencyChange = (field: string, value: string) => {
+      const formattedValue = formatCurrencyInput(value);
+      setFinanceiroData({ ...financeiroData, [field]: formattedValue });
+    };
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    const calcularResumo = () => {
+      const honorarios = parseCurrency(financeiroData.valorHonorarios);
+      const entrada = parseCurrency(financeiroData.valorEntrada);
+      const parcelas = parseInt(financeiroData.quantidadeParcelas || '1');
+      
+      const valorRestante = honorarios - entrada;
+      const valorParcela = valorRestante / parcelas;
+      
+      return {
+        valorRestante,
+        valorParcela,
+        totalHonorarios: honorarios
+      };
+    };
+
+    const resumo = calcularResumo();
+
+    return (
+      <Card>
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+            <DollarSign className="w-16 h-16 text-primary mx-auto" />
+          </div>
+          <CardTitle className="text-2xl">Configuração Financeira</CardTitle>
+          <p className="text-muted-foreground">Configure os valores e formas de pagamento</p>
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="valorEntrada">Valor da Entrada</Label>
+            <Label htmlFor="valorHonorarios">Valor dos Honorários *</Label>
             <Input
-              id="valorEntrada"
-              value={financeiroData.valorEntrada}
-              onChange={(e) => setFinanceiroData({ ...financeiroData, valorEntrada: e.target.value })}
+              id="valorHonorarios"
+              value={financeiroData.valorHonorarios}
+              onChange={(e) => handleCurrencyChange('valorHonorarios', e.target.value)}
               placeholder="R$ 0,00"
+              required
             />
           </div>
 
-          <div>
-            <Label htmlFor="dataEntrada">Data da Entrada</Label>
-            <Input
-              id="dataEntrada"
-              type="date"
-              value={financeiroData.dataEntrada}
-              onChange={(e) => setFinanceiroData({ ...financeiroData, dataEntrada: e.target.value })}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="valorEntrada">Valor da Entrada</Label>
+              <Input
+                id="valorEntrada"
+                value={financeiroData.valorEntrada}
+                onChange={(e) => handleCurrencyChange('valorEntrada', e.target.value)}
+                placeholder="R$ 0,00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="dataEntrada">Data da Entrada</Label>
+              <Input
+                id="dataEntrada"
+                type="date"
+                value={financeiroData.dataEntrada}
+                onChange={(e) => setFinanceiroData({ ...financeiroData, dataEntrada: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="quantidadeParcelas">Quantidade de Parcelas</Label>
-            <Input
-              id="quantidadeParcelas"
-              value={financeiroData.quantidadeParcelas}
-              onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeParcelas: e.target.value })}
-              placeholder="Ex: 12"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="quantidadeParcelas">Quantidade de Parcelas</Label>
+              <Input
+                id="quantidadeParcelas"
+                type="number"
+                min="1"
+                value={financeiroData.quantidadeParcelas}
+                onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeParcelas: e.target.value })}
+                placeholder="Ex: 12"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="dataPrimeiroVencimento">Data do Primeiro Vencimento</Label>
+              <Input
+                id="dataPrimeiroVencimento"
+                type="date"
+                value={financeiroData.dataPrimeiroVencimento}
+                onChange={(e) => setFinanceiroData({ ...financeiroData, dataPrimeiroVencimento: e.target.value })}
+              />
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="dataPrimeiroVencimento">Data do Primeiro Vencimento</Label>
-            <Input
-              id="dataPrimeiroVencimento"
-              type="date"
-              value={financeiroData.dataPrimeiroVencimento}
-              onChange={(e) => setFinanceiroData({ ...financeiroData, dataPrimeiroVencimento: e.target.value })}
-            />
+          {/* Resumo do parcelamento */}
+          {financeiroData.valorHonorarios && financeiroData.quantidadeParcelas && (
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Resumo do Parcelamento:</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Total dos Honorários:</span>
+                  <span className="font-medium">{financeiroData.valorHonorarios}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Valor da Entrada:</span>
+                  <span className="font-medium">{financeiroData.valorEntrada || 'R$ 0,00'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Valor a Parcelar:</span>
+                  <span className="font-medium">{formatCurrencyInput(String(resumo.valorRestante * 100))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Valor por Parcela:</span>
+                  <span className="font-medium">{formatCurrencyInput(String(resumo.valorParcela * 100))}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="incluirTMP"
+                checked={financeiroData.incluirTMP}
+                onCheckedChange={(checked) => setFinanceiroData({ ...financeiroData, incluirTMP: checked as boolean })}
+              />
+              <Label htmlFor="incluirTMP">Incluir TMP (Taxa de Manutenção Processual)</Label>
+            </div>
+
+            {financeiroData.incluirTMP && (
+              <div className="bg-muted p-4 rounded-lg space-y-4">
+                <h4 className="font-medium">Configuração da TMP:</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="valorTMP">Valor da TMP *</Label>
+                    <Input
+                      id="valorTMP"
+                      value={financeiroData.valorTMP}
+                      onChange={(e) => handleCurrencyChange('valorTMP', e.target.value)}
+                      placeholder="R$ 0,00"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="vencimentoTMP">Primeiro Vencimento da TMP *</Label>
+                    <Input
+                      id="vencimentoTMP"
+                      type="date"
+                      value={financeiroData.vencimentoTMP}
+                      onChange={(e) => setFinanceiroData({ ...financeiroData, vencimentoTMP: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="quantidadeMesesTMP">Quantidade de Meses da TMP *</Label>
+                  <Input
+                    id="quantidadeMesesTMP"
+                    type="number"
+                    min="1"
+                    value={financeiroData.quantidadeMesesTMP}
+                    onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeMesesTMP: e.target.value })}
+                    placeholder="Ex: 12"
+                    required
+                  />
+                </div>
+
+                {financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && (
+                  <div className="bg-background p-3 rounded border">
+                    <p className="text-sm">
+                      <span className="font-medium">Total TMP:</span> {formatCurrencyInput(String(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP) * 100))}
+                      <br />
+                      <span className="font-medium">Valor Mensal:</span> {financeiroData.valorTMP}
+                      <br />
+                      <span className="font-medium">Duração:</span> {financeiroData.quantidadeMesesTMP} meses
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="incluirTMP"
-            checked={financeiroData.incluirTMP}
-            onCheckedChange={(checked) => setFinanceiroData({ ...financeiroData, incluirTMP: checked as boolean })}
-          />
-          <Label htmlFor="incluirTMP">Incluir TMP (Taxa de Manutenção Processual)</Label>
-        </div>
-
-        <div className="flex justify-between pt-6">
-          <Button variant="outline" onClick={handlePrevStep}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Anterior
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
-            {loading ? "Salvando..." : "Finalizar Cadastro"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+          <div className="flex justify-between pt-6">
+            <Button variant="outline" onClick={handlePrevStep}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Anterior
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
+              {loading ? "Salvando..." : "Finalizar Cadastro"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,196 +1,338 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, DollarSign, TrendingUp, TrendingDown, Calculator } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { ArrowLeft, DollarSign, CheckCircle, Clock, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatCurrency } from "@/utils/currency";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface FinanceiroItem {
+  id: string;
+  cliente_nome: string;
+  valor: number;
+  tipo: string;
+  status: string;
+  vencimento: string;
+  data_pagamento?: string;
+  created_at: string;
+}
 
 const Financial = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { user } = useAuth();
-  const [financialData, setFinancialData] = useState([]);
+  const [financeiro, setFinanceiro] = useState<FinanceiroItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const stats = [
-    {
-      title: "Receita Total",
-      value: "R$ 45.250,00",
-      icon: DollarSign,
-      color: "text-success",
-      trend: "+12.5%"
-    },
-    {
-      title: "Pendentes",
-      value: "R$ 8.750,00",
-      icon: TrendingDown,
-      color: "text-warning",
-      trend: "-2.1%"
-    },
-    {
-      title: "Recebidos",
-      value: "R$ 36.500,00",
-      icon: TrendingUp,
-      color: "text-primary",
-      trend: "+18.2%"
-    },
-    {
-      title: "Taxa Média",
-      value: "15%",
-      icon: Calculator,
-      color: "text-purple",
-      trend: "+0.5%"
-    }
-  ];
-
-  const transactions = [
-    {
-      id: 1,
-      cliente: "Maria Silva",
-      processo: "0001234-56.2024.1.23.4567",
-      valor: "R$ 2.500,00",
-      status: "Pago",
-      vencimento: "2024-01-15",
-      tipo: "Honorários"
-    },
-    {
-      id: 2,
-      cliente: "João Santos",
-      processo: "0007890-12.2024.1.23.4567",
-      valor: "R$ 1.800,00",
-      status: "Pendente",
-      vencimento: "2024-02-10",
-      tipo: "Custas"
-    },
-    {
-      id: 3,
-      cliente: "Ana Costa",
-      processo: "0005432-98.2024.1.23.4567",
-      valor: "R$ 3.200,00",
-      status: "Atrasado",
-      vencimento: "2024-01-05",
-      tipo: "Honorários"
-    }
-  ];
+  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
 
   useEffect(() => {
-    const loadFinancialData = async () => {
-      try {
-        // Aqui você carregaria os dados reais do banco
-        setFinancialData(transactions);
-      } catch (error) {
-        console.error('Erro ao carregar dados financeiros:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFinancialData();
+    if (user) {
+      fetchFinanceiro();
+    }
   }, [user]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Pago':
-        return <Badge className="bg-success/10 text-success border-success/20">Pago</Badge>;
-      case 'Pendente':
-        return <Badge className="bg-warning/10 text-warning border-warning/20">Pendente</Badge>;
-      case 'Atrasado':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Atrasado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const fetchFinanceiro = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('financeiro')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('vencimento', { ascending: true });
+
+      if (error) throw error;
+      setFinanceiro(data || []);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar dados financeiros",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleBaixaPagamento = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('financeiro')
+        .update({
+          status: 'PAGO',
+          data_pagamento: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Pagamento registrado!",
+        description: "A baixa do pagamento foi realizada com sucesso.",
+      });
+
+      fetchFinanceiro();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao registrar pagamento",
+        description: error.message,
+      });
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'PAGO':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'PENDENTE':
+        return <Clock className="w-4 h-4" />;
+      default:
+        return <Calendar className="w-4 h-4" />;
+    }
+  };
+
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'PAGO':
+        return 'default';
+      case 'PENDENTE':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getTipoColor = (tipo: string) => {
+    switch (tipo) {
+      case 'Honorários':
+        return 'bg-blue-100 text-blue-800';
+      case 'Entrada':
+        return 'bg-green-100 text-green-800';
+      case 'TMP':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const filteredData = financeiro.filter(item => {
+    const statusMatch = filtroStatus === 'TODOS' || item.status === filtroStatus;
+    const tipoMatch = filtroTipo === 'TODOS' || item.tipo === filtroTipo;
+    return statusMatch && tipoMatch;
+  });
+
+  const isVencido = (vencimento: string, status: string) => {
+    if (status === 'PAGO') return false;
+    const hoje = new Date();
+    const dataVencimento = new Date(vencimento);
+    return dataVencimento < hoje;
+  };
+
+  const totais = {
+    pendente: financeiro.filter(item => item.status === 'PENDENTE').reduce((sum, item) => sum + item.valor, 0),
+    pago: financeiro.filter(item => item.status === 'PAGO').reduce((sum, item) => sum + item.valor, 0),
+    vencido: financeiro.filter(item => isVencido(item.vencimento, item.status)).reduce((sum, item) => sum + item.valor, 0)
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando dados financeiros...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <h1 className="text-2xl font-bold">Financeiro</h1>
-          </div>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Cobrança
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
           </Button>
+          <h1 className="text-2xl font-bold">Gestão Financeira</h1>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.trend}</p>
-                  </div>
-                  <stat.icon className={`w-8 h-8 ${stat.color}`} />
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Pendente</p>
+                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(totais.pendente)}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                <Clock className="w-8 h-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Recebido</p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(totais.pago)}</p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Vencido</p>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(totais.vencido)}</p>
+                </div>
+                <Calendar className="w-8 h-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Financial Table */}
-        <Card>
+        {/* Filtros */}
+        <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Movimentações Financeiras
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Input 
-                  placeholder="Buscar transações..."
-                  className="w-80"
-                />
-              </div>
-            </div>
+            <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Processo</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">{transaction.cliente}</TableCell>
-                    <TableCell className="font-mono text-sm">{transaction.processo}</TableCell>
-                    <TableCell>{transaction.tipo}</TableCell>
-                    <TableCell className="font-semibold">{transaction.valor}</TableCell>
-                    <TableCell>{new Date(transaction.vencimento).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          Recibo
-                        </Button>
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Status:</label>
+                <select 
+                  value={filtroStatus} 
+                  onChange={(e) => setFiltroStatus(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="PAGO">Pago</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tipo:</label>
+                <select 
+                  value={filtroTipo} 
+                  onChange={(e) => setFiltroTipo(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="Honorários">Honorários</option>
+                  <option value="Entrada">Entrada</option>
+                  <option value="TMP">TMP</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lista de Pagamentos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Parcelas e Pagamentos ({filteredData.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum registro financeiro encontrado.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredData.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`border rounded-lg p-4 ${
+                      isVencido(item.vencimento, item.status) ? 'border-red-200 bg-red-50' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{item.cliente_nome}</span>
+                          <Badge className={getTipoColor(item.tipo)}>
+                            {item.tipo}
+                          </Badge>
+                          <Badge variant={getStatusVariant(item.status)} className="flex items-center gap-1">
+                            {getStatusIcon(item.status)}
+                            {item.status}
+                          </Badge>
+                          {isVencido(item.vencimento, item.status) && (
+                            <Badge variant="destructive">VENCIDO</Badge>
+                          )}
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>Valor: <span className="font-medium text-foreground">{formatCurrency(item.valor)}</span></p>
+                          <p>Vencimento: <span className="font-medium text-foreground">
+                            {new Date(item.vencimento).toLocaleDateString('pt-BR')}
+                          </span></p>
+                          {item.data_pagamento && (
+                            <p>Pago em: <span className="font-medium text-green-600">
+                              {new Date(item.data_pagamento).toLocaleDateString('pt-BR')}
+                            </span></p>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                      
+                      <div className="flex items-center gap-2">
+                        {item.status === 'PENDENTE' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Dar Baixa
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Pagamento</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Confirma o recebimento de {formatCurrency(item.valor)} de {item.cliente_nome} ({item.tipo})?
+                                  <br />
+                                  <span className="text-sm text-muted-foreground mt-2 block">
+                                    Esta ação registrará a data de hoje como data de pagamento.
+                                  </span>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleBaixaPagamento(item.id)}>
+                                  Confirmar Pagamento
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
