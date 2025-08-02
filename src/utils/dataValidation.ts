@@ -55,25 +55,78 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
   const lineNum = index + 2; // +2 because line 1 is header and index starts at 0
   const errors: ValidationError[] = [];
   
-  // Extract and clean data
-  const nome = cleanString(row['Nome'] || row['nome']);
-  const email = cleanString(row['Email'] || row['email']);
-  const telefone = cleanPhone(row['Telefone'] || row['telefone']);
-  const cpf_cnpj = cleanString(row['CPF/CNPJ'] || row['cpf_cnpj']);
-  const endereco = cleanString(row['Endereço'] || row['endereco'] || row['Endereco']);
+  console.log(`Processando linha ${lineNum}:`, row);
+  
+  // Try multiple possible column names (more flexible)
+  const possibleNameFields = ['Nome', 'nome', 'NOME', 'Name', 'name', 'NAME'];
+  const possibleEmailFields = ['Email', 'email', 'EMAIL', 'E-mail', 'e-mail'];
+  const possiblePhoneFields = ['Telefone', 'telefone', 'TELEFONE', 'Phone', 'phone', 'Celular', 'celular'];
+  const possibleCpfFields = ['CPF/CNPJ', 'cpf_cnpj', 'CPF', 'cpf', 'CNPJ', 'cnpj', 'Documento', 'documento'];
+  const possibleAddressFields = ['Endereço', 'endereco', 'Endereco', 'ENDERECO', 'Address', 'address'];
+  
+  // Extract data with flexible field matching
+  let nome = null;
+  let email = null;
+  let telefone = null;
+  let cpf_cnpj = null;
+  let endereco = null;
+  
+  // Find name field
+  for (const field of possibleNameFields) {
+    if (row[field]) {
+      nome = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  // Find email field
+  for (const field of possibleEmailFields) {
+    if (row[field]) {
+      email = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  // Find phone field
+  for (const field of possiblePhoneFields) {
+    if (row[field]) {
+      telefone = cleanPhone(row[field]);
+      break;
+    }
+  }
+  
+  // Find CPF/CNPJ field
+  for (const field of possibleCpfFields) {
+    if (row[field]) {
+      cpf_cnpj = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  // Find address field
+  for (const field of possibleAddressFields) {
+    if (row[field]) {
+      endereco = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  console.log(`Dados extraídos linha ${lineNum}:`, { nome, email, telefone, cpf_cnpj, endereco });
 
-  // Validate required fields
+  // Validate required fields - only name is truly required
   if (!nome) {
+    console.log(`Erro linha ${lineNum}: Nome vazio`);
     errors.push({
       line: lineNum,
       field: 'nome',
-      value: row['Nome'] || row['nome'],
+      value: 'vazio',
       message: 'Nome é obrigatório'
     });
   }
 
-  // Validate email format
+  // Validate email format (only if provided)
   if (email && !validateEmail(email)) {
+    console.log(`Erro linha ${lineNum}: Email inválido:`, email);
     errors.push({
       line: lineNum,
       field: 'email',
@@ -82,8 +135,9 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
     });
   }
 
-  // Validate CPF/CNPJ format
+  // Validate CPF/CNPJ format (only if provided)
   if (cpf_cnpj && !validateCpfCnpj(cpf_cnpj)) {
+    console.log(`Erro linha ${lineNum}: CPF/CNPJ inválido:`, cpf_cnpj);
     errors.push({
       line: lineNum,
       field: 'cpf_cnpj',
@@ -92,7 +146,7 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
     });
   }
 
-  return {
+  const result = {
     line: lineNum,
     data: {
       nome: nome ? formatName(nome) : '',
@@ -103,4 +157,7 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
     },
     errors
   };
+  
+  console.log(`Resultado linha ${lineNum}:`, result);
+  return result;
 };
