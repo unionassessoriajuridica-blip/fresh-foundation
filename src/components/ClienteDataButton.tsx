@@ -52,11 +52,15 @@ export const ClienteDataButton = () => {
   };
 
   return (
-    <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
+    <Dialog open={showDialog} onOpenChange={setShowDialog}>
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
           className="border-green-500 text-green-700 hover:bg-green-50 hover:text-green-800"
+          onClick={() => {
+            console.log('Botão clicado! Abrindo dialog...');
+            setShowDialog(true);
+          }}
         >
           <FileSpreadsheet className="w-4 h-4 mr-2" />
           Dados Cadastrais
