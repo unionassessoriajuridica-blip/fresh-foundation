@@ -1,7 +1,10 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import FeatureCard from "@/components/FeatureCard";
 import SSLBadge from "@/components/SSLBadge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Lock, 
   Zap, 
@@ -11,6 +14,29 @@ import {
 } from "lucide-react";
 
 const Index = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSecureAccess = () => {
+    if (isAuthenticated) {
+      // Usuário já está logado, pode acessar funcionalidades
+      return;
+    } else {
+      navigate("/auth");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="w-12 h-12 text-warning mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -62,9 +88,14 @@ const Index = () => {
           
           {/* CTA Button */}
           <div className="mb-6">
-            <Button variant="purple" size="lg" className="px-8 py-3 text-base">
+            <Button 
+              variant="purple" 
+              size="lg" 
+              className="px-8 py-3 text-base"
+              onClick={handleSecureAccess}
+            >
               <Lock className="w-5 h-5 mr-2" />
-              Acesso Seguro
+              {isAuthenticated ? "Área Logada" : "Acesso Seguro"}
             </Button>
           </div>
           
