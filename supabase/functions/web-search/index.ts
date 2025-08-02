@@ -22,10 +22,12 @@ serve(async (req) => {
     // Usar Perplexity para busca na web
     const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
     if (!perplexityKey) {
-      throw new Error('PERPLEXITY_API_KEY não configurada');
+      console.error('❌ PERPLEXITY_API_KEY não configurada');
+      throw new Error('PERPLEXITY_API_KEY não configurada. Configure a chave nas configurações do Supabase.');
     }
 
     console.log('🔍 Realizando busca na web:', query);
+    console.log('📝 Chave Perplexity configurada:', perplexityKey ? 'SIM' : 'NÃO');
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -57,12 +59,15 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Erro na API da Perplexity');
+      const errorText = await response.text();
+      console.error('❌ Erro na resposta da Perplexity:', response.status, errorText);
+      throw new Error(`Erro na API da Perplexity (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    const searchResult = data.choices[0].message.content;
+    console.log('📊 Dados recebidos da Perplexity:', JSON.stringify(data, null, 2));
+    
+    const searchResult = data.choices?.[0]?.message?.content || 'Nenhum resultado encontrado';
     const relatedQuestions = data.related_questions || [];
 
     console.log('✅ Busca na web concluída');

@@ -90,20 +90,43 @@ const IAFacilita = () => {
 
         case 'research':
           console.log('🔍 Modo Pesquisa ativado');
-          const { data: searchData, error: searchError } = await supabase.functions.invoke('web-search', {
-            body: {
-              query: message,
-              sources: []
+          try {
+            const { data: searchData, error: searchError } = await supabase.functions.invoke('web-search', {
+              body: {
+                query: message,
+                sources: []
+              }
+            });
+
+            if (searchError) {
+              console.warn('⚠️ Fallback para OpenAI devido ao erro:', searchError);
+              // Fallback para OpenAI quando Perplexity não funciona
+              const { data: chatData, error: chatError } = await supabase.functions.invoke('ai-chat', {
+                body: {
+                  message: `PESQUISA WEB SIMULADA: ${message}\n\nNota: Como assistente jurídico, forneça uma resposta baseada no conhecimento existente sobre: ${message}`,
+                  context: 'Modo pesquisa - respondendo com base no conhecimento jurídico existente'
+                }
+              });
+              
+              if (chatError) throw chatError;
+              
+              aiContent = chatData.response + '\n\n⚠️ Nota: Esta resposta foi gerada com base no conhecimento existente. Para pesquisas web atualizadas, configure a chave da API Perplexity.';
+              additionalData = {
+                sources: [],
+                relatedQuestions: [],
+                fallback: true
+              };
+            } else {
+              aiContent = searchData.result;
+              additionalData = {
+                sources: searchData.sources,
+                relatedQuestions: searchData.relatedQuestions
+              };
             }
-          });
-
-          if (searchError) throw searchError;
-
-          aiContent = searchData.result;
-          additionalData = {
-            sources: searchData.sources,
-            relatedQuestions: searchData.relatedQuestions
-          };
+          } catch (err) {
+            console.error('Erro na pesquisa:', err);
+            throw err;
+          }
           break;
 
         case 'agent':
