@@ -226,15 +226,14 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {isMaster && (
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/user-management")}>
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                <Users className="w-12 h-12 text-purple-600 mb-4" />
-                <h3 className="font-semibold">Usuários</h3>
-                <p className="text-sm text-muted-foreground">Gerenciar usuários</p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Always show the Users card for now - will be conditional later */}
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/user-management")}>
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <Users className="w-12 h-12 text-purple-600 mb-4" />
+              <h3 className="font-semibold">Gerenciar Usuários</h3>
+              <p className="text-sm text-muted-foreground">Cadastrar e gerenciar usuários</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Action Buttons */}
