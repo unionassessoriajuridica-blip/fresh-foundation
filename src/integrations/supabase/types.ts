@@ -259,6 +259,51 @@ export type Database = {
         }
         Relationships: []
       }
+      responsavel_financeiro: {
+        Row: {
+          cep: string
+          cpf: string
+          created_at: string
+          data_nascimento: string
+          email: string
+          endereco_completo: string
+          id: string
+          nome: string
+          rg: string
+          telefone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cep: string
+          cpf: string
+          created_at?: string
+          data_nascimento: string
+          email: string
+          endereco_completo: string
+          id?: string
+          nome: string
+          rg: string
+          telefone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cep?: string
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string
+          email?: string
+          endereco_completo?: string
+          id?: string
+          nome?: string
+          rg?: string
+          telefone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

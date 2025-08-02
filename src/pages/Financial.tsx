@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency } from "@/utils/currency";
 import ParcelaCard from "@/components/ParcelaCard";
 import FinanceiroSummary from "@/components/FinanceiroSummary";
+import { ResponsavelFinanceiro } from "@/components/ResponsavelFinanceiro";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FinanceiroItem {
   id: string;
@@ -134,138 +136,151 @@ const Financial = () => {
           totalVencido={totais.vencido}
         />
 
-        {/* Filtros */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Status:</label>
-                <select 
-                  value={filtroStatus} 
-                  onChange={(e) => setFiltroStatus(e.target.value)}
-                  className="px-3 py-2 border rounded-md bg-background"
-                >
-                  <option value="TODOS">Todos</option>
-                  <option value="PENDENTE">Pendente</option>
-                  <option value="PAGO">Pago</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tipo:</label>
-                <select 
-                  value={filtroTipo} 
-                  onChange={(e) => setFiltroTipo(e.target.value)}
-                  className="px-3 py-2 border rounded-md bg-background"
-                >
-                  <option value="TODOS">Todos</option>
-                  <option value="Honorários">Honorários</option>
-                  <option value="Entrada">Entrada</option>
-                  <option value="TMP">TMP</option>
-                </select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Lista de Pagamentos Agrupados por Cliente */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Clientes e Pagamentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredData.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum registro financeiro encontrado.</p>
-              </div>
-            ) : (
-              (() => {
-                // Agrupar por cliente
-                const clientesUnicos = [...new Set(filteredData.map(item => item.cliente_nome))];
-                console.log('Clientes únicos encontrados:', clientesUnicos);
-                
-                return (
-                  <div className="space-y-6">
-                    {clientesUnicos.map((cliente) => {
-                      const parcelasCliente = filteredData.filter(item => item.cliente_nome === cliente);
-                      const totalPendente = parcelasCliente.filter(item => item.status === 'PENDENTE').reduce((sum, item) => sum + item.valor, 0);
-                      const totalPago = parcelasCliente.filter(item => item.status === 'PAGO').reduce((sum, item) => sum + item.valor, 0);
-                      
-                      return (
-                        <div key={cliente} className="border rounded-lg p-6 bg-muted/30">
-                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                            <div>
-                              <h3 className="text-lg font-semibold">{cliente}</h3>
-                              <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                                <span>Total de parcelas: {parcelasCliente.length}</span>
-                                <span>Pendente: {formatCurrency(totalPendente)}</span>
-                                <span>Recebido: {formatCurrency(totalPago)}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  console.log('Navegando para cliente:', cliente);
-                                  navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Ver Todas as Parcelas ({parcelasCliente.length})
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {/* Mostrar próximas parcelas pendentes usando o componente ParcelaCard */}
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-sm text-muted-foreground">Próximos vencimentos:</h4>
-                            {parcelasCliente
-                              .filter(item => item.status === 'PENDENTE')
-                              .slice(0, 3)
-                              .map((item) => (
-                                <ParcelaCard
-                                  key={item.id}
-                                  id={item.id}
-                                  clienteNome={item.cliente_nome}
-                                  valor={item.valor}
-                                  tipo={item.tipo}
-                                  status={item.status}
-                                  vencimento={item.vencimento}
-                                  dataPagamento={item.data_pagamento}
-                                  onBaixaPagamento={handleBaixaPagamento}
-                                  showClienteName={false}
-                                />
-                              ))}
-                            
-                            {parcelasCliente.filter(item => item.status === 'PENDENTE').length > 3 && (
-                              <div className="text-center pt-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`)}
-                                >
-                                  Ver mais {parcelasCliente.filter(item => item.status === 'PENDENTE').length - 3} parcelas pendentes...
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+        <Tabs defaultValue="financeiro" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="financeiro">Gestão Financeira</TabsTrigger>
+            <TabsTrigger value="responsavel">Responsável Financeiro</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="financeiro" className="space-y-6">
+            {/* Filtros */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Filtros</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Status:</label>
+                    <select 
+                      value={filtroStatus} 
+                      onChange={(e) => setFiltroStatus(e.target.value)}
+                      className="px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="TODOS">Todos</option>
+                      <option value="PENDENTE">Pendente</option>
+                      <option value="PAGO">Pago</option>
+                    </select>
                   </div>
-                );
-              })()
-            )}
-          </CardContent>
-        </Card>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Tipo:</label>
+                    <select 
+                      value={filtroTipo} 
+                      onChange={(e) => setFiltroTipo(e.target.value)}
+                      className="px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="TODOS">Todos</option>
+                      <option value="Honorários">Honorários</option>
+                      <option value="Entrada">Entrada</option>
+                      <option value="TMP">TMP</option>
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lista de Pagamentos Agrupados por Cliente */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Clientes e Pagamentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredData.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum registro financeiro encontrado.</p>
+                  </div>
+                ) : (
+                  (() => {
+                    // Agrupar por cliente
+                    const clientesUnicos = [...new Set(filteredData.map(item => item.cliente_nome))];
+                    console.log('Clientes únicos encontrados:', clientesUnicos);
+                    
+                    return (
+                      <div className="space-y-6">
+                        {clientesUnicos.map((cliente) => {
+                          const parcelasCliente = filteredData.filter(item => item.cliente_nome === cliente);
+                          const totalPendente = parcelasCliente.filter(item => item.status === 'PENDENTE').reduce((sum, item) => sum + item.valor, 0);
+                          const totalPago = parcelasCliente.filter(item => item.status === 'PAGO').reduce((sum, item) => sum + item.valor, 0);
+                          
+                          return (
+                            <div key={cliente} className="border rounded-lg p-6 bg-muted/30">
+                              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                                <div>
+                                  <h3 className="text-lg font-semibold">{cliente}</h3>
+                                  <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                                    <span>Total de parcelas: {parcelasCliente.length}</span>
+                                    <span>Pendente: {formatCurrency(totalPendente)}</span>
+                                    <span>Recebido: {formatCurrency(totalPago)}</span>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                      console.log('Navegando para cliente:', cliente);
+                                      navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`);
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Ver Todas as Parcelas ({parcelasCliente.length})
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {/* Mostrar próximas parcelas pendentes usando o componente ParcelaCard */}
+                              <div className="space-y-3">
+                                <h4 className="font-medium text-sm text-muted-foreground">Próximos vencimentos:</h4>
+                                {parcelasCliente
+                                  .filter(item => item.status === 'PENDENTE')
+                                  .slice(0, 3)
+                                  .map((item) => (
+                                    <ParcelaCard
+                                      key={item.id}
+                                      id={item.id}
+                                      clienteNome={item.cliente_nome}
+                                      valor={item.valor}
+                                      tipo={item.tipo}
+                                      status={item.status}
+                                      vencimento={item.vencimento}
+                                      dataPagamento={item.data_pagamento}
+                                      onBaixaPagamento={handleBaixaPagamento}
+                                      showClienteName={false}
+                                    />
+                                  ))}
+                                
+                                {parcelasCliente.filter(item => item.status === 'PENDENTE').length > 3 && (
+                                  <div className="text-center pt-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`)}
+                                    >
+                                      Ver mais {parcelasCliente.filter(item => item.status === 'PENDENTE').length - 3} parcelas pendentes...
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="responsavel">
+            <ResponsavelFinanceiro />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
