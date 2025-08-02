@@ -92,6 +92,48 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_processo: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome_arquivo: string
+          processo_id: string | null
+          tamanho_arquivo: number
+          tipo_arquivo: string
+          updated_at: string
+          url_arquivo: string
+          user_id: string
+        }
+        Insert: {
+          cliente_nome: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome_arquivo: string
+          processo_id?: string | null
+          tamanho_arquivo: number
+          tipo_arquivo: string
+          updated_at?: string
+          url_arquivo: string
+          user_id: string
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome_arquivo?: string
+          processo_id?: string | null
+          tamanho_arquivo?: number
+          tipo_arquivo?: string
+          updated_at?: string
+          url_arquivo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financeiro: {
         Row: {
           cliente_nome: string
@@ -141,6 +183,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      observacoes_processo: {
+        Row: {
+          cliente_nome: string
+          conteudo: string
+          created_at: string
+          id: string
+          processo_id: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_nome: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          processo_id?: string | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_nome?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          processo_id?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       processos: {
         Row: {

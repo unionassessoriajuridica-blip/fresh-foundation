@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, FileText, User, DollarSign } from "lucide-react";
+import { ArrowLeft, FileText, User, DollarSign, StickyNote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCurrencyInput, parseCurrency, formatCurrency } from "@/utils/currency";
+import DocumentUpload from "@/components/DocumentUpload";
+import ProcessNotes from "@/components/ProcessNotes";
 
 const NewProcess = () => {
   const navigate = useNavigate();
@@ -51,6 +53,9 @@ const NewProcess = () => {
     quantidadeMesesTMP: ""
   });
 
+  const [documentos, setDocumentos] = useState<any[]>([]);
+  const [observacoes, setObservacoes] = useState<any[]>([]);
+
   const tiposProcesso = [
     "Criminal",
     "Cível", 
@@ -63,7 +68,7 @@ const NewProcess = () => {
   ];
 
   const handleNextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -106,7 +111,7 @@ const NewProcess = () => {
       if (clienteError) throw clienteError;
 
       // Depois criar o processo
-      const { error: processoError } = await supabase
+      const { data: processoCreated, error: processoError } = await supabase
         .from('processos')
         .insert([
           {
@@ -117,7 +122,9 @@ const NewProcess = () => {
             prazo: processoData.temPrazo ? processoData.prazo : null,
             status: 'ATIVO'
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (processoError) throw processoError;
 
@@ -189,6 +196,23 @@ const NewProcess = () => {
                 }
               ]);
           }
+        }
+      }
+
+      // Salvar observações se houver
+      if (observacoes.length > 0) {
+        for (const observacao of observacoes) {
+          await supabase
+            .from('observacoes_processo')
+            .insert([
+              {
+                user_id: user.id,
+                processo_id: processoCreated.id,
+                cliente_nome: clienteData.nomeCompleto,
+                titulo: observacao.titulo,
+                conteudo: observacao.conteudo
+              }
+            ]);
         }
       }
 
@@ -740,14 +764,52 @@ const NewProcess = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Anterior
             </Button>
-            <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
-              {loading ? "Salvando..." : "Finalizar Cadastro"}
+            <Button onClick={handleNextStep} className="bg-primary hover:bg-primary/90">
+              Próximo
+              <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
             </Button>
           </div>
         </CardContent>
       </Card>
     );
   };
+
+  const renderStep4 = () => (
+    <Card>
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-4">
+          <StickyNote className="w-16 h-16 text-primary mx-auto" />
+        </div>
+        <CardTitle className="text-2xl">Documentos e Observações</CardTitle>
+        <p className="text-muted-foreground">Anexe documentos e adicione observações importantes</p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Upload de Documentos */}
+        <DocumentUpload 
+          clienteNome={clienteData.nomeCompleto}
+          documentos={documentos}
+          onDocumentosChange={setDocumentos}
+        />
+
+        {/* Observações */}
+        <ProcessNotes 
+          clienteNome={clienteData.nomeCompleto}
+          observacoes={observacoes}
+          onObservacoesChange={setObservacoes}
+        />
+
+        <div className="flex justify-between pt-6">
+          <Button variant="outline" onClick={handlePrevStep}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Anterior
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
+            {loading ? "Salvando..." : "Finalizar Cadastro"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -774,6 +836,10 @@ const NewProcess = () => {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
               3
             </div>
+            <div className={`w-16 h-1 ${currentStep >= 4 ? 'bg-primary' : 'bg-muted'}`}></div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 4 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              4
+            </div>
           </div>
         </div>
 
@@ -781,6 +847,7 @@ const NewProcess = () => {
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
       </div>
     </div>
   );
