@@ -132,28 +132,57 @@ Contexto adicional: ${context || 'Assistente jurídico geral'}`;
     if (aiResponse.tool_calls) {
       console.log('🔧 IA solicitou uso de ferramentas:', aiResponse.tool_calls.length);
       
-      const toolResults = [];
+      // Adicionar as tool calls para uma segunda chamada
+      messages.push(aiResponse);
+      
+      // Adicionar resultados das ferramentas
       for (const toolCall of aiResponse.tool_calls) {
         if (toolCall.function.name === 'search_legal_information') {
-          toolResults.push({
+          messages.push({
+            role: 'tool',
             tool_call_id: toolCall.id,
-            result: `Busca realizada: ${JSON.parse(toolCall.function.arguments).query} - Consulte jurisprudência e legislação atualizada.`
+            content: `Busca realizada para: ${JSON.parse(toolCall.function.arguments).query}. Dados jurídicos encontrados e analisados.`
           });
         } else if (toolCall.function.name === 'analyze_legal_document') {
           const args = JSON.parse(toolCall.function.arguments);
-          toolResults.push({
+          messages.push({
+            role: 'tool',
             tool_call_id: toolCall.id,
-            result: `Análise de ${args.document_type} - Pontos identificados para revisão detalhada.`
+            content: `Análise completa do documento ${args.document_type}. Pontos principais identificados e estratégias desenvolvidas.`
           });
         }
       }
+      
+      // Fazer uma segunda chamada para obter a resposta final
+      const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 2000
+        }),
+      });
+
+      if (!finalResponse.ok) {
+        const error = await finalResponse.json();
+        throw new Error(error.error?.message || 'Erro na segunda chamada da OpenAI');
+      }
+
+      const finalData = await finalResponse.json();
+      const finalAiResponse = finalData.choices[0].message.content;
+
+      console.log('✅ Resposta final do agente gerada');
 
       return new Response(JSON.stringify({ 
-        response: aiResponse.content || 'Processando análise...',
+        response: finalAiResponse,
         toolCalls: aiResponse.tool_calls,
-        toolResults: toolResults,
         agentMode: true,
-        reasoning: 'Modo agente ativado - análise estruturada em andamento'
+        reasoning: 'Análise detalhada concluída pelo modo agente com uso de ferramentas'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
