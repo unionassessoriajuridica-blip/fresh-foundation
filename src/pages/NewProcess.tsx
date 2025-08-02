@@ -600,6 +600,123 @@ const NewProcess = () => {
             )}
           </div>
 
+          {/* Preview das Parcelas */}
+          {financeiroData.valorHonorarios && financeiroData.quantidadeParcelas && financeiroData.dataPrimeiroVencimento && (
+            <div className="space-y-4">
+              <h4 className="font-medium text-lg">Preview das Parcelas</h4>
+              
+              {/* Entrada */}
+              {financeiroData.valorEntrada && financeiroData.dataEntrada && (
+                <div className="bg-background p-4 rounded-lg border">
+                  <h5 className="font-medium mb-3 text-green-700">Entrada</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Valor:</span>
+                      <p className="text-green-600 font-semibold">{financeiroData.valorEntrada}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Vencimento:</span>
+                      <p>{new Date(financeiroData.dataEntrada).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Status:</span>
+                      <p className="text-orange-600">Pendente</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Honorários */}
+              <div className="bg-background p-4 rounded-lg border">
+                <h5 className="font-medium mb-3 text-blue-700">Honorários ({financeiroData.quantidadeParcelas} parcelas)</h5>
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {Array.from({ length: parseInt(financeiroData.quantidadeParcelas) }, (_, index) => {
+                    const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
+                    const dataVencimento = new Date(dataBase);
+                    dataVencimento.setMonth(dataVencimento.getMonth() + index);
+                    
+                    return (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm py-2 border-b border-muted">
+                        <div>
+                          <span className="font-medium">Parcela {index + 1}:</span>
+                          <p className="text-blue-600 font-semibold">{formatCurrency(resumo.valorParcela)}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Vencimento:</span>
+                          <p>{dataVencimento.toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <p className="text-orange-600">Pendente</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* TMP */}
+              {financeiroData.incluirTMP && financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && financeiroData.vencimentoTMP && (
+                <div className="bg-background p-4 rounded-lg border">
+                  <h5 className="font-medium mb-3 text-orange-700">TMP - Taxa de Manutenção Processual ({financeiroData.quantidadeMesesTMP} parcelas)</h5>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {Array.from({ length: parseInt(financeiroData.quantidadeMesesTMP) }, (_, index) => {
+                      const dataBase = new Date(financeiroData.vencimentoTMP);
+                      const dataVencimento = new Date(dataBase);
+                      dataVencimento.setMonth(dataVencimento.getMonth() + index);
+                      
+                      return (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm py-2 border-b border-muted">
+                          <div>
+                            <span className="font-medium">TMP {index + 1}:</span>
+                            <p className="text-orange-600 font-semibold">{financeiroData.valorTMP}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Vencimento:</span>
+                            <p>{dataVencimento.toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Status:</span>
+                            <p className="text-orange-600">Pendente</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Resumo Total */}
+              <div className="bg-muted p-4 rounded-lg">
+                <h5 className="font-medium mb-3">Resumo Total</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><span className="font-medium">Total de Parcelas:</span> {
+                      (financeiroData.valorEntrada ? 1 : 0) + 
+                      parseInt(financeiroData.quantidadeParcelas || '0') + 
+                      (financeiroData.incluirTMP ? parseInt(financeiroData.quantidadeMesesTMP || '0') : 0)
+                    }</p>
+                    <p><span className="font-medium">Valor Total dos Honorários:</span> {financeiroData.valorHonorarios}</p>
+                    {financeiroData.incluirTMP && (
+                      <p><span className="font-medium">Valor Total da TMP:</span> {formatCurrency(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP))}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p><span className="font-medium">Valor Total Geral:</span> {
+                      formatCurrency(
+                        parseCurrency(financeiroData.valorHonorarios) + 
+                        (financeiroData.incluirTMP ? parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP) : 0)
+                      )
+                    }</p>
+                    <p className="text-muted-foreground text-xs mt-2">
+                      Após salvar o processo, você poderá gerenciar estas parcelas na seção Financeiro
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between pt-6">
             <Button variant="outline" onClick={handlePrevStep}>
               <ArrowLeft className="w-4 h-4 mr-2" />
