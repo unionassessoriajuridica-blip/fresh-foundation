@@ -17,10 +17,15 @@ const Index = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSecureAccess = () => {
     if (isAuthenticated) {
-      // Usuário já está logado, pode acessar funcionalidades
-      return;
+      navigate("/dashboard");
     } else {
       navigate("/auth");
     }
