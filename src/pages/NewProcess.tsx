@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, FileText, User, DollarSign, StickyNote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +56,17 @@ const NewProcess = () => {
 
   const [documentos, setDocumentos] = useState<any[]>([]);
   const [observacoes, setObservacoes] = useState<any[]>([]);
+
+  const [responsavelData, setResponsavelData] = useState({
+    nome: "",
+    rg: "",
+    cpf: "",
+    data_nascimento: "",
+    telefone: "",
+    email: "",
+    endereco_completo: "",
+    cep: ""
+  });
 
   const tiposProcesso = [
     "Criminal",
@@ -214,6 +226,25 @@ const NewProcess = () => {
               }
             ]);
         }
+      }
+
+      // Salvar dados do responsável financeiro se preenchido
+      if (responsavelData.nome && responsavelData.cpf) {
+        await supabase
+          .from('responsavel_financeiro')
+          .insert([
+            {
+              user_id: user.id,
+              nome: responsavelData.nome,
+              rg: responsavelData.rg,
+              cpf: responsavelData.cpf,
+              data_nascimento: responsavelData.data_nascimento,
+              telefone: responsavelData.telefone,
+              email: responsavelData.email,
+              endereco_completo: responsavelData.endereco_completo,
+              cep: responsavelData.cep
+            }
+          ]);
       }
 
       toast({
@@ -622,6 +653,106 @@ const NewProcess = () => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Seção do Responsável Financeiro */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-lg border-t pt-6">Responsável Financeiro</h4>
+            <p className="text-sm text-muted-foreground">Cadastre os dados da pessoa responsável pelo financeiro</p>
+            
+            <div className="bg-muted p-4 rounded-lg space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="responsavelNome">Nome Completo *</Label>
+                  <Input
+                    id="responsavelNome"
+                    value={responsavelData.nome}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, nome: e.target.value })}
+                    placeholder="Digite o nome completo"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="responsavelRG">RG *</Label>
+                  <Input
+                    id="responsavelRG"
+                    value={responsavelData.rg}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, rg: e.target.value })}
+                    placeholder="Digite o RG"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="responsavelCPF">CPF *</Label>
+                  <Input
+                    id="responsavelCPF"
+                    value={responsavelData.cpf}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, cpf: e.target.value })}
+                    placeholder="Digite o CPF"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="responsavelDataNascimento">Data de Nascimento *</Label>
+                  <Input
+                    id="responsavelDataNascimento"
+                    type="date"
+                    value={responsavelData.data_nascimento}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, data_nascimento: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="responsavelTelefone">Telefone *</Label>
+                  <Input
+                    id="responsavelTelefone"
+                    value={responsavelData.telefone}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, telefone: e.target.value })}
+                    placeholder="Digite o telefone"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="responsavelEmail">E-mail *</Label>
+                  <Input
+                    id="responsavelEmail"
+                    type="email"
+                    value={responsavelData.email}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, email: e.target.value })}
+                    placeholder="Digite o e-mail"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="responsavelCEP">CEP *</Label>
+                  <Input
+                    id="responsavelCEP"
+                    value={responsavelData.cep}
+                    onChange={(e) => setResponsavelData({ ...responsavelData, cep: e.target.value })}
+                    placeholder="Digite o CEP"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="responsavelEndereco">Endereço Completo *</Label>
+                <Textarea
+                  id="responsavelEndereco"
+                  value={responsavelData.endereco_completo}
+                  onChange={(e) => setResponsavelData({ ...responsavelData, endereco_completo: e.target.value })}
+                  placeholder="Digite o endereço completo"
+                  rows={3}
+                  required
+                />
+              </div>
+            </div>
           </div>
 
           {/* Preview das Parcelas */}
