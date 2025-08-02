@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, User, DollarSign, FileText, Users } from "lucide-react";
+import { ArrowLeft, Edit, User, DollarSign, FileText, Users, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -112,6 +112,50 @@ const ProcessView = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (financeiroId: string, novoStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('financeiro')
+        .update({ 
+          status: novoStatus,
+          data_pagamento: novoStatus === 'PAGO' ? new Date().toISOString().split('T')[0] : null
+        })
+        .eq('id', financeiroId);
+
+      if (error) {
+        console.error('Erro ao atualizar status:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Erro ao atualizar status do pagamento.",
+        });
+        return;
+      }
+
+      // Atualizar estado local
+      setFinanceiro(prevFinanceiro => 
+        prevFinanceiro.map(item => 
+          item.id === financeiroId 
+            ? { ...item, status: novoStatus, data_pagamento: novoStatus === 'PAGO' ? new Date().toISOString().split('T')[0] : null }
+            : item
+        )
+      );
+
+      toast({
+        title: "Status atualizado!",
+        description: `Pagamento marcado como ${novoStatus.toLowerCase()}.`,
+      });
+
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao atualizar status do pagamento.",
+      });
     }
   };
 
@@ -292,19 +336,46 @@ const ProcessView = () => {
                                 <Card key={index}>
                                   <CardContent className="p-4">
                                     <div className="flex justify-between items-center">
-                                      <div>
+                                      <div className="flex-1">
                                         <p className="font-medium">{formatCurrency(Number(item.valor))}</p>
                                         <p className="text-sm text-muted-foreground">
                                           Vencimento: {formatDate(item.vencimento)}
                                         </p>
+                                        {item.data_pagamento && (
+                                          <p className="text-sm text-success">
+                                            Pago em: {formatDate(item.data_pagamento)}
+                                          </p>
+                                        )}
                                       </div>
-                                      <Badge variant="outline" className={
-                                        item.status === 'PAGO' 
-                                          ? "bg-success/10 text-success border-success/20"
-                                          : "bg-warning/10 text-warning border-warning/20"
-                                      }>
-                                        {item.status}
-                                      </Badge>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className={
+                                          item.status === 'PAGO' 
+                                            ? "bg-success/10 text-success border-success/20"
+                                            : "bg-warning/10 text-warning border-warning/20"
+                                        }>
+                                          {item.status}
+                                        </Badge>
+                                        {item.status === 'PENDENTE' ? (
+                                          <Button 
+                                            size="sm" 
+                                            onClick={() => handleStatusChange(item.id, 'PAGO')}
+                                            className="bg-success hover:bg-success/90"
+                                          >
+                                            <Check className="w-4 h-4 mr-1" />
+                                            Dar Baixa
+                                          </Button>
+                                        ) : (
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline"
+                                            onClick={() => handleStatusChange(item.id, 'PENDENTE')}
+                                            className="border-warning text-warning hover:bg-warning/10"
+                                          >
+                                            <X className="w-4 h-4 mr-1" />
+                                            Cancelar Baixa
+                                          </Button>
+                                        )}
+                                      </div>
                                     </div>
                                   </CardContent>
                                 </Card>
