@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Send, Bot, User, FileText, Search, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const IAFacilita = () => {
   const navigate = useNavigate();
@@ -60,20 +61,60 @@ const IAFacilita = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
     setInputMessage('');
     setLoading(true);
 
-    // Simular resposta da IA
-    setTimeout(() => {
+    try {
+      console.log('Enviando mensagem para IA:', currentMessage);
+      
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: {
+          message: currentMessage,
+          context: 'Sistema jurídico - assistente para advogados especializado em direito brasileiro'
+        }
+      });
+
+      console.log('Resposta da Edge Function:', data, error);
+
+      if (error) {
+        console.error('Erro na Edge Function:', error);
+        throw error;
+      }
+
       const aiResponse = {
         id: messages.length + 2,
         type: 'ai',
-        content: `Entendi sua solicitação: "${inputMessage}". Esta é uma funcionalidade em desenvolvimento que utilizará IA avançada para fornecer análises jurídicas precisas e fundamentadas. Em breve, poderei ajudá-lo com análises detalhadas, pesquisas jurisprudenciais e geração de documentos.`,
+        content: data.response || 'Desculpe, não consegui processar sua mensagem.',
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, aiResponse]);
+      
+      toast({
+        title: "Mensagem enviada",
+        description: "IA processou sua solicitação com sucesso",
+      });
+      
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      
+      const errorResponse = {
+        id: messages.length + 2,
+        type: 'ai',
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Verifique se as chaves de API estão configuradas corretamente.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
+      
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar sua mensagem",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const handleQuickPrompt = (prompt: string) => {
