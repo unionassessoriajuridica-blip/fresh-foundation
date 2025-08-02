@@ -1,0 +1,122 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Settings, Shield } from 'lucide-react';
+import { GoogleIntegrationCard } from '@/components/GoogleIntegrationCard';
+
+const GoogleIntegration = () => {
+  const navigate = useNavigate();
+  const [isConnected, setIsConnected] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    email: string;
+    avatar?: string;
+  } | null>(null);
+
+  const handleConnect = (permissions: string[]) => {
+    // Simular dados do usuário após conectar
+    setUserInfo({
+      name: 'Rafael Anastácio',
+      email: 'rasa.anastacio@gmail.com',
+      avatar: 'https://ui-avatars.com/api/?name=Rafael+Anastacio&background=4285f4&color=fff'
+    });
+    setIsConnected(true);
+    console.log('Permissões concedidas:', permissions);
+  };
+
+  const handleDisconnect = () => {
+    setIsConnected(false);
+    setUserInfo(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-6 py-8 max-w-4xl">
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+          <div className="flex items-center gap-2">
+            <Settings className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold">Integração Google</h1>
+          </div>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Card de Integração */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Conectar sua conta Google</h2>
+              <p className="text-muted-foreground">
+                Integre seu Gmail e Google Calendar para uma experiência completa no sistema jurídico.
+              </p>
+            </div>
+
+            <GoogleIntegrationCard
+              onConnect={handleConnect}
+              onDisconnect={handleDisconnect}
+              isConnected={isConnected}
+              userInfo={userInfo || undefined}
+            />
+          </div>
+
+          {/* Informações sobre a integração */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Benefícios da integração</h3>
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Envio de emails automático</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Envie notificações e documentos diretamente do sistema para seus clientes
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Settings className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Sincronização de agenda</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Mantenha seus compromissos sincronizados entre o sistema e o Google Calendar
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Segurança garantida</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Todas as integrações seguem os padrões de segurança OAuth 2.0 do Google
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-medium mb-2">Privacidade e Segurança</h4>
+              <p className="text-sm text-muted-foreground">
+                Suas informações são protegidas e utilizadas apenas para as funcionalidades 
+                solicitadas. Você pode revogar as permissões a qualquer momento nas 
+                configurações da sua conta Google.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GoogleIntegration;

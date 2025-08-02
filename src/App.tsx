@@ -12,6 +12,7 @@ import Financial from "./pages/Financial";
 import ProcessFinancial from "./pages/ProcessFinancial";
 import IAFacilita from "./pages/IAFacilita";
 import FaciliSign from "./pages/FaciliSign";
+import GoogleIntegration from "./pages/GoogleIntegration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/financeiro/cliente/:clienteNome" element={<ProcessFinancial />} />
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
+          <Route path="/google-integration" element={<GoogleIntegration />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -15,7 +15,8 @@ import {
   Edit,
   Trash2,
   Bell,
-  User
+  User,
+  Settings
  } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -204,6 +205,10 @@ const Dashboard = () => {
           </Button>
           <Button variant="purple" onClick={() => window.location.href = '/ia-facilita'}>
             IA-Facilita
+          </Button>
+          <Button variant="outline" className="border-google text-google hover:bg-google hover:text-white" onClick={() => window.location.href = '/google-integration'}>
+            <Settings className="w-4 h-4 mr-2" />
+            Integração Google
           </Button>
         </div>
 
