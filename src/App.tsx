@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NewProcess from "./pages/NewProcess";
+import ProcessView from "./pages/ProcessView";
 import Financial from "./pages/Financial";
 import ProcessFinancial from "./pages/ProcessFinancial";
 import IAFacilita from "./pages/IAFacilita";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/novo-processo" element={<NewProcess />} />
+          <Route path="/processo/:id" element={<ProcessView />} />
           <Route path="/financeiro" element={<Financial />} />
           <Route path="/financeiro/cliente/:clienteNome" element={<ProcessFinancial />} />
           <Route path="/ia-facilita" element={<IAFacilita />} />
