@@ -66,8 +66,6 @@ const IAFacilita = () => {
     setLoading(true);
 
     try {
-      console.log('Enviando mensagem para IA:', currentMessage);
-      
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
           message: currentMessage,
@@ -75,10 +73,7 @@ const IAFacilita = () => {
         }
       });
 
-      console.log('Resposta da Edge Function:', data, error);
-
       if (error) {
-        console.error('Erro na Edge Function:', error);
         throw error;
       }
 
@@ -90,11 +85,6 @@ const IAFacilita = () => {
       };
       
       setMessages(prev => [...prev, aiResponse]);
-      
-      toast({
-        title: "Mensagem enviada",
-        description: "IA processou sua solicitação com sucesso",
-      });
       
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);

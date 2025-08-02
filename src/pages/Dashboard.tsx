@@ -19,7 +19,6 @@ import {
  } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { TestCenter } from "@/components/TestCenter";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -189,9 +188,6 @@ const Dashboard = () => {
             </Card>
           ))}
         </div>
-
-        {/* Test Center */}
-        <TestCenter />
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
