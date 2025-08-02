@@ -28,6 +28,15 @@ const NewProcess = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Usuário não autenticado.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -41,7 +50,7 @@ const NewProcess = () => {
             cliente_preso: formData.clientePreso === "SIM",
             descricao: formData.descricao,
             prazo: formData.prazo || null,
-            user_id: user?.id
+            user_id: user.id
           }
         ]);
 

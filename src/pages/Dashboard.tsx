@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,44 +17,77 @@ import {
   Bell,
   User
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const [processos, setProcessos] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    processosAtivos: 0,
+    audienciasHoje: 0,
+    clientes: 0,
+    receitaMensal: "R$ 0,00"
+  });
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+    try {
+      // Carregar processos
+      const { data: processosData, error: processosError } = await supabase
+        .from('processos')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (processosError) throw processosError;
+
+      setProcessos(processosData || []);
+      
+      // Atualizar estatísticas
+      setStats({
+        processosAtivos: processosData?.length || 0,
+        audienciasHoje: 0,
+        clientes: new Set(processosData?.map(p => p.cliente_id)).size || 0,
+        receitaMensal: "R$ 0,00"
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsData = [
     {
       title: "Processos Ativos",
-      value: "3",
+      value: stats.processosAtivos.toString(),
       icon: FileText,
       color: "text-primary"
     },
     {
       title: "Audiências Hoje", 
-      value: "0",
+      value: stats.audienciasHoje.toString(),
       icon: Calendar,
       color: "text-success"
     },
     {
       title: "Clientes",
-      value: "3", 
+      value: stats.clientes.toString(), 
       icon: Users,
       color: "text-purple"
     },
     {
       title: "Receita Mensal",
-      value: "R$ 0,00",
+      value: stats.receitaMensal,
       icon: DollarSign,
       color: "text-warning"
-    }
-  ];
-
-  const processos = [
-    {
-      id: "020201250525253352",
-      cliente: "TESTE 1",
-      tipo: "Cível",
-      clientePreso: "SIM",
-      prazo: ""
     }
   ];
 
@@ -71,15 +105,15 @@ const Dashboard = () => {
             <div className="relative">
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute -top-1 -right-1 bg-success text-success-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                3
+                {stats.processosAtivos}
               </span>
             </div>
             
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
               <div className="flex flex-col">
-                <span className="text-sm font-medium">Rafael Anastácio</span>
-                <span className="text-xs text-muted-foreground">RA</span>
+                <span className="text-sm font-medium">{user?.email?.split('@')[0] || 'Usuário'}</span>
+                <span className="text-xs text-muted-foreground">Advogado</span>
               </div>
             </div>
             
@@ -93,7 +127,7 @@ const Dashboard = () => {
       <div className="container mx-auto px-6 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {statsData.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -159,51 +193,57 @@ const Dashboard = () => {
                   className="pl-10 w-80"
                 />
               </div>
-              <span className="text-sm text-muted-foreground">3 processo(s) ativo(s)</span>
+              <span className="text-sm text-muted-foreground">{processos.length} processo(s) ativo(s)</span>
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>AÇÕES</TableHead>
-                  <TableHead>Nº PROCESSO</TableHead>
-                  <TableHead>CLIENTE</TableHead>
-                  <TableHead>TIPO DO PROCESSO</TableHead>
-                  <TableHead>CLIENTE PRESO</TableHead>
-                  <TableHead>PRAZO</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processos.map((processo) => (
-                  <TableRow key={processo.id}>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Edit className="w-4 h-4 text-success" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Trash2 className="w-4 h-4 text-warning" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono">{processo.id}</TableCell>
-                    <TableCell>{processo.cliente}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                        {processo.tipo}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                        {processo.clientePreso}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{processo.prazo}</TableCell>
+            {loading ? (
+              <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+            ) : processos.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">Nenhum processo cadastrado. Clique em "Novo Processo" para começar.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>AÇÕES</TableHead>
+                    <TableHead>Nº PROCESSO</TableHead>
+                    <TableHead>CLIENTE</TableHead>
+                    <TableHead>TIPO DO PROCESSO</TableHead>
+                    <TableHead>CLIENTE PRESO</TableHead>
+                    <TableHead>PRAZO</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {processos.map((processo) => (
+                    <TableRow key={processo.id}>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-4 h-4 text-success" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Trash2 className="w-4 h-4 text-warning" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono">{processo.numero_processo}</TableCell>
+                      <TableCell>{processo.cliente_id}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                          {processo.tipo_processo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={processo.cliente_preso ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-success/10 text-success border-success/20"}>
+                          {processo.cliente_preso ? "SIM" : "NÃO"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{processo.prazo ? new Date(processo.prazo).toLocaleDateString('pt-BR') : '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
