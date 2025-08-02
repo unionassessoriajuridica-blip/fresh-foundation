@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatCurrency } from "@/utils/currency";
 import ParcelaCard from "@/components/ParcelaCard";
 import FinanceiroSummary from "@/components/FinanceiroSummary";
+import { FinancialReports } from "@/components/FinancialReports";
 import { ResponsavelFinanceiro } from "@/components/ResponsavelFinanceiro";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -170,8 +171,9 @@ const Financial = () => {
         />
 
         <Tabs defaultValue="financeiro" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="financeiro">Gestão Financeira</TabsTrigger>
+            <TabsTrigger value="relatorios">Relatórios e Gráficos</TabsTrigger>
             <TabsTrigger value="responsavel">Responsável Financeiro</TabsTrigger>
           </TabsList>
           
@@ -347,6 +349,10 @@ const Financial = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="relatorios">
+            <FinancialReports financeiro={financeiro} />
           </TabsContent>
           
           <TabsContent value="responsavel">
