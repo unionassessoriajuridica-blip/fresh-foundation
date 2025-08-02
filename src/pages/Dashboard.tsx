@@ -38,10 +38,15 @@ const Dashboard = () => {
 
   const loadData = async () => {
     try {
-      // Carregar processos
+      // Carregar processos com dados do cliente
       const { data: processosData, error: processosError } = await supabase
         .from('processos')
-        .select('*')
+        .select(`
+          *,
+          clientes:cliente_id (
+            nome
+          )
+        `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
@@ -49,18 +54,65 @@ const Dashboard = () => {
 
       setProcessos(processosData || []);
       
+      // Carregar dados financeiros para calcular receita mensal
+      const { data: financeiroData, error: financeiroError } = await supabase
+        .from('financeiro')
+        .select('valor, status')
+        .eq('user_id', user?.id);
+
+      if (financeiroError) throw financeiroError;
+
+      // Calcular receita mensal (valores pagos)
+      const receitaMensal = financeiroData
+        ?.filter(item => item.status === 'PAGO')
+        .reduce((total, item) => total + Number(item.valor), 0) || 0;
+
+      // Contar clientes únicos
+      const { data: clientesData, error: clientesError } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (clientesError) throw clientesError;
+      
       // Atualizar estatísticas
       setStats({
         processosAtivos: processosData?.length || 0,
         audienciasHoje: 0,
-        clientes: new Set(processosData?.map(p => p.cliente_id)).size || 0,
-        receitaMensal: "R$ 0,00"
+        clientes: clientesData?.length || 0,
+        receitaMensal: new Intl.NumberFormat('pt-BR', { 
+          style: 'currency', 
+          currency: 'BRL' 
+        }).format(receitaMensal)
       });
 
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditProcesso = (processoId: string) => {
+    window.location.href = `/processo/${processoId}`;
+  };
+
+  const handleDeleteProcesso = async (processoId: string) => {
+    if (confirm('Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.')) {
+      try {
+        const { error } = await supabase
+          .from('processos')
+          .delete()
+          .eq('id', processoId);
+
+        if (error) throw error;
+
+        // Recarregar dados
+        loadData();
+      } catch (error) {
+        console.error('Erro ao excluir processo:', error);
+        alert('Erro ao excluir processo');
+      }
     }
   };
 
@@ -218,16 +270,24 @@ const Dashboard = () => {
                     <TableRow key={processo.id}>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEditProcesso(processo.id)}
+                          >
                             <Edit className="w-4 h-4 text-success" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteProcesso(processo.id)}
+                          >
                             <Trash2 className="w-4 h-4 text-warning" />
                           </Button>
                         </div>
                       </TableCell>
                       <TableCell className="font-mono">{processo.numero_processo}</TableCell>
-                      <TableCell>{processo.cliente_id}</TableCell>
+                      <TableCell>{processo.clientes?.nome || 'Cliente não encontrado'}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                           {processo.tipo_processo}
