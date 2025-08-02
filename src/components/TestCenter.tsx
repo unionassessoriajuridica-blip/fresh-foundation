@@ -111,27 +111,34 @@ export const TestCenter = () => {
         type: 'notification'
       });
 
-      console.log('📬 Resultado do email:', result);
+      console.log('📬 Resultado completo do email:', result);
+
+      // Verificar se há detalhes específicos do erro
+      let errorDetails = '';
+      if (!result.success && result.error) {
+        errorDetails = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+      }
 
       setEmailTest(prev => ({ 
         ...prev, 
         result: { 
           success: result.success, 
           data: result.data,
-          error: result.error,
-          timestamp: new Date().toLocaleString('pt-BR')
+          error: errorDetails || result.error,
+          timestamp: new Date().toLocaleString('pt-BR'),
+          details: result // Incluir resposta completa para debug
         } 
       }));
 
       if (result.success) {
         toast({
           title: "✅ Email Enviado",
-          description: "A integração com Resend está funcionando corretamente",
+          description: `Email enviado com sucesso! Verifique sua caixa de entrada e spam.`,
         });
       } else {
         toast({
           title: "❌ Erro no Email",
-          description: "Problema na integração com Resend",
+          description: errorDetails || "Problema na integração com Resend",
           variant: "destructive",
         });
       }
@@ -292,11 +299,31 @@ export const TestCenter = () => {
                       {emailTest.result.data?.id && (
                         <p className="text-sm text-gray-600">ID: {emailTest.result.data.id}</p>
                       )}
+                      <p className="text-xs text-blue-600 mt-2">
+                        ⚠️ Verifique sua caixa de entrada e pasta de spam. 
+                        Emails da Resend podem demorar alguns minutos para chegar.
+                      </p>
+                      {emailTest.result.details && (
+                        <details className="mt-2">
+                          <summary className="text-xs cursor-pointer text-gray-500">Ver detalhes técnicos</summary>
+                          <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-auto">
+                            {JSON.stringify(emailTest.result.details, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
                   ) : (
                     <div>
                       <p className="text-sm font-medium mb-2">Erro ao enviar:</p>
                       <p className="text-sm text-red-700">{emailTest.result.error}</p>
+                      {emailTest.result.details && (
+                        <details className="mt-2">
+                          <summary className="text-xs cursor-pointer text-red-500">Ver detalhes do erro</summary>
+                          <pre className="text-xs bg-red-50 p-2 rounded mt-1 overflow-auto">
+                            {JSON.stringify(emailTest.result.details, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
                   )}
                 </CardContent>

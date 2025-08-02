@@ -18,16 +18,30 @@ interface EmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('🚀 Send-email function started');
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log('✅ CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('🔍 Processing email request...');
     const { to, subject, message, type, clienteName }: EmailRequest = await req.json();
+    console.log('📧 Email data received:', { to, subject, type, messageLength: message.length });
 
     if (!to || !subject || !message) {
+      console.error('❌ Missing required fields');
       throw new Error('Campos obrigatórios: to, subject, message');
+    }
+
+    // Verificar se a chave da Resend está configurada
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    console.log('🔑 Resend API Key status:', resendApiKey ? 'CONFIGURED' : 'NOT CONFIGURED');
+    
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY não está configurada nos secrets do Supabase');
     }
 
     // Template de email baseado no tipo
@@ -91,18 +105,27 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
+    console.log('📨 Attempting to send email via Resend...');
+    
     const emailResponse = await resend.emails.send({
-      from: "Sistema Jurídico <noreply@resend.dev>",
+      from: "Sistema Jurídico <noreply@resend.dev>", // Usando domínio padrão da Resend
       to: [to],
       subject: subject,
       html: getEmailTemplate(type || 'default', message, clienteName),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("✅ Resend response:", emailResponse);
+
+    // Verificar se houve erro na resposta da Resend
+    if (emailResponse.error) {
+      console.error("❌ Resend API error:", emailResponse.error);
+      throw new Error(`Resend error: ${emailResponse.error.message || 'Unknown error'}`);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
-      messageId: emailResponse.data?.id 
+      messageId: emailResponse.data?.id,
+      resendResponse: emailResponse
     }), {
       status: 200,
       headers: {
@@ -111,7 +134,12 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error in send-email function:", error);
+    console.error("❌ Error in send-email function:", error);
+    console.error("❌ Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return new Response(
       JSON.stringify({ error: error.message }),
       {
