@@ -11,6 +11,8 @@ interface ClienteData {
   telefone?: string;
   cpf_cnpj?: string;
   endereco?: string;
+  numero_processo?: string;
+  tipo_processo?: string;
 }
 
 interface ImportResult {
@@ -19,6 +21,7 @@ interface ImportResult {
   invalidRows: number;
   importedRows: number;
   duplicatesSkipped: number;
+  processesCreated: number;
   errors: ValidationError[];
 }
 
@@ -135,6 +138,7 @@ export const useClienteExcel = () => {
           invalidRows: jsonData.length,
           importedRows: 0,
           duplicatesSkipped: 0,
+          processesCreated: 0,
           errors: allErrors
         };
       }
@@ -165,30 +169,82 @@ export const useClienteExcel = () => {
       
       setProgress(70);
 
-      // Insert valid clients in batches
+      // Insert valid clients and create processes
       let importedCount = 0;
+      let processesCreated = 0;
+      const clienteProcessMap = new Map<string, string>(); // Maps client ID to process data
+      
       if (clientesToInsert.length > 0) {
-        const clientesComUserId = clientesToInsert.map(row => ({
-          ...row.data,
-          user_id: user.user.id
-        }));
+        // Remove process fields from client data for insertion
+        const clientesComUserId = clientesToInsert.map(row => {
+          const { numero_processo, tipo_processo, ...clienteData } = row.data;
+          return {
+            ...clienteData,
+            user_id: user.user.id
+          };
+        });
 
-        // Insert in batches of 100
+        // Insert clients in batches of 100
         const batchSize = 100;
         for (let i = 0; i < clientesComUserId.length; i += batchSize) {
           const batch = clientesComUserId.slice(i, i + batchSize);
-          const { error } = await supabase
+          const { data: insertedClientes, error } = await supabase
             .from('clientes')
-            .insert(batch);
+            .insert(batch)
+            .select('id, nome');
 
           if (error) {
             console.error('Error inserting batch:', error);
             // Continue with next batch instead of failing completely
           } else {
             importedCount += batch.length;
+            
+            // Map client names to IDs for process creation
+            if (insertedClientes) {
+              insertedClientes.forEach((cliente, batchIndex) => {
+                const originalRowIndex = i + batchIndex;
+                const originalRow = clientesToInsert[originalRowIndex];
+                if (originalRow?.data.numero_processo && originalRow?.data.tipo_processo) {
+                  clienteProcessMap.set(cliente.id, JSON.stringify({
+                    numero_processo: originalRow.data.numero_processo,
+                    tipo_processo: originalRow.data.tipo_processo,
+                    cliente_nome: cliente.nome
+                  }));
+                }
+              });
+            }
           }
           
-          setProgress(70 + (i / clientesComUserId.length) * 25);
+          setProgress(70 + (i / clientesComUserId.length) * 15);
+        }
+
+        // Create processes for clients that have process data
+        if (clienteProcessMap.size > 0) {
+          setProgress(85);
+          const processesToInsert = Array.from(clienteProcessMap.entries()).map(([clienteId, processDataStr]) => {
+            const processData = JSON.parse(processDataStr);
+            return {
+              user_id: user.user.id,
+              cliente_id: clienteId,
+              numero_processo: processData.numero_processo,
+              tipo_processo: processData.tipo_processo,
+              status: 'ATIVO'
+            };
+          });
+
+          // Insert processes in batches
+          for (let i = 0; i < processesToInsert.length; i += batchSize) {
+            const batch = processesToInsert.slice(i, i + batchSize);
+            const { error } = await supabase
+              .from('processos')
+              .insert(batch);
+
+            if (error) {
+              console.error('Error inserting process batch:', error);
+            } else {
+              processesCreated += batch.length;
+            }
+          }
         }
       }
 
@@ -208,6 +264,7 @@ export const useClienteExcel = () => {
         invalidRows: invalidRows.length,
         importedRows: importedCount,
         duplicatesSkipped,
+        processesCreated,
         errors: allErrors
       };
 
@@ -281,7 +338,9 @@ export const useClienteExcel = () => {
         'Email': 'joao@exemplo.com',
         'Telefone': '(11) 99999-9999',
         'CPF/CNPJ': '123.456.789-00',
-        'Endereço': 'Rua das Flores, 123 - São Paulo/SP'
+        'Endereço': 'Rua das Flores, 123 - São Paulo/SP',
+        'Número do Processo': '0001234-56.2024.8.26.0100',
+        'Área do Processo': 'Criminal'
       }
     ];
 
@@ -295,6 +354,8 @@ export const useClienteExcel = () => {
       { wch: 15 }, // Telefone
       { wch: 18 }, // CPF/CNPJ
       { wch: 40 }, // Endereço
+      { wch: 25 }, // Número do Processo
+      { wch: 20 }, // Área do Processo
     ];
     worksheet['!cols'] = columnWidths;
 

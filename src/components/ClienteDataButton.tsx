@@ -89,6 +89,9 @@ export const ClienteDataButton = () => {
                   <p>📊 Total de linhas: {importResult.totalRows}</p>
                   <p>✅ Registros válidos: {importResult.validRows}</p>
                   <p>📥 Clientes importados: {importResult.importedRows}</p>
+                  {importResult.processesCreated > 0 && (
+                    <p>⚖️ Processos criados: {importResult.processesCreated}</p>
+                  )}
                   {importResult.duplicatesSkipped > 0 && (
                     <p>⚠️ Duplicatas ignoradas: {importResult.duplicatesSkipped}</p>
                   )}
@@ -139,9 +142,14 @@ export const ClienteDataButton = () => {
                       <li>• Telefone (opcional)</li>
                       <li>• CPF/CNPJ (opcional, 11 ou 14 dígitos)</li>
                       <li>• Endereço (opcional)</li>
+                      <li>• Número do Processo (opcional)</li>
+                      <li>• Área do Processo (opcional)</li>
                     </ul>
                     <p className="mt-2 text-xs text-blue-600">
                       ℹ️ Duplicatas serão ignoradas automaticamente
+                    </p>
+                    <p className="mt-1 text-xs text-blue-600">
+                      📋 Processos serão criados automaticamente quando os campos forem preenchidos
                     </p>
                   </div>
                 </div>

@@ -47,6 +47,8 @@ export interface ProcessedRow {
     telefone?: string;
     cpf_cnpj?: string;
     endereco?: string;
+    numero_processo?: string;
+    tipo_processo?: string;
   };
   errors: ValidationError[];
 }
@@ -63,6 +65,8 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
   const possiblePhoneFields = ['Telefone', 'telefone', 'TELEFONE', 'Phone', 'phone', 'Celular', 'celular'];
   const possibleCpfFields = ['CPF/CNPJ', 'cpf_cnpj', 'CPF', 'cpf', 'CNPJ', 'cnpj', 'Documento', 'documento'];
   const possibleAddressFields = ['Endereço', 'endereco', 'Endereco', 'ENDERECO', 'Address', 'address'];
+  const possibleProcessFields = ['Número do Processo', 'numero_processo', 'Numero do Processo', 'NUMERO_PROCESSO', 'Processo', 'processo'];
+  const possibleAreaFields = ['Área do Processo', 'area_processo', 'Area do Processo', 'AREA_PROCESSO', 'Tipo de Processo', 'tipo_processo', 'Area', 'area'];
   
   // Extract data with flexible field matching
   let nome = null;
@@ -70,6 +74,8 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
   let telefone = null;
   let cpf_cnpj = null;
   let endereco = null;
+  let numero_processo = null;
+  let tipo_processo = null;
   
   // Find name field
   for (const field of possibleNameFields) {
@@ -111,7 +117,23 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
     }
   }
   
-  console.log(`Dados extraídos linha ${lineNum}:`, { nome, email, telefone, cpf_cnpj, endereco });
+  // Find process number field
+  for (const field of possibleProcessFields) {
+    if (row[field]) {
+      numero_processo = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  // Find process area/type field
+  for (const field of possibleAreaFields) {
+    if (row[field]) {
+      tipo_processo = cleanString(row[field]);
+      break;
+    }
+  }
+  
+  console.log(`Dados extraídos linha ${lineNum}:`, { nome, email, telefone, cpf_cnpj, endereco, numero_processo, tipo_processo });
 
   // Validate required fields - only name is truly required
   if (!nome) {
@@ -154,6 +176,8 @@ export const processExcelRow = (row: any, index: number): ProcessedRow => {
       telefone: telefone || undefined,
       cpf_cnpj: cpf_cnpj || undefined,
       endereco: endereco || undefined,
+      numero_processo: numero_processo || undefined,
+      tipo_processo: tipo_processo || undefined,
     },
     errors
   };
