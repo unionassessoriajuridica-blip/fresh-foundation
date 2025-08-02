@@ -18,9 +18,11 @@ import {
   User
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const { canDelete, loading: roleLoading } = useUserRole();
   const [processos, setProcessos] = useState<any[]>([]);
   const [stats, setStats] = useState({
     processosAtivos: 0,
@@ -285,24 +287,26 @@ const Dashboard = () => {
                 <TableBody>
                   {processos.map((processo) => (
                     <TableRow key={processo.id}>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleEditProcesso(processo.id)}
-                          >
-                            <Edit className="w-4 h-4 text-success" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDeleteProcesso(processo.id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-warning" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex gap-2">
+                           <Button 
+                             size="sm" 
+                             variant="outline"
+                             onClick={() => handleEditProcesso(processo.id)}
+                           >
+                             <Edit className="w-4 h-4 text-success" />
+                           </Button>
+                           {canDelete() && (
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => handleDeleteProcesso(processo.id)}
+                             >
+                               <Trash2 className="w-4 h-4 text-warning" />
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                       <TableCell className="font-mono">{processo.numero_processo}</TableCell>
                       <TableCell>{processo.clientes?.nome || 'Cliente não encontrado'}</TableCell>
                       <TableCell>
