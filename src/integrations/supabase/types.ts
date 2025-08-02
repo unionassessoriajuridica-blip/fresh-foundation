@@ -122,6 +122,48 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_digitais: {
+        Row: {
+          created_at: string
+          docuseal_submission_id: string | null
+          docuseal_template_id: string
+          id: string
+          nome: string
+          signatarios: Json | null
+          status: string
+          tipo: string | null
+          updated_at: string
+          user_id: string
+          webhook_data: Json | null
+        }
+        Insert: {
+          created_at?: string
+          docuseal_submission_id?: string | null
+          docuseal_template_id: string
+          id?: string
+          nome: string
+          signatarios?: Json | null
+          status?: string
+          tipo?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_data?: Json | null
+        }
+        Update: {
+          created_at?: string
+          docuseal_submission_id?: string | null
+          docuseal_template_id?: string
+          id?: string
+          nome?: string
+          signatarios?: Json | null
+          status?: string
+          tipo?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_data?: Json | null
+        }
+        Relationships: []
+      }
       documentos_processo: {
         Row: {
           cliente_nome: string

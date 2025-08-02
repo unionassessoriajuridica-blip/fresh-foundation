@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.agent-mode]
 verify_jwt = false
+
+[functions.docuseal-webhook]
+verify_jwt = false

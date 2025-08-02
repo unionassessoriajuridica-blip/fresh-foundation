@@ -102,7 +102,7 @@ export const useDocuSeal = () => {
   const getDocuments = async (): Promise<DocumentoDigital[]> => {
     try {
       const { data, error } = await supabase
-        .from('documentos_digitais')
+        .from('documentos_digitais' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -111,7 +111,7 @@ export const useDocuSeal = () => {
         return [];
       }
 
-      return data || [];
+      return (data || []) as unknown as DocumentoDigital[];
     } catch (error) {
       console.error('Error fetching documents:', error);
       return [];
