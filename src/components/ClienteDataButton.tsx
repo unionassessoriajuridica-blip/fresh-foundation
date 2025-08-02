@@ -12,19 +12,27 @@ export const ClienteDataButton = () => {
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  console.log('ClienteDataButton renderizado');
+  
   const { loading, importing, progress, downloadClientesExcel, uploadClientesExcel, downloadTemplateExcel } = useClienteExcel();
+  
+  console.log('Hook state:', { loading, importing, progress });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('Arquivo selecionado');
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Arquivo:', file.name);
       setSelectedFile(file);
     }
   };
 
   const handleUpload = async () => {
+    console.log('Iniciando upload do arquivo:', selectedFile?.name);
     if (!selectedFile) return;
 
     const result = await uploadClientesExcel(selectedFile);
+    console.log('Resultado do upload:', result);
     if (result) {
       setImportResult(result);
       setSelectedFile(null);

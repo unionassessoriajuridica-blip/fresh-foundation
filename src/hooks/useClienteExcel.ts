@@ -29,6 +29,7 @@ export const useClienteExcel = () => {
   const { toast } = useToast();
 
   const downloadClientesExcel = async () => {
+    console.log('Iniciando download dos clientes');
     setLoading(true);
     try {
       // Buscar todos os clientes
@@ -95,6 +96,7 @@ export const useClienteExcel = () => {
   };
 
   const uploadClientesExcel = async (file: File): Promise<ImportResult | null> => {
+    console.log('Iniciando upload do Excel:', file.name);
     setImporting(true);
     setProgress(0);
     
