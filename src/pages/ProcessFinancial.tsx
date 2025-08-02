@@ -2,23 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, DollarSign, CheckCircle, Clock, Calendar, User, FileText } from "lucide-react";
+import { ArrowLeft, DollarSign, FileText, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatCurrency } from "@/utils/currency";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import ParcelaCard from "@/components/ParcelaCard";
+import FinanceiroSummary from "@/components/FinanceiroSummary";
 
 interface FinanceiroItem {
   id: string;
@@ -29,23 +18,6 @@ interface FinanceiroItem {
   vencimento: string;
   data_pagamento?: string;
   created_at: string;
-}
-
-interface Cliente {
-  id: string;
-  nome: string;
-  email?: string;
-  telefone?: string;
-  cpf_cnpj?: string;
-}
-
-interface Processo {
-  id: string;
-  numero_processo: string;
-  tipo_processo: string;
-  status: string;
-  prazo?: string;
-  cliente_id: string;
 }
 
 const ProcessFinancial = () => {
@@ -80,6 +52,7 @@ const ProcessFinancial = () => {
       console.log('Dados encontrados para o cliente:', data);
       setFinanceiro(data || []);
     } catch (error: any) {
+      console.error('Erro ao carregar dados financeiros:', error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar dados financeiros",
@@ -114,41 +87,6 @@ const ProcessFinancial = () => {
         title: "Erro ao registrar pagamento",
         description: error.message,
       });
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PAGO':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'PENDENTE':
-        return <Clock className="w-4 h-4" />;
-      default:
-        return <Calendar className="w-4 h-4" />;
-    }
-  };
-
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case 'PAGO':
-        return 'default';
-      case 'PENDENTE':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'Honorários':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'Entrada':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'TMP':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
 
@@ -202,75 +140,19 @@ const ProcessFinancial = () => {
         <CardContent>
           <div className="space-y-3">
             {items.map((item, index) => (
-              <div
+              <ParcelaCard
                 key={item.id}
-                className={`border rounded-lg p-4 ${
-                  isVencido(item.vencimento, item.status) ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950' : ''
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium">
-                        {titulo === 'Honorários' ? `Parcela ${index + 1}` : titulo}
-                      </span>
-                      <Badge className={getTipoColor(item.tipo)}>
-                        {item.tipo}
-                      </Badge>
-                      <Badge variant={getStatusVariant(item.status)} className="flex items-center gap-1">
-                        {getStatusIcon(item.status)}
-                        {item.status}
-                      </Badge>
-                      {isVencido(item.vencimento, item.status) && (
-                        <Badge variant="destructive">VENCIDO</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>Valor: <span className="font-medium text-foreground">{formatCurrency(item.valor)}</span></p>
-                      <p>Vencimento: <span className="font-medium text-foreground">
-                        {new Date(item.vencimento).toLocaleDateString('pt-BR')}
-                      </span></p>
-                      {item.data_pagamento && (
-                        <p>Pago em: <span className="font-medium text-green-600">
-                          {new Date(item.data_pagamento).toLocaleDateString('pt-BR')}
-                        </span></p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {item.status === 'PENDENTE' && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Dar Baixa
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Pagamento</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Confirma o recebimento de {formatCurrency(item.valor)} de {item.cliente_nome} ({item.tipo})?
-                              <br />
-                              <span className="text-sm text-muted-foreground mt-2 block">
-                                Esta ação registrará a data de hoje como data de pagamento.
-                              </span>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleBaixaPagamento(item.id)}>
-                              Confirmar Pagamento
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </div>
-              </div>
+                id={item.id}
+                clienteNome={item.cliente_nome}
+                valor={item.valor}
+                tipo={item.tipo}
+                status={item.status}
+                vencimento={item.vencimento}
+                dataPagamento={item.data_pagamento}
+                index={titulo === 'Honorários' ? index : undefined}
+                onBaixaPagamento={handleBaixaPagamento}
+                showClienteName={false}
+              />
             ))}
           </div>
         </CardContent>
@@ -292,44 +174,12 @@ const ProcessFinancial = () => {
           </div>
         </div>
 
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Pendente</p>
-                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(totais.pendente)}</p>
-                </div>
-                <Clock className="w-8 h-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Recebido</p>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(totais.pago)}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Vencido</p>
-                  <p className="text-2xl font-bold text-red-600">{formatCurrency(totais.vencido)}</p>
-                </div>
-                <Calendar className="w-8 h-8 text-red-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Cards de Resumo usando o componente */}
+        <FinanceiroSummary 
+          totalPendente={totais.pendente}
+          totalPago={totais.pago}
+          totalVencido={totais.vencido}
+        />
 
         {/* Filtro */}
         <Card className="mb-6">
@@ -342,7 +192,7 @@ const ProcessFinancial = () => {
               <select 
                 value={filtroTipo} 
                 onChange={(e) => setFiltroTipo(e.target.value)}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border rounded-md bg-background"
               >
                 <option value="TODOS">Todos</option>
                 <option value="Entrada">Entrada</option>
