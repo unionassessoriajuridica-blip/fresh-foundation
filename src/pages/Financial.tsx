@@ -55,8 +55,10 @@ const Financial = () => {
         .order('vencimento', { ascending: true });
 
       if (error) throw error;
+      console.log('Dados financeiros carregados:', data);
       setFinanceiro(data || []);
     } catch (error: any) {
+      console.error('Erro ao carregar dados financeiros:', error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar dados financeiros",
@@ -246,12 +248,12 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        {/* Lista de Pagamentos */}
+        {/* Lista de Pagamentos Agrupados por Cliente */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
-              Parcelas e Pagamentos ({filteredData.length})
+              Clientes e Pagamentos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -261,84 +263,132 @@ const Financial = () => {
                 <p>Nenhum registro financeiro encontrado.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredData.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`border rounded-lg p-4 ${
-                      isVencido(item.vencimento, item.status) ? 'border-red-200 bg-red-50' : ''
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium">{item.cliente_nome}</span>
-                          <Badge className={getTipoColor(item.tipo)}>
-                            {item.tipo}
-                          </Badge>
-                          <Badge variant={getStatusVariant(item.status)} className="flex items-center gap-1">
-                            {getStatusIcon(item.status)}
-                            {item.status}
-                          </Badge>
-                          {isVencido(item.vencimento, item.status) && (
-                            <Badge variant="destructive">VENCIDO</Badge>
-                          )}
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>Valor: <span className="font-medium text-foreground">{formatCurrency(item.valor)}</span></p>
-                          <p>Vencimento: <span className="font-medium text-foreground">
-                            {new Date(item.vencimento).toLocaleDateString('pt-BR')}
-                          </span></p>
-                          {item.data_pagamento && (
-                            <p>Pago em: <span className="font-medium text-green-600">
-                              {new Date(item.data_pagamento).toLocaleDateString('pt-BR')}
-                            </span></p>
-                          )}
-                        </div>
-                      </div>
+              (() => {
+                // Agrupar por cliente
+                const clientesUnicos = [...new Set(filteredData.map(item => item.cliente_nome))];
+                console.log('Clientes únicos encontrados:', clientesUnicos);
+                
+                return (
+                  <div className="space-y-6">
+                    {clientesUnicos.map((cliente) => {
+                      const parcelasCliente = filteredData.filter(item => item.cliente_nome === cliente);
+                      const totalPendente = parcelasCliente.filter(item => item.status === 'PENDENTE').reduce((sum, item) => sum + item.valor, 0);
+                      const totalPago = parcelasCliente.filter(item => item.status === 'PAGO').reduce((sum, item) => sum + item.valor, 0);
                       
-                      <div className="flex items-center gap-2">
-                        {item.status === 'PENDENTE' && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Dar Baixa
+                      return (
+                        <div key={cliente} className="border rounded-lg p-6 bg-muted/30">
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold">{cliente}</h3>
+                              <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                                <span>Total de parcelas: {parcelasCliente.length}</span>
+                                <span>Pendente: {formatCurrency(totalPendente)}</span>
+                                <span>Recebido: {formatCurrency(totalPago)}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  console.log('Navegando para cliente:', cliente);
+                                  navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`);
+                                }}
+                              >
+                                Ver Todas as Parcelas ({parcelasCliente.length})
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar Pagamento</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Confirma o recebimento de {formatCurrency(item.valor)} de {item.cliente_nome} ({item.tipo})?
-                                  <br />
-                                  <span className="text-sm text-muted-foreground mt-2 block">
-                                    Esta ação registrará a data de hoje como data de pagamento.
-                                  </span>
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleBaixaPagamento(item.id)}>
-                                  Confirmar Pagamento
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => navigate(`/financeiro/cliente/${encodeURIComponent(item.cliente_nome)}`)}
-                        >
-                          Ver Parcelas
-                        </Button>
-                      </div>
-                    </div>
+                            </div>
+                          </div>
+                          
+                          {/* Mostrar últimas parcelas */}
+                          <div className="space-y-3">
+                            <h4 className="font-medium text-sm text-muted-foreground">Próximos vencimentos:</h4>
+                            {parcelasCliente
+                              .filter(item => item.status === 'PENDENTE')
+                              .slice(0, 3)
+                              .map((item) => (
+                                <div
+                                  key={item.id}
+                                  className={`border rounded-lg p-3 bg-background ${
+                                    isVencido(item.vencimento, item.status) ? 'border-red-200 bg-red-50' : ''
+                                  }`}
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Badge className={getTipoColor(item.tipo)}>
+                                          {item.tipo}
+                                        </Badge>
+                                        <Badge variant={getStatusVariant(item.status)} className="flex items-center gap-1">
+                                          {getStatusIcon(item.status)}
+                                          {item.status}
+                                        </Badge>
+                                        {isVencido(item.vencimento, item.status) && (
+                                          <Badge variant="destructive">VENCIDO</Badge>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="text-sm text-muted-foreground">
+                                        <span className="font-medium text-foreground">{formatCurrency(item.valor)}</span>
+                                        {' - Vence em: '}
+                                        <span className="font-medium text-foreground">
+                                          {new Date(item.vencimento).toLocaleDateString('pt-BR')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                      {item.status === 'PENDENTE' && (
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                                              <CheckCircle className="w-4 h-4 mr-1" />
+                                              Dar Baixa
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Confirmar Pagamento</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Confirma o recebimento de {formatCurrency(item.valor)} de {item.cliente_nome} ({item.tipo})?
+                                                <br />
+                                                <span className="text-sm text-muted-foreground mt-2 block">
+                                                  Esta ação registrará a data de hoje como data de pagamento.
+                                                </span>
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleBaixaPagamento(item.id)}>
+                                                Confirmar Pagamento
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            
+                            {parcelasCliente.filter(item => item.status === 'PENDENTE').length > 3 && (
+                              <div className="text-center pt-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => navigate(`/financeiro/cliente/${encodeURIComponent(cliente)}`)}
+                                >
+                                  Ver mais {parcelasCliente.filter(item => item.status === 'PENDENTE').length - 3} parcelas pendentes...
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                );
+              })()
             )}
           </CardContent>
         </Card>

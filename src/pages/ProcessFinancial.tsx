@@ -58,6 +58,7 @@ const ProcessFinancial = () => {
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
 
   useEffect(() => {
+    console.log('useEffect executado, user:', user, 'clienteNome:', clienteNome);
     if (user && clienteNome) {
       fetchFinanceiro();
     }
@@ -66,6 +67,7 @@ const ProcessFinancial = () => {
   const fetchFinanceiro = async () => {
     try {
       const decodedClienteNome = decodeURIComponent(clienteNome || '');
+      console.log('Buscando dados para cliente:', decodedClienteNome);
       
       const { data, error } = await supabase
         .from('financeiro')
@@ -75,6 +77,7 @@ const ProcessFinancial = () => {
         .order('vencimento', { ascending: true });
 
       if (error) throw error;
+      console.log('Dados encontrados para o cliente:', data);
       setFinanceiro(data || []);
     } catch (error: any) {
       toast({
