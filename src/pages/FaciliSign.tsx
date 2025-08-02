@@ -12,56 +12,28 @@ const FaciliSign = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: "Documentos Assinados",
-      value: "24",
+      value: "0",
       icon: FileSignature,
       color: "text-success"
     },
     {
       title: "Pendentes",
-      value: "3",
+      value: "0",
       icon: Clock,
       color: "text-warning"
     },
     {
       title: "Certificados Válidos",
-      value: "5",
+      value: "0",
       icon: Shield,
       color: "text-primary"
     }
-  ];
+  ]);
 
-  const documents = [
-    {
-      id: 1,
-      nome: "Contrato de Prestação de Serviços - Cliente A",
-      tipo: "Contrato",
-      status: "Assinado",
-      dataEnvio: "2024-01-15",
-      dataAssinatura: "2024-01-16",
-      signatarios: ["cliente@email.com", "advogado@facilitaadv.com"]
-    },
-    {
-      id: 2,
-      nome: "Procuração - Processo 123456",
-      tipo: "Procuração",
-      status: "Pendente",
-      dataEnvio: "2024-01-20",
-      dataAssinatura: null,
-      signatarios: ["maria@email.com"]
-    },
-    {
-      id: 3,
-      nome: "Acordo Extrajudicial - Silva vs Santos",
-      tipo: "Acordo",
-      status: "Expirado",
-      dataEnvio: "2024-01-10",
-      dataAssinatura: null,
-      signatarios: ["silva@email.com", "santos@email.com"]
-    }
-  ];
+  const [documents, setDocuments] = useState<any[]>([]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -77,9 +49,10 @@ const FaciliSign = () => {
   };
 
   const handleNewDocument = () => {
+    // Aqui será implementada a funcionalidade real de assinatura digital
     toast({
-      title: "Novo Documento",
-      description: "Funcionalidade de assinatura digital em desenvolvimento.",
+      title: "Pronto para implementação",
+      description: "Agora você pode integrar sua API de assinatura digital aqui.",
     });
   };
 
@@ -176,36 +149,44 @@ const FaciliSign = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell className="font-medium">{doc.nome}</TableCell>
-                    <TableCell>{doc.tipo}</TableCell>
-                    <TableCell>{getStatusBadge(doc.status)}</TableCell>
-                    <TableCell>{new Date(doc.dataEnvio).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>
-                      {doc.dataAssinatura ? new Date(doc.dataAssinatura).toLocaleDateString('pt-BR') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-48">
-                        {doc.signatarios.map((email, idx) => (
-                          <div key={idx} className="text-xs text-muted-foreground truncate">
-                            {email}
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="outline" title="Visualizar">
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" title="Download">
-                          <Download className="w-3 h-3" />
-                        </Button>
-                      </div>
+                {documents.length > 0 ? (
+                  documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium">{doc.nome}</TableCell>
+                      <TableCell>{doc.tipo}</TableCell>
+                      <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                      <TableCell>{new Date(doc.dataEnvio).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        {doc.dataAssinatura ? new Date(doc.dataAssinatura).toLocaleDateString('pt-BR') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-48">
+                          {doc.signatarios.map((email, idx) => (
+                            <div key={idx} className="text-xs text-muted-foreground truncate">
+                              {email}
+                            </div>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" title="Visualizar">
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" title="Download">
+                            <Download className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Nenhum documento encontrado. Clique em "Novo Documento" para começar.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
