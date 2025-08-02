@@ -210,6 +210,10 @@ const Dashboard = () => {
             <Settings className="w-4 h-4 mr-2" />
             Integração Google
           </Button>
+          <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white" onClick={() => window.location.href = '/calendar'}>
+            <Calendar className="w-4 h-4 mr-2" />
+            Agenda
+          </Button>
         </div>
 
         {/* Processes Section */}

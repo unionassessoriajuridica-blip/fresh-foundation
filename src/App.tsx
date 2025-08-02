@@ -13,6 +13,7 @@ import ProcessFinancial from "./pages/ProcessFinancial";
 import IAFacilita from "./pages/IAFacilita";
 import FaciliSign from "./pages/FaciliSign";
 import GoogleIntegration from "./pages/GoogleIntegration";
+import CalendarManagement from "./pages/CalendarManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
           <Route path="/google-integration" element={<GoogleIntegration />} />
+          <Route path="/calendar" element={<CalendarManagement />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
