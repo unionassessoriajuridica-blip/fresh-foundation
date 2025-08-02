@@ -330,7 +330,7 @@ const Financial = () => {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => navigate(`/financial/client/${encodeURIComponent(item.cliente_nome)}`)}
+                          onClick={() => navigate(`/financeiro/cliente/${encodeURIComponent(item.cliente_nome)}`)}
                         >
                           Ver Parcelas
                         </Button>

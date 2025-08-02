@@ -418,8 +418,16 @@ const NewProcess = () => {
     };
 
     const calcularResumo = () => {
+      if (!financeiroData.valorHonorarios) {
+        return {
+          valorRestante: 0,
+          valorParcela: 0,
+          totalHonorarios: 0
+        };
+      }
+      
       const honorarios = parseCurrency(financeiroData.valorHonorarios);
-      const entrada = parseCurrency(financeiroData.valorEntrada);
+      const entrada = parseCurrency(financeiroData.valorEntrada || '0');
       const parcelas = parseInt(financeiroData.quantidadeParcelas || '1');
       
       const valorRestante = honorarios - entrada;

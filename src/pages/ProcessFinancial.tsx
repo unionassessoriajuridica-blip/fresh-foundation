@@ -279,7 +279,7 @@ const ProcessFinancial = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" onClick={() => navigate('/financial')}>
+          <Button variant="outline" onClick={() => navigate('/financeiro')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>

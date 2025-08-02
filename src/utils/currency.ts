@@ -8,13 +8,30 @@ export const formatCurrency = (value: number): string => {
 };
 
 export const parseCurrency = (value: string): number => {
-  // Remove all non-numeric characters except comma and dot
-  const cleanValue = value.replace(/[^\d,.-]/g, '');
+  if (!value) return 0;
   
-  // Replace comma with dot for proper parsing
-  const normalizedValue = cleanValue.replace(',', '.');
+  // Remove currency symbol and spaces
+  let cleanValue = value.replace(/[R$\s]/g, '');
   
-  return parseFloat(normalizedValue) || 0;
+  // Handle Brazilian currency format (dots for thousands, comma for decimals)
+  // Ex: "50.000,00" should become 50000.00
+  
+  // If there's a comma, it's the decimal separator
+  if (cleanValue.includes(',')) {
+    // Split by comma to separate integer and decimal parts
+    const parts = cleanValue.split(',');
+    // Remove dots from the integer part (thousands separators)
+    const integerPart = parts[0].replace(/\./g, '');
+    // Keep the decimal part as is
+    const decimalPart = parts[1] || '00';
+    // Combine with dot as decimal separator for parsing
+    cleanValue = `${integerPart}.${decimalPart}`;
+  } else {
+    // If no comma, remove dots (they might be thousands separators)
+    cleanValue = cleanValue.replace(/\./g, '');
+  }
+  
+  return parseFloat(cleanValue) || 0;
 };
 
 export const formatCurrencyInput = (value: string): string => {
