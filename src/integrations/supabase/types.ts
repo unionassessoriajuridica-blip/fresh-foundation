@@ -14,7 +14,176 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      documentos_assinatura: {
+        Row: {
+          arquivo_url: string | null
+          created_at: string
+          data_assinatura: string | null
+          data_envio: string | null
+          id: string
+          nome: string
+          signatarios: string[] | null
+          status: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arquivo_url?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          data_envio?: string | null
+          id?: string
+          nome: string
+          signatarios?: string[] | null
+          status?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arquivo_url?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          data_envio?: string | null
+          id?: string
+          nome?: string
+          signatarios?: string[] | null
+          status?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      financeiro: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          data_pagamento: string | null
+          id: string
+          processo_id: string | null
+          status: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+          vencimento: string | null
+        }
+        Insert: {
+          cliente_nome: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          processo_id?: string | null
+          status?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor: number
+          vencimento?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          data_pagamento?: string | null
+          id?: string
+          processo_id?: string | null
+          status?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processos: {
+        Row: {
+          cliente_id: string
+          cliente_preso: boolean | null
+          created_at: string
+          descricao: string | null
+          id: string
+          numero_processo: string
+          prazo: string | null
+          status: string | null
+          tipo_processo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          cliente_preso?: boolean | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo: string
+          prazo?: string | null
+          status?: string | null
+          tipo_processo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          cliente_preso?: boolean | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo?: string
+          prazo?: string | null
+          status?: string | null
+          tipo_processo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
