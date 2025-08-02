@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
-import { ClienteDataCard } from "@/components/ClienteDataCard";
+import { ClienteDataButton } from "@/components/ClienteDataButton";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -261,6 +261,7 @@ const Dashboard = () => {
             <Calendar className="w-4 h-4 mr-2" />
             Agenda
           </Button>
+          <ClienteDataButton />
         </div>
 
         {/* Processes Section */}
@@ -359,11 +360,6 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Cliente Data Management - Discreto no canto */}
-        <div className="fixed bottom-4 right-4 z-10">
-          <ClienteDataCard />
-        </div>
       </div>
     </div>
   );
