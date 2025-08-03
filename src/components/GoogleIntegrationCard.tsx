@@ -150,7 +150,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
-      // Verificação robusta da biblioteca carregada
       if (!window.gapi || !window.gapi.auth2) {
         throw new Error(
           "A API do Google não está pronta. Por favor, aguarde e tente novamente."
@@ -162,13 +161,32 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         throw new Error("Falha ao inicializar a autenticação do Google.");
       }
 
-      await googleAuth.signIn();
+      // Adicione um listener para detectar fechamento prematuro
+      const popupClosedPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new Error("O popup de autenticação foi fechado antes da conclusão")
+          );
+        }, 30000); // 30 segundos de timeout
+      });
+
+      const authPromise = googleAuth.signIn();
+
+      await Promise.race([authPromise, popupClosedPromise]);
+
       onConnect?.(["gmail", "calendar"]);
     } catch (error) {
       console.error("Erro na autenticação:", error);
+      let errorMessage = error.message;
+
+      if (error.error === "popup_closed_by_user") {
+        errorMessage =
+          "O popup de login foi fechado antes de completar a autenticação. Por favor, tente novamente e complete todo o processo.";
+      }
+
       toast({
         title: "Erro de conexão",
-        description: error.message || "Falha ao conectar com o Google",
+        description: errorMessage || "Falha ao conectar com o Google",
         variant: "destructive",
       });
     }
