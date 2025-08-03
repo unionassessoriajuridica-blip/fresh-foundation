@@ -34,40 +34,60 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [gapiLoaded, setGapiLoaded] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  // Carrega a biblioteca gapi apenas uma vez
- useEffect(() => {
-  if (typeof window !== "undefined" && !gapiLoaded) {
-    const script = document.createElement("script");
-    script.src = "https://apis.google.com/js/api.js";
-    script.async = true;
-    script.onload = () => {
-      window.gapi.load("auth2", () => {
-        window.gapi.auth2.init({
-          client_id: "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
-          scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
-        }).then(() => {
-          setGapiLoaded(true);
+  const clientId =
+    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const scopes = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/calendar",
+  ].join(" ");
+
+  // Carrega a biblioteca gapi
+  useEffect(() => {
+    if (typeof window === "undefined" || gapiLoaded) return;
+
+    const loadGapi = async () => {
+      if (!window.gapi) {
+        await new Promise((resolve) => {
+          const script = document.createElement("script");
+          script.src = "https://apis.google.com/js/api.js";
+          script.async = true;
+          script.defer = true;
+          script.onload = resolve;
+          document.body.appendChild(script);
         });
-      });
-    };
-    document.body.appendChild(script);
-  }
-}, [gapiLoaded]);
+      }
 
-  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+      if (!window.gapi.auth2) {
+        await new Promise((resolve) => {
+          window.gapi.load("auth2", resolve);
+        });
+      }
+
+      setIsInitializing(true);
+      try {
+        await window.gapi.auth2.init({
+          client_id: clientId,
+          scope: scopes,
+        });
+        setGapiLoaded(true);
+      } catch (error) {
+        console.error("Error initializing Google Auth:", error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    loadGapi();
+  }, [gapiLoaded, scopes]);
 
   const googleAuth = useGoogleAuth({
     clientId,
-    scopes: [
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/gmail.send",
-      "https://www.googleapis.com/auth/calendar",
-    ],
+    scopes: scopes.split(" "),
   });
-
-  console.log("Google Client ID GoogleIntegrationCard:", clientId);
 
   const permissions = [
     {
@@ -92,22 +112,25 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
-      if (!window.gapi.auth2.getAuthInstance()) {
-        const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-        console.log("Google Client ID handleConnect:", clientId); // <-- aqui mostra o valor
-
-        await window.gapi.auth2.init({
-          client_id: clientId,
-          scope: permissions.map((p) => p.title).join(" "),
-        });
+      // Verificação robusta da biblioteca carregada
+      if (!window.gapi || !window.gapi.auth2) {
+        throw new Error(
+          "A API do Google não está pronta. Por favor, aguarde e tente novamente."
+        );
       }
+
+      const auth2 = window.gapi.auth2.getAuthInstance();
+      if (!auth2) {
+        throw new Error("Falha ao inicializar a autenticação do Google.");
+      }
+
       await googleAuth.signIn();
       onConnect?.(["gmail", "calendar"]);
     } catch (error) {
       console.error("Erro na autenticação:", error);
       toast({
         title: "Erro de conexão",
-        description: "Falha ao conectar com o Google",
+        description: error.message || "Falha ao conectar com o Google",
         variant: "destructive",
       });
     }
@@ -119,6 +142,11 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
       onDisconnect?.();
     } catch (error) {
       console.error("Erro ao desconectar:", error);
+      toast({
+        title: "Erro ao desconectar",
+        description: "Falha ao desconectar a conta Google",
+        variant: "destructive",
+      });
     }
   };
   // Usar dados reais do Google Auth quando disponível
@@ -273,10 +301,15 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
-            disabled={googleAuth.isLoading}
+            disabled={!gapiLoaded || isInitializing || googleAuth.isLoading}
             className="w-full bg-google hover:bg-google/90"
           >
-            {googleAuth.isLoading ? (
+            {!gapiLoaded || isInitializing ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Carregando...
+              </div>
+            ) : googleAuth.isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Conectando...
