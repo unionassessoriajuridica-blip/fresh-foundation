@@ -50,7 +50,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   }, []);
 
   const googleAuth = useGoogleAuth({
-    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
