@@ -1,3 +1,4 @@
+///src/pages/GoogleIntegration.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,8 @@ const GoogleIntegration = () => {
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com', 
+    clientId: import.meta.env.GOOGLE_CLIENT_ID, 
+
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',

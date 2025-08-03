@@ -84,7 +84,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     try {
       if (!window.gapi.auth2.getAuthInstance()) {
         await window.gapi.auth2.init({
-          client_id: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
+          client_id: import.meta.env.GOOGLE_CLIENT_ID,
           scope: permissions.map(p => p.title).join(' ')
         });
       }
