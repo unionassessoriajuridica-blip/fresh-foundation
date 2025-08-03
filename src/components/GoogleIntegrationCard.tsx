@@ -48,41 +48,67 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   useEffect(() => {
     let script: HTMLScriptElement | null = null;
     let timeoutId: NodeJS.Timeout;
-    console.log("Estado atual:", {
-      gapi: !!window.gapi,
-      auth2: !!window.gapi?.auth2,
-      gapiLoaded,
-      isInitializing,
-    });
+    let auth2LoadTimeout: NodeJS.Timeout;
+
     if (typeof window === "undefined" || gapiLoaded) return;
 
     const loadGapi = async () => {
-      if (!window.gapi) {
-        await new Promise((resolve) => {
-          const script = document.createElement("script");
+      try {
+        // 1. Carrega o script principal
+        if (!window.gapi) {
+          script = document.createElement("script");
           script.src = "https://apis.google.com/js/api.js";
           script.async = true;
           script.defer = true;
-          script.onload = resolve;
-          document.body.appendChild(script);
-        });
-      }
 
-      if (!window.gapi.auth2) {
-        await new Promise((resolve) => {
-          window.gapi.load("auth2", resolve);
-        });
-      }
+          await new Promise<void>((resolve, reject) => {
+            script!.onload = () => resolve();
+            script!.onerror = () =>
+              reject(new Error("Falha ao carregar Google API"));
+            document.body.appendChild(script!);
 
-      setIsInitializing(true);
-      try {
+            // Timeout para o script
+            timeoutId = setTimeout(() => {
+              reject(new Error("Timeout ao carregar Google API"));
+            }, 10000);
+          });
+        }
+
+        // 2. Carrega o módulo auth2
+        if (!window.gapi.auth2) {
+          await new Promise<void>((resolve, reject) => {
+            auth2LoadTimeout = setTimeout(() => {
+              reject(new Error("Timeout ao carregar módulo auth2"));
+            }, 10000);
+
+            window.gapi.load("auth2:client", {
+              callback: () => {
+                clearTimeout(auth2LoadTimeout);
+                resolve();
+              },
+              onerror: () => {
+                clearTimeout(auth2LoadTimeout);
+                reject(new Error("Falha ao carregar módulo auth2"));
+              },
+            });
+          });
+        }
+
+        // 3. Inicializa o auth2
+        setIsInitializing(true);
         await window.gapi.auth2.init({
           client_id: clientId,
           scope: scopes,
         });
+
         setGapiLoaded(true);
       } catch (error) {
-        console.error("Error initializing Google Auth:", error);
+        console.error("Erro no carregamento:", error);
+        toast({
+          title: "Erro de conexão",
+          description: error.message,
+          variant: "destructive",
+        });
       } finally {
         setIsInitializing(false);
       }
@@ -91,21 +117,14 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     loadGapi();
 
     return () => {
-      // 1. Remove o script se existir
       if (script && document.body.contains(script)) {
         document.body.removeChild(script);
       }
-
-      // 2. Limpa timeouts
       clearTimeout(timeoutId);
+      clearTimeout(auth2LoadTimeout);
 
-      // 3. Reseta o auth2 se estiver inicializado
       if (window.gapi?.auth2?.getAuthInstance()) {
-        try {
-          window.gapi.auth2.getAuthInstance().disconnect();
-        } catch (error) {
-          console.error("Error cleaning up auth2:", error);
-        }
+        window.gapi.auth2.getAuthInstance().disconnect();
       }
     };
   }, [gapiLoaded, scopes, toast]);
@@ -330,11 +349,10 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
             disabled={!gapiLoaded || isInitializing || googleAuth.isLoading}
             className="w-full bg-google hover:bg-google/90"
           >
-            {!gapiLoaded || isInitializing ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Carregando...
-              </div>
+            {isInitializing ? (
+              "Inicializando..."
+            ) : !gapiLoaded ? (
+              "Preparando conexão..."
             ) : googleAuth.isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
