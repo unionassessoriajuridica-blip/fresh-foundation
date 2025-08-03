@@ -45,7 +45,7 @@ export const GmailSender: React.FC<GmailSenderProps> = ({
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com',
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
