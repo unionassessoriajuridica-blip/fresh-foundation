@@ -35,41 +35,27 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   const { toast } = useToast();
   const [gapiLoaded, setGapiLoaded] = useState(false);
 
-  // Carrega e inicializa gapi.auth2 apenas uma vez
-  useEffect(() => {
-    if (typeof window !== "undefined" && !gapiLoaded) {
-      const checkGapiLoaded = () => {
-        if (window.gapi && window.gapi.load) {
-          window.gapi.load("auth2", () => {
-            window.gapi.auth2
-              .init({
-                client_id:
-                  "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
-                scope:
-                  "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
-              })
-              .then(() => {
-                setGapiLoaded(true);
-              })
-              .catch((error) => {
-                console.error("Erro ao inicializar gapi.auth2:", error);
-                toast({
-                  title: "Erro de inicialização",
-                  description: "Falha ao carregar a biblioteca do Google",
-                  variant: "destructive",
-                });
-              });
-          });
-        } else {
-          setTimeout(checkGapiLoaded, 100); // Tenta novamente após 100ms
-        }
-      };
-      checkGapiLoaded();
-    }
-  }, [gapiLoaded, toast]);
+  // Carrega a biblioteca gapi apenas uma vez
+ useEffect(() => {
+  if (typeof window !== "undefined" && !gapiLoaded) {
+    const script = document.createElement("script");
+    script.src = "https://apis.google.com/js/api.js";
+    script.async = true;
+    script.onload = () => {
+      window.gapi.load("auth2", () => {
+        window.gapi.auth2.init({
+          client_id: "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+          scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+        }).then(() => {
+          setGapiLoaded(true);
+        });
+      });
+    };
+    document.body.appendChild(script);
+  }
+}, [gapiLoaded]);
 
-  const clientId =
-    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
   const googleAuth = useGoogleAuth({
     clientId,
@@ -106,17 +92,14 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
-      if (!gapiLoaded) {
-        toast({
-          title: "Erro de conexão",
-          description: "Biblioteca do Google não carregada",
-          variant: "destructive",
+      if (!window.gapi.auth2.getAuthInstance()) {
+        const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+        console.log("Google Client ID handleConnect:", clientId); // <-- aqui mostra o valor
+
+        await window.gapi.auth2.init({
+          client_id: clientId,
+          scope: permissions.map((p) => p.title).join(" "),
         });
-        return;
-      }
-      const authInstance = window.gapi.auth2.getAuthInstance();
-      if (!authInstance) {
-        throw new Error("Auth2 não inicializado");
       }
       await googleAuth.signIn();
       onConnect?.(["gmail", "calendar"]);
@@ -136,14 +119,8 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
       onDisconnect?.();
     } catch (error) {
       console.error("Erro ao desconectar:", error);
-      toast({
-        title: "Erro ao desconectar",
-        description: "Falha ao desconectar a conta do Google",
-        variant: "destructive",
-      });
     }
   };
-
   // Usar dados reais do Google Auth quando disponível
   const currentUserInfo = googleAuth.userInfo || userInfo;
   const isReallyConnected = googleAuth.isAuthenticated || isConnected;
@@ -266,6 +243,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
         <div className="space-y-3">
           <h4 className="font-medium text-sm">O aplicativo poderá:</h4>
+
           {permissions.map((permission, index) => {
             const IconComponent = permission.icon;
             return (
@@ -295,7 +273,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
-            disabled={googleAuth.isLoading || !gapiLoaded}
+            disabled={googleAuth.isLoading}
             className="w-full bg-google hover:bg-google/90"
           >
             {googleAuth.isLoading ? (
