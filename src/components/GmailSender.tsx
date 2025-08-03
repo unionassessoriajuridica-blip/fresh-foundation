@@ -53,6 +53,8 @@ export const GmailSender: React.FC<GmailSenderProps> = ({
     ]
   });
 
+  console.log("Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
   const gmail = useGmail(googleAuth.getAccessToken());
 
   const handleSendEmail = async () => {

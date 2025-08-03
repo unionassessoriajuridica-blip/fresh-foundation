@@ -52,6 +52,8 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     });
   };
 
+
+  console.log("Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const signIn = async () => {
     setIsLoading(true);
     try {
