@@ -38,14 +38,13 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   const initializeGapi = () => {
     const client_id = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
-    console.log("Google Client ID:", client_id);
+    console.log("Google Client ID useGoogleAuth:", client_id);
 
     window.gapi.load("auth2", () => {
       window.gapi.auth2
         .init({
           client_id,
-          scope:
-            "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
+          scope: "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
         })
         .then(() => {
           const authInstance = window.gapi.auth2.getAuthInstance();

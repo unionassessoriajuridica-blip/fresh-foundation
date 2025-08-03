@@ -43,8 +43,7 @@ export const GmailSender: React.FC<GmailSenderProps> = ({
   });
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  const clientId =
-    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
@@ -56,7 +55,7 @@ export const GmailSender: React.FC<GmailSenderProps> = ({
     ],
   });
 
-  console.log("Google Client ID carregado na variável:", clientId);
+  console.log("Google Client ID GmailSender:", clientId);
 
   const gmail = useGmail(googleAuth.getAccessToken());
 

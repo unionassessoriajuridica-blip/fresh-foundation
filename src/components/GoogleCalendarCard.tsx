@@ -97,7 +97,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     ],
   });
 
-  console.log("Google Client ID carregado na variável:", clientId);
+  console.log("Google Client ID googleAuth:", clientId);
 
   // Hook para integração real com Google Calendar
   const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());

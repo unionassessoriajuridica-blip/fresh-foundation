@@ -49,8 +49,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     }
   }, []);
 
-  const clientId =
-    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
   const googleAuth = useGoogleAuth({
     clientId,
@@ -62,7 +61,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     ],
   });
 
-  console.log("Google Client ID:", clientId);
+  console.log("Google Client ID GoogleIntegrationCard:", clientId);
 
   const permissions = [
     {
@@ -88,9 +87,8 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   const handleConnect = async () => {
     try {
       if (!window.gapi.auth2.getAuthInstance()) {
-        const clientId =
-          "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-        console.log("Google Client ID carregado:", clientId); // <-- aqui mostra o valor
+        const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+        console.log("Google Client ID handleConnect:", clientId); // <-- aqui mostra o valor
 
         await window.gapi.auth2.init({
           client_id: clientId,

@@ -28,12 +28,15 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/novo-processo" element={<NewProcess />} />
           <Route path="/processo/:id" element={<ProcessView />} />
           <Route path="/financeiro" element={<Financial />} />
-          <Route path="/financeiro/cliente/:clienteNome" element={<ProcessFinancial />} />
+          <Route
+            path="/financeiro/cliente/:clienteNome"
+            element={<ProcessFinancial />}
+          />
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
           <Route path="/google-integration" element={<GoogleIntegration />} />
