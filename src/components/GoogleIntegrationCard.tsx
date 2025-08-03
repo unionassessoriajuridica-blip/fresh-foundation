@@ -47,6 +47,12 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   // Carrega a biblioteca gapi
   useEffect(() => {
+    console.log("Estado atual:", {
+      gapi: !!window.gapi,
+      auth2: !!window.gapi?.auth2,
+      gapiLoaded,
+      isInitializing,
+    });
     if (typeof window === "undefined" || gapiLoaded) return;
 
     const loadGapi = async () => {
