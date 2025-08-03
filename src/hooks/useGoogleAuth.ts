@@ -36,26 +36,46 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 
   const initializeGapi = () => {
-    const client_id = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+    const client_id = config.clientId; // usa o clientId que veio da prop
 
-    console.log("Google Client ID useGoogleAuth:", client_id);
+    if (!window.gapi.auth2) {
+      window.gapi.load("auth2", {
+        callback: () => {
+          // SOMENTE INICIALIZA SE AINDA NÃO HOUVER UMA INSTÂNCIA
+          if (!window.gapi.auth2.getAuthInstance()) {
+            window.gapi.auth2
+              .init({
+                client_id,
+                scope: config.scopes.join(" "),
+              })
+              .then(() => {
+                const authInstance = window.gapi.auth2.getAuthInstance();
+                const isSignedIn = authInstance.isSignedIn.get();
 
-    window.gapi.load("auth2", () => {
-      window.gapi.auth2
-        .init({
-          client_id,
-          scope: "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
-        })
-        .then(() => {
-          const authInstance = window.gapi.auth2.getAuthInstance();
-          const isSignedIn = authInstance.isSignedIn.get();
-
-          if (isSignedIn) {
-            const user = authInstance.currentUser.get();
-            handleAuthSuccess(user);
+                if (isSignedIn) {
+                  const user = authInstance.currentUser.get();
+                  handleAuthSuccess(user);
+                }
+              });
+          } else {
+            // Já está inicializado
+            const authInstance = window.gapi.auth2.getAuthInstance();
+            const isSignedIn = authInstance.isSignedIn.get();
+            if (isSignedIn) {
+              const user = authInstance.currentUser.get();
+              handleAuthSuccess(user);
+            }
           }
-        });
-    });
+        },
+        onerror: () => {
+          toast({
+            title: "Erro ao carregar Google API",
+            description: "Falha ao inicializar autenticação com Google",
+            variant: "destructive",
+          });
+        },
+      });
+    }
   };
 
   const signIn = async () => {
