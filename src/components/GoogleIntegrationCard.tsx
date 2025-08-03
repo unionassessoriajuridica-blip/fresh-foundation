@@ -94,13 +94,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
           });
         }
 
-        // 3. Inicializa o auth2
-        setIsInitializing(true);
-        await window.gapi.auth2.init({
-          client_id: clientId,
-          scope: scopes,
-        });
-
         setGapiLoaded(true);
       } catch (error) {
         console.error("Erro no carregamento:", error);
