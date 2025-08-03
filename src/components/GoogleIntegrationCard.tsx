@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,10 +33,24 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   userInfo
 }) => {
   const { toast } = useToast();
-  
-  // Configuração real do Google OAuth
+  const [gapiLoaded, setGapiLoaded] = useState(false);
+
+  // Carrega a biblioteca gapi apenas uma vez
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !gapiLoaded) {
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => {
+        window.gapi.load('auth2', () => {
+          setGapiLoaded(true);
+        });
+      };
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const googleAuth = useGoogleAuth({
-    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com', // Substitua pelo seu Client ID real do Google Cloud Console
+    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
@@ -68,10 +82,21 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
+      if (!window.gapi.auth2.getAuthInstance()) {
+        await window.gapi.auth2.init({
+          client_id: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
+          scope: permissions.map(p => p.title).join(' ')
+        });
+      }
       await googleAuth.signIn();
       onConnect?.(['gmail', 'calendar']);
     } catch (error) {
       console.error('Erro na autenticação:', error);
+      toast({
+        title: 'Erro de conexão',
+        description: 'Falha ao conectar com o Google',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -83,7 +108,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
       console.error('Erro ao desconectar:', error);
     }
   };
-
   // Usar dados reais do Google Auth quando disponível
   const currentUserInfo = googleAuth.userInfo || userInfo;
   const isReallyConnected = googleAuth.isAuthenticated || isConnected;
