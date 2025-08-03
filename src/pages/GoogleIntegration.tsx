@@ -11,7 +11,7 @@ const GoogleIntegration = () => {
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId: import.meta.env.GOOGLE_CLIENT_ID, 
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
 
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
