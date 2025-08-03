@@ -45,8 +45,9 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     "https://www.googleapis.com/auth/calendar",
   ].join(" ");
 
-  // Carrega a biblioteca gapi
   useEffect(() => {
+    let script: HTMLScriptElement | null = null;
+    let timeoutId: NodeJS.Timeout;
     console.log("Estado atual:", {
       gapi: !!window.gapi,
       auth2: !!window.gapi?.auth2,
@@ -88,7 +89,26 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     };
 
     loadGapi();
-  }, [gapiLoaded, scopes]);
+
+    return () => {
+      // 1. Remove o script se existir
+      if (script && document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+
+      // 2. Limpa timeouts
+      clearTimeout(timeoutId);
+
+      // 3. Reseta o auth2 se estiver inicializado
+      if (window.gapi?.auth2?.getAuthInstance()) {
+        try {
+          window.gapi.auth2.getAuthInstance().disconnect();
+        } catch (error) {
+          console.error("Error cleaning up auth2:", error);
+        }
+      }
+    };
+  }, [gapiLoaded, scopes, toast]);
 
   const googleAuth = useGoogleAuth({
     clientId,
