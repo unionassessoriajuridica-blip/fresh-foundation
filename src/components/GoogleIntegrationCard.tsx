@@ -38,26 +38,33 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   // Carrega e inicializa gapi.auth2 apenas uma vez
   useEffect(() => {
     if (typeof window !== "undefined" && !gapiLoaded) {
-      window.gapi.load("auth2", () => {
-        window.gapi.auth2
-          .init({
-            client_id:
-              "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
-            scope:
-              "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
-          })
-          .then(() => {
-            setGapiLoaded(true);
-          })
-          .catch((error) => {
-            console.error("Erro ao inicializar gapi.auth2:", error);
-            toast({
-              title: "Erro de inicialização",
-              description: "Falha ao carregar a biblioteca do Google",
-              variant: "destructive",
-            });
+      const checkGapiLoaded = () => {
+        if (window.gapi && window.gapi.load) {
+          window.gapi.load("auth2", () => {
+            window.gapi.auth2
+              .init({
+                client_id:
+                  "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+                scope:
+                  "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+              })
+              .then(() => {
+                setGapiLoaded(true);
+              })
+              .catch((error) => {
+                console.error("Erro ao inicializar gapi.auth2:", error);
+                toast({
+                  title: "Erro de inicialização",
+                  description: "Falha ao carregar a biblioteca do Google",
+                  variant: "destructive",
+                });
+              });
           });
-      });
+        } else {
+          setTimeout(checkGapiLoaded, 100); // Tenta novamente após 100ms
+        }
+      };
+      checkGapiLoaded();
     }
   }, [gapiLoaded, toast]);
 
@@ -259,7 +266,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
         <div className="space-y-3">
           <h4 className="font-medium text-sm">O aplicativo poderá:</h4>
-
           {permissions.map((permission, index) => {
             const IconComponent = permission.icon;
             return (
