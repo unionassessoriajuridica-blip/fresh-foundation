@@ -1,19 +1,1 @@
 project_id = "edjqlzzptewjsuutfafj"
-
-[functions.ai-chat]
-verify_jwt = false
-
-[functions.send-email]
-verify_jwt = false
-
-[functions.web-search]
-verify_jwt = false
-
-[functions.agent-mode]
-verify_jwt = false
-
-[functions.docuseal-webhook]
-verify_jwt = false
-
-[functions.send-invitation-email]
-verify_jwt = false
