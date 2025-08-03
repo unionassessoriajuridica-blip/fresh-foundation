@@ -40,16 +40,27 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     if (typeof window !== "undefined" && !gapiLoaded) {
       const script = document.createElement("script");
       script.src = "https://apis.google.com/js/api.js";
+      script.async = true;
       script.onload = () => {
         window.gapi.load("auth2", () => {
-          setGapiLoaded(true);
+          window.gapi.auth2
+            .init({
+              client_id:
+                "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+              scope:
+                "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+            })
+            .then(() => {
+              setGapiLoaded(true);
+            });
         });
       };
       document.body.appendChild(script);
     }
-  }, []);
+  }, [gapiLoaded]);
 
-  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId =
+    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
   const googleAuth = useGoogleAuth({
     clientId,
@@ -86,14 +97,13 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
-      if (!window.gapi.auth2.getAuthInstance()) {
-        const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-        console.log("Google Client ID handleConnect:", clientId); // <-- aqui mostra o valor
-
-        await window.gapi.auth2.init({
-          client_id: clientId,
-          scope: permissions.map((p) => p.title).join(" "),
+      if (!gapiLoaded) {
+        toast({
+          title: "Erro de conexão",
+          description: "Biblioteca do Google não carregada",
+          variant: "destructive",
         });
+        return;
       }
       await googleAuth.signIn();
       onConnect?.(["gmail", "calendar"]);
