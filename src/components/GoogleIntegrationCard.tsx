@@ -48,9 +48,12 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
       document.body.appendChild(script);
     }
   }, []);
-  
+
+  const clientId =
+    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+
   const googleAuth = useGoogleAuth({
-    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    clientId,
     scopes: [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
@@ -59,7 +62,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     ],
   });
 
-  console.log("Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  console.log("Google Client ID:", clientId);
 
   const permissions = [
     {
@@ -85,8 +88,12 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   const handleConnect = async () => {
     try {
       if (!window.gapi.auth2.getAuthInstance()) {
+        const clientId =
+          "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+        console.log("Google Client ID carregado:", clientId); // <-- aqui mostra o valor
+
         await window.gapi.auth2.init({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          client_id: clientId,
           scope: permissions.map((p) => p.title).join(" "),
         });
       }

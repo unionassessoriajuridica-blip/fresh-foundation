@@ -5,8 +5,8 @@ import GoogleProvider from "next-auth/providers/google";
 export default NextAuth({
   providers: [
     GoogleProvider({
-      clientId: process.env.VITE_GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
+      clientSecret: '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',
     }),
   ],
   callbacks: {

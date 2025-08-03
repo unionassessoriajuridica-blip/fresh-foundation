@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoogleUserInfo {
   name: string;
@@ -25,9 +25,9 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   }, []);
 
   const loadGoogleAPI = async () => {
-    if (typeof window !== 'undefined' && !window.gapi) {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
+    if (typeof window !== "undefined" && !window.gapi) {
+      const script = document.createElement("script");
+      script.src = "https://apis.google.com/js/api.js";
       script.onload = initializeGapi;
       document.body.appendChild(script);
     } else if (window.gapi) {
@@ -35,42 +35,47 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     }
   };
 
-   const initializeGapi = () => {
-    window.gapi.load('auth2', () => {
-      window.gapi.auth2.init({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        scope: 'profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly',
-      }).then(() => {
-        const authInstance = window.gapi.auth2.getAuthInstance();
-        const isSignedIn = authInstance.isSignedIn.get();
-        
-        if (isSignedIn) {
-          const user = authInstance.currentUser.get();
-          handleAuthSuccess(user);
-        }
-      });
+  const initializeGapi = () => {
+    const client_id = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+
+    console.log("Google Client ID:", client_id);
+
+    window.gapi.load("auth2", () => {
+      window.gapi.auth2
+        .init({
+          client_id,
+          scope:
+            "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
+        })
+        .then(() => {
+          const authInstance = window.gapi.auth2.getAuthInstance();
+          const isSignedIn = authInstance.isSignedIn.get();
+
+          if (isSignedIn) {
+            const user = authInstance.currentUser.get();
+            handleAuthSuccess(user);
+          }
+        });
     });
   };
 
-
-  console.log("Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const signIn = async () => {
     setIsLoading(true);
     try {
       if (!window.gapi?.auth2) {
-        throw new Error('Google API não carregada');
+        throw new Error("Google API não carregada");
       }
 
       const authInstance = window.gapi.auth2.getAuthInstance();
       const user = await authInstance.signIn();
       handleAuthSuccess(user);
-      
+
       toast({
         title: "Conectado com sucesso!",
         description: "Sua conta Google foi conectada.",
       });
     } catch (error) {
-      console.error('Erro na autenticação:', error);
+      console.error("Erro na autenticação:", error);
       toast({
         title: "Erro na autenticação",
         description: "Não foi possível conectar com sua conta Google.",
@@ -87,31 +92,31 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
         const authInstance = window.gapi.auth2.getAuthInstance();
         await authInstance.signOut();
       }
-      
+
       setIsAuthenticated(false);
       setUserInfo(null);
       setAccessToken(null);
-      
+
       toast({
         title: "Desconectado",
         description: "Sua conta Google foi desconectada.",
       });
     } catch (error) {
-      console.error('Erro ao desconectar:', error);
+      console.error("Erro ao desconectar:", error);
     }
   };
 
   const handleAuthSuccess = (user: any) => {
     const profile = user.getBasicProfile();
     const authResponse = user.getAuthResponse();
-    
+
     setUserInfo({
       id: profile.getId(),
       name: profile.getName(),
       email: profile.getEmail(),
-      picture: profile.getImageUrl()
+      picture: profile.getImageUrl(),
     });
-    
+
     setAccessToken(authResponse.access_token);
     setIsAuthenticated(true);
   };
@@ -132,7 +137,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     isLoading,
     signIn,
     signOut,
-    getAccessToken
+    getAccessToken,
   };
 };
 
