@@ -36,7 +36,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId: 'SEU_CLIENT_ID_AQUI', // Substitua pelo seu Client ID real do Google Cloud Console
+    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com', // Substitua pelo seu Client ID real do Google Cloud Console
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
