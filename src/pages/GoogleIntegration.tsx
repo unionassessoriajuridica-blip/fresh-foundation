@@ -10,7 +10,7 @@ const GoogleIntegration = () => {
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId: '539033439477-ffopqgv56a9qvp52d8gnmmfg6hcrmb8l.apps.googleusercontent.com', // Substitua pelo seu Client ID real
+    clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com', 
     scopes: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
