@@ -35,11 +35,11 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     }
   };
 
-  const initializeGapi = () => {
+   const initializeGapi = () => {
     window.gapi.load('auth2', () => {
       window.gapi.auth2.init({
-        client_id: config.clientId,
-        scope: config.scopes.join(' ')
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly',
       }).then(() => {
         const authInstance = window.gapi.auth2.getAuthInstance();
         const isSignedIn = authInstance.isSignedIn.get();
