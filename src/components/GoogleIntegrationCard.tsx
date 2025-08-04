@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { GoogleLoginButton } from "./GoogleLoginButton";
-import { GoogleLogoutButton } from "./GoogleLogoutButton";
 
 interface GoogleIntegrationCardProps {
   onConnect?: (permissions: string[]) => void;
@@ -339,8 +337,28 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         </div>
 
         <div className="pt-2 space-y-3">
-          <GoogleLoginButton />
-          <GoogleLogoutButton />
+          <Button
+            onClick={handleConnect}
+            disabled={!gapiLoaded || isInitializing || googleAuth.isLoading}
+            className="w-full bg-google hover:bg-google/90"
+          >
+            {isInitializing ? (
+              "Inicializando..."
+            ) : !gapiLoaded ? (
+              "Preparando conexão..."
+            ) : googleAuth.isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Conectando...
+              </div>
+            ) : (
+              <>
+                Continuar com Google
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </>
+            )}
+          </Button>
+
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <AlertCircle className="w-3 h-3" />
             <span>Você pode revogar essas permissões a qualquer momento</span>
