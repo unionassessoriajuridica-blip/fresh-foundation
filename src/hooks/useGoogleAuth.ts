@@ -26,16 +26,47 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     loadGoogleAPI();
   }, []);
 
-  const loadGoogleAPI = async () => {
-    if (typeof window !== "undefined" && !window.gapi) {
-      const script = document.createElement("script");
-      script.src = "https://apis.google.com/js/api.js";
-      script.onload = initializeGapi;
-      document.body.appendChild(script);
-    } else if (window.gapi) {
-      initializeGapi();
+  const loadGoogleAPI = async (): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Window object not available'));
+      return;
     }
-  };
+
+    // Verifica se o script já foi carregado
+    if (window.gapi) {
+      resolve(true);
+      return;
+    }
+
+    // Verifica se o script já está sendo carregado
+    if (document.getElementById(SCRIPT_ID)) {
+      const checkLoaded = () => {
+        if (window.gapi) {
+          resolve(true);
+        } else {
+          setTimeout(checkLoaded, 100);
+        }
+      };
+      checkLoaded();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = SCRIPT_ID;
+    script.src = 'https://apis.google.com/js/api.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.gapi.load('auth2:client', {
+        callback: () => resolve(true),
+        onerror: () => reject(new Error('Failed to load auth2 module')),
+      });
+    };
+    script.onerror = () => reject(new Error('Failed to load Google API script'));
+    document.body.appendChild(script);
+  });
+};
 
   const initializeGapi = () => {
     const client_id = config.clientId; // usa o clientId que veio da prop
