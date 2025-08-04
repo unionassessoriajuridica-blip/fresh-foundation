@@ -19,25 +19,12 @@
   <meta name="twitter:site" content="@lovable_dev" />
   <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' https://apis.google.com https://www.gstatic.com https://accounts.google.com https://edjqlzzptewjsuutfafj.supabase.co 'unsafe-inline' 'unsafe-eval' blob: data:;
-    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
-    img-src 'self' https://*.googleusercontent.com data: blob:;
-    font-src 'self' https://fonts.gstatic.com;
-    connect-src 'self' https://*.googleapis.com https://*.google.com https://edjqlzzptewjsuutfafj.supabase.co;
-    frame-src https://accounts.google.com;
-    worker-src 'self' blob:;
-    report-uri https://facilita.adv.br/csp-report;
-  ">
-
-
-  <meta http-equiv="Cross-Origin-Opener-Policy" content="unsafe-none" />
+  <!-- Mantenha apenas o COOP com valor seguro -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
 
   <!-- Chave Google OAuth -->
   <meta name="google-signin-client_id"
     content="90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com">
-
 
 </head>
 
