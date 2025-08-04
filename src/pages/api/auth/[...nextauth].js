@@ -1,21 +1,31 @@
-// pages/api/auth/[...nextauth].js
 import NextAuth from "next-auth";
+import "@/types/next-auth";
 import GoogleProvider from "next-auth/providers/google";
+
 
 export default NextAuth({
   providers: [
     GoogleProvider({
-      clientId: '90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com',
-      clientSecret: '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',
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
+        },
+      },
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      // Aqui você pode fazer validações ou salvar no banco, se quiser
-      return true;
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+      }
+      return token;
     },
     async session({ session, token }) {
-      // Modificar dados da sessão, se necessário
+      session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
       return session;
     },
   },
