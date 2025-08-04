@@ -1,23 +1,21 @@
 import NextAuth from "next-auth";
-import "@/types/next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-export default NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       authorization: {
         params: {
-          scope:
-            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
+          scope: "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send",
         },
       },
     }),
   ],
   pages: {
     signIn: "/auth/signin", // opcional
-    error: "/auth/error", // opcional, mas evita o erro 404
+    error: "/auth/error",   // opcional, mas evita o erro 404
   },
   callbacks: {
     async jwt({ token, account }) {
@@ -33,4 +31,6 @@ export default NextAuth({
       return session;
     },
   },
-});
+};
+
+export default NextAuth(authOptions);
