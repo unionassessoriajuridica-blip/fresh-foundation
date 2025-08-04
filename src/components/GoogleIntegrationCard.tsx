@@ -37,7 +37,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   const [isInitializing, setIsInitializing] = useState(false);
 
   const clientId =
-    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+    "253852927634-oeuaqcbi43ui9vlacqp3e7tbfln1iam4.apps.googleusercontent.com";
   const scopes = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",

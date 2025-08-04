@@ -86,7 +86,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     type: "reuniao" as const,
   });
 
-  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId = "253852927634-oeuaqcbi43ui9vlacqp3e7tbfln1iam4.apps.googleusercontent.com";
 
   const googleAuth = useGoogleAuth({
     clientId,
