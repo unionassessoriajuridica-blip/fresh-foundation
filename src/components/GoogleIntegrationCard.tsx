@@ -148,12 +148,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     },
   ];
 
-  const [authInProgress, setAuthInProgress] = useState(false);
-
   const handleConnect = async () => {
-    if (authInProgress) return;
-
-    setAuthInProgress(true);
     try {
       // Verificação robusta da biblioteca carregada
       if (!window.gapi || !window.gapi.auth2) {
@@ -162,51 +157,20 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         );
       }
 
-      // Abre o popup manualmente para ter mais controle
-      const authWindow = window.open(
-        "https://accounts.google.com/o/oauth2/auth?" +
-          `client_id=${clientId}&` +
-          `redirect_uri=${encodeURIComponent(window.location.origin)}&` +
-          `response_type=code&` +
-          `scope=${encodeURIComponent(scopes)}&` +
-          "access_type=offline&prompt=consent",
-        "googleAuth",
-        "width=500,height=600"
-      );
-
-      // Monitora o fechamento da janela
-      const checkWindowClosed = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkWindowClosed);
-          if (!googleAuth.isAuthenticated) {
-            throw new Error(
-              "O popup foi fechado antes da conclusão da autenticação"
-            );
-          }
-        }
-      }, 500);
+      const auth2 = window.gapi.auth2.getAuthInstance();
+      if (!auth2) {
+        throw new Error("Falha ao inicializar a autenticação do Google.");
+      }
 
       await googleAuth.signIn();
       onConnect?.(["gmail", "calendar"]);
     } catch (error) {
       console.error("Erro na autenticação:", error);
-
-      let errorMessage = error.message;
-      if (error.error === "popup_closed_by_user") {
-        errorMessage =
-          "O processo de login foi interrompido. Por favor, complete todas as etapas.";
-      } else if (error.message.includes("Content Security Policy")) {
-        errorMessage =
-          "Erro de configuração de segurança. Por favor, tente novamente mais tarde.";
-      }
-
       toast({
         title: "Erro de conexão",
-        description: errorMessage,
+        description: error.message || "Falha ao conectar com o Google",
         variant: "destructive",
       });
-    } finally {
-      setAuthInProgress(false);
     }
   };
 
@@ -371,6 +335,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
             );
           })}
         </div>
+
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
@@ -393,6 +358,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
               </>
             )}
           </Button>
+
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <AlertCircle className="w-3 h-3" />
             <span>Você pode revogar essas permissões a qualquer momento</span>
