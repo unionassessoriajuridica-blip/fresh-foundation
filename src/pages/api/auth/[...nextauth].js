@@ -15,7 +15,8 @@ export const authOptions = {
   ],
   pages: {
     signIn: "/auth/signin", // opcional
-    error: "/auth/error",   // opcional, mas evita o erro 404
+    error: "/auth/error",   
+    providers: "/auth/providers",
   },
   callbacks: {
     async jwt({ token, account }) {
