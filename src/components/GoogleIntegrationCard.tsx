@@ -148,7 +148,12 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     },
   ];
 
+  const [authInProgress, setAuthInProgress] = useState(false);
+
   const handleConnect = async () => {
+    if (authInProgress) return;
+
+    setAuthInProgress(true);
     try {
       // Verificação robusta da biblioteca carregada
       if (!window.gapi || !window.gapi.auth2) {
@@ -200,6 +205,8 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setAuthInProgress(false);
     }
   };
 
@@ -364,7 +371,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
             );
           })}
         </div>
-
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
@@ -387,7 +393,6 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
               </>
             )}
           </Button>
-
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <AlertCircle className="w-3 h-3" />
             <span>Você pode revogar essas permissões a qualquer momento</span>
