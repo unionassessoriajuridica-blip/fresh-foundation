@@ -150,43 +150,54 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = async () => {
     try {
+      // Verificação robusta da biblioteca carregada
       if (!window.gapi || !window.gapi.auth2) {
         throw new Error(
           "A API do Google não está pronta. Por favor, aguarde e tente novamente."
         );
       }
 
-      const auth2 = window.gapi.auth2.getAuthInstance();
-      if (!auth2) {
-        throw new Error("Falha ao inicializar a autenticação do Google.");
-      }
+      // Abre o popup manualmente para ter mais controle
+      const authWindow = window.open(
+        "https://accounts.google.com/o/oauth2/auth?" +
+          `client_id=${clientId}&` +
+          `redirect_uri=${encodeURIComponent(window.location.origin)}&` +
+          `response_type=code&` +
+          `scope=${encodeURIComponent(scopes)}&` +
+          "access_type=offline&prompt=consent",
+        "googleAuth",
+        "width=500,height=600"
+      );
 
-      // Adicione um listener para detectar fechamento prematuro
-      const popupClosedPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(
-            new Error("O popup de autenticação foi fechado antes da conclusão")
-          );
-        }, 30000); // 30 segundos de timeout
-      });
+      // Monitora o fechamento da janela
+      const checkWindowClosed = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(checkWindowClosed);
+          if (!googleAuth.isAuthenticated) {
+            throw new Error(
+              "O popup foi fechado antes da conclusão da autenticação"
+            );
+          }
+        }
+      }, 500);
 
-      const authPromise = googleAuth.signIn();
-
-      await Promise.race([authPromise, popupClosedPromise]);
-
+      await googleAuth.signIn();
       onConnect?.(["gmail", "calendar"]);
     } catch (error) {
       console.error("Erro na autenticação:", error);
-      let errorMessage = error.message;
 
+      let errorMessage = error.message;
       if (error.error === "popup_closed_by_user") {
         errorMessage =
-          "O popup de login foi fechado antes de completar a autenticação. Por favor, tente novamente e complete todo o processo.";
+          "O processo de login foi interrompido. Por favor, complete todas as etapas.";
+      } else if (error.message.includes("Content Security Policy")) {
+        errorMessage =
+          "Erro de configuração de segurança. Por favor, tente novamente mais tarde.";
       }
 
       toast({
         title: "Erro de conexão",
-        description: errorMessage || "Falha ao conectar com o Google",
+        description: errorMessage,
         variant: "destructive",
       });
     }
