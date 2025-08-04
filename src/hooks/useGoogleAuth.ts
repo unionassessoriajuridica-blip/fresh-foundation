@@ -26,47 +26,15 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     loadGoogleAPI();
   }, []);
 
-  const loadGoogleAPI = async (): Promise<boolean> => {
-    return new Promise((resolve, reject) => {
-      if (typeof window === "undefined") {
-        reject(new Error("Window object not available"));
-        return;
-      }
-
-      // Verifica se o script já foi carregado
-      if (window.gapi) {
-        resolve(true);
-        return;
-      }
-
-      // Verifica se o script já está sendo carregado
-      if (document.getElementById(SCRIPT_ID)) {
-        const checkLoaded = () => {
-          if (window.gapi) {
-            resolve(true);
-          } else {
-            setTimeout(checkLoaded, 100);
-          }
-        };
-        checkLoaded();
-        return;
-      }
-
+  const loadGoogleAPI = async () => {
+    if (typeof window !== "undefined" && !window.gapi) {
       const script = document.createElement("script");
-      script.id = SCRIPT_ID;
       script.src = "https://apis.google.com/js/api.js";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        window.gapi.load("auth2:client", {
-          callback: () => resolve(true),
-          onerror: () => reject(new Error("Failed to load auth2 module")),
-        });
-      };
-      script.onerror = () =>
-        reject(new Error("Failed to load Google API script"));
+      script.onload = initializeGapi;
       document.body.appendChild(script);
-    });
+    } else if (window.gapi) {
+      initializeGapi();
+    }
   };
 
   const initializeGapi = () => {
@@ -115,42 +83,25 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   const signIn = async () => {
     setIsLoading(true);
     try {
-      await loadGoogleAPI();
-
       if (!window.gapi?.auth2) {
-        throw new Error("Google API not loaded");
-      }
-
-      // Inicializa o auth2 se não estiver inicializado
-      if (!window.gapi.auth2.getAuthInstance()) {
-        await window.gapi.auth2.init({
-          client_id: config.clientId,
-          scope: config.scopes.join(" "),
-        });
+        throw new Error("Google API não carregada");
       }
 
       const authInstance = window.gapi.auth2.getAuthInstance();
-      const user = await authInstance.signIn({
-        prompt: "select_account",
-      });
-
+      const user = await authInstance.signIn();
       handleAuthSuccess(user);
 
       toast({
         title: "Conectado com sucesso!",
         description: "Sua conta Google foi conectada.",
       });
-
-      return true;
     } catch (error) {
       console.error("Erro na autenticação:", error);
       toast({
         title: "Erro na autenticação",
-        description:
-          error.message || "Não foi possível conectar com sua conta Google.",
+        description: "Não foi possível conectar com sua conta Google.",
         variant: "destructive",
       });
-      return false;
     } finally {
       setIsLoading(false);
     }
@@ -211,6 +162,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 };
 
+// Declaração de tipos para window.gapi
 declare global {
   interface Window {
     gapi: any;
