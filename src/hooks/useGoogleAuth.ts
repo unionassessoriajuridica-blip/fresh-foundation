@@ -39,7 +39,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     //const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     // useGoogleAuth.ts (apenas para teste)
     const client_id =
-      "253852927634-oeuaqcbi43ui9vlacqp3e7tbfln1iam4.apps.googleusercontent.com";
+      "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
     const scope =
       "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send";
 
