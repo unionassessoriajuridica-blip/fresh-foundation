@@ -36,7 +36,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 
   const initializeGapi = () => {
-    const client_id = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+    const client_id = process.env.GOOGLE_CLIENT_ID;
 
     console.log("Google Client ID useGoogleAuth:", client_id);
 
