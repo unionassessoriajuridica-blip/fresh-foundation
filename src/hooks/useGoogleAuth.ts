@@ -36,7 +36,10 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 
   const initializeGapi = () => {
-    const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    //const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    // useGoogleAuth.ts (apenas para teste)
+    const client_id =
+      "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
     const scope =
       "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send";
 
@@ -46,7 +49,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
       window.gapi.auth2
         .init({
           client_id,
-          scope
+          scope,
         })
         .then(() => {
           const authInstance = window.gapi.auth2.getAuthInstance();
