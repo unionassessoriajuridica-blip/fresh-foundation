@@ -20,95 +20,42 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const SCRIPT_ID = "google-api-script";
-
   useEffect(() => {
     loadGoogleAPI();
   }, []);
 
-  const loadGoogleAPI = async (): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('Window object not available'));
-      return;
+  const loadGoogleAPI = async () => {
+    if (typeof window !== "undefined" && !window.gapi) {
+      const script = document.createElement("script");
+      script.src = "https://apis.google.com/js/api.js";
+      script.onload = initializeGapi;
+      document.body.appendChild(script);
+    } else if (window.gapi) {
+      initializeGapi();
     }
-
-    // Verifica se o script já foi carregado
-    if (window.gapi) {
-      resolve(true);
-      return;
-    }
-
-    // Verifica se o script já está sendo carregado
-    if (document.getElementById(SCRIPT_ID)) {
-      const checkLoaded = () => {
-        if (window.gapi) {
-          resolve(true);
-        } else {
-          setTimeout(checkLoaded, 100);
-        }
-      };
-      checkLoaded();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = SCRIPT_ID;
-    script.src = 'https://apis.google.com/js/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      window.gapi.load('auth2:client', {
-        callback: () => resolve(true),
-        onerror: () => reject(new Error('Failed to load auth2 module')),
-      });
-    };
-    script.onerror = () => reject(new Error('Failed to load Google API script'));
-    document.body.appendChild(script);
-  });
-};
+  };
 
   const initializeGapi = () => {
-    const client_id = config.clientId; // usa o clientId que veio da prop
+    const client_id = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
 
-    if (!window.gapi.auth2) {
-      window.gapi.load("auth2", {
-        callback: () => {
-          // SOMENTE INICIALIZA SE AINDA NÃO HOUVER UMA INSTÂNCIA
-          if (!window.gapi.auth2.getAuthInstance()) {
-            window.gapi.auth2
-              .init({
-                client_id,
-                scope: config.scopes.join(" "),
-              })
-              .then(() => {
-                const authInstance = window.gapi.auth2.getAuthInstance();
-                const isSignedIn = authInstance.isSignedIn.get();
+    console.log("Google Client ID useGoogleAuth:", client_id);
 
-                if (isSignedIn) {
-                  const user = authInstance.currentUser.get();
-                  handleAuthSuccess(user);
-                }
-              });
-          } else {
-            // Já está inicializado
-            const authInstance = window.gapi.auth2.getAuthInstance();
-            const isSignedIn = authInstance.isSignedIn.get();
-            if (isSignedIn) {
-              const user = authInstance.currentUser.get();
-              handleAuthSuccess(user);
-            }
+    window.gapi.load("auth2", () => {
+      window.gapi.auth2
+        .init({
+          client_id,
+          scope: "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
+        })
+        .then(() => {
+          const authInstance = window.gapi.auth2.getAuthInstance();
+          const isSignedIn = authInstance.isSignedIn.get();
+
+          if (isSignedIn) {
+            const user = authInstance.currentUser.get();
+            handleAuthSuccess(user);
           }
-        },
-        onerror: () => {
-          toast({
-            title: "Erro ao carregar Google API",
-            description: "Falha ao inicializar autenticação com Google",
-            variant: "destructive",
-          });
-        },
-      });
-    }
+        });
+    });
   };
 
   const signIn = async () => {
