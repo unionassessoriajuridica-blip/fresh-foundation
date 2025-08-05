@@ -2,6 +2,7 @@ import { Lock, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { FrontendMenu } from './Menu';
 
 const Header = () => {
   const { user, signOut, isAuthenticated } = useAuth();
@@ -21,7 +22,7 @@ const Header = () => {
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-primary">FacilitaAdv</h1>
         </div>
-        
+        <FrontendMenu />
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             <Lock className="w-5 h-5 text-warning mr-2" />

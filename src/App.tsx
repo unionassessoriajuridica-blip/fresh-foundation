@@ -17,6 +17,8 @@ import CalendarManagement from "./pages/CalendarManagement";
 import FaciliSign from "./pages/FaciliSign";
 import UserManagement from "./pages/UserManagement";
 import { GoogleCallback } from "./pages/GoogleCallback";
+import TermosServico from "./pages/TermosServico";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,8 @@ const App = () => (
           />
           <Route path="/calendar" element={<CalendarManagement />} />
           <Route path="*" element={<NotFound />} />
+        <Route path="/termos-servico" element={<TermosServico />} />
+        <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
