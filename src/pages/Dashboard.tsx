@@ -148,7 +148,7 @@ const Dashboard = () => {
       <header className="w-full bg-card border-b border-border">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-primary">FacilitaAdv</h1>
+            <h1 className="text-2xl font-bold text-primary">Facilita Adv</h1>
             <span className="text-muted-foreground">Dashboard</span>
           </div>
           
