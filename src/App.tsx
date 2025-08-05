@@ -16,6 +16,7 @@ import GoogleIntegration from "./pages/GoogleIntegration";
 import CalendarManagement from "./pages/CalendarManagement";
 import FaciliSign from "./pages/FaciliSign";
 import UserManagement from "./pages/UserManagement";
+import { GoogleCallback } from "./pages/GoogleCallback";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,10 @@ const App = () => (
           />
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
+
           <Route path="/google-integration" element={<GoogleIntegration />} />
+          <Route path="/google-integration/callback" element={<GoogleCallback />}
+          />
           <Route path="/calendar" element={<CalendarManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

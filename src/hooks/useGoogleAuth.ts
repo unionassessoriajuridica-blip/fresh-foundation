@@ -13,6 +13,18 @@ interface GoogleAuthConfig {
   scopes: string[];
 }
 
+interface GoogleAuthReturn {
+  isAuthenticated: boolean;
+  userInfo: GoogleUserInfo | null;
+  isLoading: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+  getAccessToken: () => string | null;
+  setAccessToken: (token: string | null) => void;
+  setIsAuthenticated: (value: boolean) => void;
+  clientId: string;
+}
+
 export const useGoogleAuth = (config: GoogleAuthConfig) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState<GoogleUserInfo | null>(null);
@@ -37,12 +49,13 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
 
   const loadGoogleAPI = useCallback(async () => {
     const initializeGapi = () => {
-      const client_id =
-        "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-      const scope =
-        "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send";
-
-      console.log("Google Client ID useGoogleAuth:", client_id);
+      const client_id = process.env.VITE_GOOGLE_CLIENT_ID;
+      const scope = [
+        "profile",
+        "email",
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/gmail.send",
+      ].join(" ");
 
       window.gapi.load("auth2", () => {
         window.gapi.auth2
@@ -58,9 +71,6 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
               const user = authInstance.currentUser.get();
               handleAuthSuccess(user);
             }
-          })
-          .catch((err: any) => {
-            console.error("Erro ao inicializar o Google Auth2:", err);
           });
       });
     };
@@ -69,7 +79,8 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
       const script = document.createElement("script");
       script.src = "https://apis.google.com/js/api.js";
       script.onload = initializeGapi;
-      script.onerror = () => console.error("Falha ao carregar o script do Google API");
+      script.onerror = () =>
+        console.error("Falha ao carregar o script do Google API");
       document.body.appendChild(script);
     } else if (window.gapi) {
       initializeGapi();
@@ -138,13 +149,16 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 
   return {
-    isAuthenticated,
-    userInfo,
-    isLoading,
-    signIn,
-    signOut,
-    getAccessToken,
-  };
+  isAuthenticated,
+  userInfo,
+  isLoading,
+  signIn,
+  signOut,
+  getAccessToken,
+  setAccessToken,
+  setIsAuthenticated,
+  clientId: config.clientId
+} satisfies GoogleAuthReturn;
 };
 
 declare global {
