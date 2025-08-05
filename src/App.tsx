@@ -41,7 +41,6 @@ const App = () => (
           <Route path="/facilisign" element={<FaciliSign />} />
           <Route path="/google-integration" element={<GoogleIntegration />} />
           <Route path="/calendar" element={<CalendarManagement />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

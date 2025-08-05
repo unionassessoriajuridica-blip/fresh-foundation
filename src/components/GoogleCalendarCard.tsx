@@ -140,7 +140,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     if (googleAuth.isAuthenticated) {
       googleCalendar.loadEvents(calendarId);
     }
-  }, [googleAuth.isAuthenticated, calendarId]);
+  }, [googleAuth.isAuthenticated, calendarId, googleCalendar]);
 
   const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.start || !newEvent.end) {

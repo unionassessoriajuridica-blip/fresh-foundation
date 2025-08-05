@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface GoogleUserInfo {
@@ -20,48 +20,65 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadGoogleAPI();
-  }, []);
+  const handleAuthSuccess = (user: any) => {
+    const profile = user.getBasicProfile();
+    const authResponse = user.getAuthResponse();
 
-  const loadGoogleAPI = async () => {
+    setUserInfo({
+      id: profile.getId(),
+      name: profile.getName(),
+      email: profile.getEmail(),
+      picture: profile.getImageUrl(),
+    });
+
+    setAccessToken(authResponse.access_token);
+    setIsAuthenticated(true);
+  };
+
+  const loadGoogleAPI = useCallback(async () => {
+    const initializeGapi = () => {
+      const client_id =
+        "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+      const scope =
+        "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send";
+
+      console.log("Google Client ID useGoogleAuth:", client_id);
+
+      window.gapi.load("auth2", () => {
+        window.gapi.auth2
+          .init({
+            client_id,
+            scope,
+          })
+          .then(() => {
+            const authInstance = window.gapi.auth2.getAuthInstance();
+            const isSignedIn = authInstance.isSignedIn.get();
+
+            if (isSignedIn) {
+              const user = authInstance.currentUser.get();
+              handleAuthSuccess(user);
+            }
+          })
+          .catch((err: any) => {
+            console.error("Erro ao inicializar o Google Auth2:", err);
+          });
+      });
+    };
+
     if (typeof window !== "undefined" && !window.gapi) {
       const script = document.createElement("script");
       script.src = "https://apis.google.com/js/api.js";
       script.onload = initializeGapi;
+      script.onerror = () => console.error("Falha ao carregar o script do Google API");
       document.body.appendChild(script);
     } else if (window.gapi) {
       initializeGapi();
     }
-  };
+  }, []);
 
-  const initializeGapi = () => {
-    //const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    // useGoogleAuth.ts (apenas para teste)
-    const client_id =
-      "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-    const scope =
-      "profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send";
-
-    console.log("Google Client ID useGoogleAuth:", client_id);
-
-    window.gapi.load("auth2", () => {
-      window.gapi.auth2
-        .init({
-          client_id,
-          scope,
-        })
-        .then(() => {
-          const authInstance = window.gapi.auth2.getAuthInstance();
-          const isSignedIn = authInstance.isSignedIn.get();
-
-          if (isSignedIn) {
-            const user = authInstance.currentUser.get();
-            handleAuthSuccess(user);
-          }
-        });
-    });
-  };
+  useEffect(() => {
+    loadGoogleAPI();
+  }, [loadGoogleAPI]);
 
   const signIn = async () => {
     setIsLoading(true);
@@ -110,21 +127,6 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     }
   };
 
-  const handleAuthSuccess = (user: any) => {
-    const profile = user.getBasicProfile();
-    const authResponse = user.getAuthResponse();
-
-    setUserInfo({
-      id: profile.getId(),
-      name: profile.getName(),
-      email: profile.getEmail(),
-      picture: profile.getImageUrl(),
-    });
-
-    setAccessToken(authResponse.access_token);
-    setIsAuthenticated(true);
-  };
-
   const getAccessToken = () => {
     if (window.gapi?.auth2) {
       const authInstance = window.gapi.auth2.getAuthInstance();
@@ -145,7 +147,6 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 };
 
-// Declaração de tipos para window.gapi
 declare global {
   interface Window {
     gapi: any;
