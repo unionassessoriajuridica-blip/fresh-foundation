@@ -25,159 +25,182 @@ interface GoogleAuthReturn {
   clientId: string;
 }
 
-export const useGoogleAuth = (config: GoogleAuthConfig) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState<GoogleUserInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+declare global {
+  interface Window {
+    google: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (tokenResponse: { access_token?: string }) => void;
+            error_callback?: (error: any) => void;
+          }) => { requestAccessToken: () => void };
+          revoke: (token: string, callback?: () => void) => void;
+        };
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+          }) => void;
+          renderButton: (element: HTMLElement, options: any) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
+
+export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
+  const [state, setState] = useState({
+    isAuthenticated: false,
+    userInfo: null as GoogleUserInfo | null,
+    isLoading: true,
+    accessToken: null as string | null,
+    gsiLoaded: false,
+  });
+
   const { toast } = useToast();
 
-  const handleAuthSuccess = (user: any) => {
-    const profile = user.getBasicProfile();
-    const authResponse = user.getAuthResponse();
-
-    setUserInfo({
-      id: profile.getId(),
-      name: profile.getName(),
-      email: profile.getEmail(),
-      picture: profile.getImageUrl(),
-    });
-
-    setAccessToken(authResponse.access_token);
-    setIsAuthenticated(true);
-  };
-
-  const loadGoogleAPI = useCallback(async () => {
-    const initializeGapi = () => {
-      const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      console.log("Valor de VITE_GOOGLE_CLIENT_ID:", client_id);
-      const scope = [
-        "profile",
-        "email",
-        "https://www.googleapis.com/auth/calendar",
-        "https://www.googleapis.com/auth/gmail.send",
-      ].join(" ");
-
-      window.gapi.load("auth2:client", () => {
-        window.gapi.client
-          .init({
-            client_id,
-            scope,
-          })
-          .then(() => {
-            const authInstance = window.gapi.auth2.getAuthInstance();
-            const isSignedIn = authInstance.isSignedIn.get();
-            if (isSignedIn) {
-              const user = authInstance.currentUser.get();
-              handleAuthSuccess(user);
-            }
-          })
-          .catch((error: any) => {
-            console.error("Erro na inicialização do gapi.client:", error);
-            toast({
-              title: "Erro na inicialização",
-              description: "Falha ao inicializar a API do Google.",
-              variant: "destructive",
-            });
-          });
+  const fetchUserInfo = useCallback(async (token: string) => {
+    try {
+      const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-    };
+      const data = await res.json();
+      setState(prev => ({
+        ...prev,
+        userInfo: {
+          id: data.sub,
+          name: data.name,
+          email: data.email,
+          picture: data.picture,
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to fetch user info", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar informações do usuário",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
-    if (typeof window !== "undefined" && !window.gapi) {
+  const initializeGSI = useCallback(() => {
+    if (!window.google || !window.google.accounts) {
       const script = document.createElement("script");
-      script.src = "https://apis.google.com/js/api.js";
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
-      script.onload = initializeGapi;
+      script.defer = true;
+      script.onload = () => {
+        setState(prev => ({ ...prev, gsiLoaded: true, isLoading: false }));
+      };
       script.onerror = () => {
-        console.error("Falha ao carregar o script do Google API");
+        setState(prev => ({ ...prev, isLoading: false }));
         toast({
           title: "Erro",
-          description: "Não foi possível carregar a API do Google.",
+          description: "Falha ao carregar Google Identity Services",
           variant: "destructive",
         });
       };
       document.body.appendChild(script);
-    } else if (window.gapi) {
-      initializeGapi();
+    } else {
+      setState(prev => ({ ...prev, gsiLoaded: true, isLoading: false }));
     }
   }, [toast]);
 
   useEffect(() => {
-    loadGoogleAPI();
-  }, [loadGoogleAPI]);
+    initializeGSI();
+    return () => {
+      const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (script) document.body.removeChild(script);
+    };
+  }, [initializeGSI]);
 
-  const signIn = async () => {
-    setIsLoading(true);
+  const signIn = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true }));
     try {
-      if (!window.gapi?.auth2) {
-        throw new Error("Google API não carregada");
-      }
+      if (!state.gsiLoaded) throw new Error("Google Identity Services não carregado");
 
-      const authInstance = window.gapi.auth2.getAuthInstance();
-      const user = await authInstance.signIn();
-      handleAuthSuccess(user);
-
-      toast({
-        title: "Conectado com sucesso!",
-        description: "Sua conta Google foi conectada.",
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: config.clientId,
+        scope: config.scopes.join(" "),
+        callback: async (tokenResponse) => {
+          if (tokenResponse.access_token) {
+            setState(prev => ({
+              ...prev,
+              accessToken: tokenResponse.access_token,
+              isAuthenticated: true,
+            }));
+            await fetchUserInfo(tokenResponse.access_token);
+            toast({
+              title: "Conectado",
+              description: "Autenticação com Google realizada com sucesso",
+            });
+          }
+        },
+        error_callback: (error) => {
+          toast({
+            title: "Erro",
+            description: error.message || "Falha na autenticação com Google",
+            variant: "destructive",
+          });
+        },
       });
+
+      client.requestAccessToken();
     } catch (error) {
-      console.error("Erro na autenticação:", error);
+      console.error("Authentication error:", error);
       toast({
-        title: "Erro na autenticação",
-        description: "Não foi possível conectar com sua conta Google.",
+        title: "Erro",
+        description: error.message || "Falha ao autenticar com Google",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setState(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [config.clientId, config.scopes, fetchUserInfo, state.gsiLoaded, toast]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
-      if (window.gapi?.auth2) {
-        const authInstance = window.gapi.auth2.getAuthInstance();
-        await authInstance.signOut();
+      if (state.accessToken) {
+        window.google.accounts.oauth2.revoke(state.accessToken, () => {
+          console.log("Token revogado");
+        });
       }
-
-      setIsAuthenticated(false);
-      setUserInfo(null);
-      setAccessToken(null);
-
+      setState({
+        isAuthenticated: false,
+        userInfo: null,
+        isLoading: false,
+        accessToken: null,
+        gsiLoaded: state.gsiLoaded,
+      });
       toast({
         title: "Desconectado",
-        description: "Sua conta Google foi desconectada.",
+        description: "Conta Google desconectada com sucesso",
       });
     } catch (error) {
-      console.error("Erro ao desconectar:", error);
+      console.error("Sign out error:", error);
+      toast({
+        title: "Erro",
+        description: "Falha ao desconectar conta Google",
+        variant: "destructive",
+      });
     }
-  };
-
-  const getAccessToken = () => {
-    if (window.gapi?.auth2) {
-      const authInstance = window.gapi.auth2.getAuthInstance();
-      const user = authInstance.currentUser.get();
-      const authResponse = user.getAuthResponse();
-      return authResponse.access_token;
-    }
-    return accessToken;
-  };
+  }, [state.accessToken, state.gsiLoaded, toast]);
 
   return {
-    isAuthenticated,
-    userInfo,
-    isLoading,
+    isAuthenticated: state.isAuthenticated,
+    userInfo: state.userInfo,
+    isLoading: state.isLoading,
     signIn,
     signOut,
-    getAccessToken,
-    setAccessToken,
-    setIsAuthenticated,
+    getAccessToken: () => state.accessToken,
+    setAccessToken: (token: string | null) => 
+      setState(prev => ({ ...prev, accessToken: token })),
+    setIsAuthenticated: (value: boolean) => 
+      setState(prev => ({ ...prev, isAuthenticated: value })),
     clientId: config.clientId,
-  } satisfies GoogleAuthReturn;
+  };
 };
-
-declare global {
-  interface Window {
-    gapi: any;
-  }
-}

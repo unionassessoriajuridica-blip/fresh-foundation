@@ -157,8 +157,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
 
   const handleConnect = () => {
     const client = google.accounts.oauth2.initTokenClient({
-      client_id:
-        "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+      client_id:googleAuth.clientId,
       scope:
         "email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
       callback: async (tokenResponse) => {

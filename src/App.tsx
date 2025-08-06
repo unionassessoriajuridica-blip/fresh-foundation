@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,7 +43,7 @@ const App = () => (
           />
           <Route path="/ia-facilita" element={<IAFacilita />} />
           <Route path="/facilisign" element={<FaciliSign />} />
-
+          <Route path="/_/IdpIFrameHttp/cspreport/fine-allowlist" element={<CSPReportHandler />} />
           <Route path="/google-integration" element={<GoogleIntegration />} />
           <Route path="/google-integration/callback" element={<GoogleCallback />}
           />
@@ -55,5 +56,15 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+const CSPReportHandler = () => {
+  useEffect(() => {
+    // Simplesmente responde 200 para o Google
+    console.log('CSP Report received');
+    return () => {};
+  }, []);
+
+  return null; // Não renderiza nada
+};
 
 export default App;
