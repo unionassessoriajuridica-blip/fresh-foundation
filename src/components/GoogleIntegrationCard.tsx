@@ -25,7 +25,7 @@ interface GoogleIntegrationCardProps {
     avatar?: string;
   };
 }
-
+declare const google: any; // Adicione se não reconhecer 'google'
 export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   onConnect,
   onDisconnect,
@@ -148,31 +148,25 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     },
   ];
 
-  const handleConnect = async () => {
-    try {
-      // Verificação robusta da biblioteca carregada
-      if (!window.gapi || !window.gapi.auth2) {
-        throw new Error(
-          "A API do Google não está pronta. Por favor, aguarde e tente novamente."
-        );
+  const handleConnect = () => {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+    scope: "email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+    callback: (tokenResponse) => {
+      if (tokenResponse && tokenResponse.access_token) {
+        onConnect?.(["gmail", "calendar"]);
       }
-
-      const auth2 = window.gapi.auth2.getAuthInstance();
-      if (!auth2) {
-        throw new Error("Falha ao inicializar a autenticação do Google.");
-      }
-
-      await googleAuth.signIn();
-      onConnect?.(["gmail", "calendar"]);
-    } catch (error) {
-      console.error("Erro na autenticação:", error);
+    },
+    error_callback: (error) => {
       toast({
-        title: "Erro de conexão",
-        description: error.message || "Falha ao conectar com o Google",
+        title: "Erro",
+        description: error.message || "Falha ao conectar",
         variant: "destructive",
       });
     }
-  };
+  });
+  client.requestAccessToken();
+};
 
   const handleDisconnect = async () => {
     try {
@@ -339,7 +333,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
-            disabled={!gapiLoaded || isInitializing || googleAuth.isLoading}
+            disabled={!gapiLoaded || isInitializing }
             className="w-full bg-google hover:bg-google/90"
           >
             {isInitializing ? (
