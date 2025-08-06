@@ -59,12 +59,11 @@ const App = () => (
 
 const CSPReportHandler = () => {
   useEffect(() => {
-    // Simplesmente responde 200 para o Google
     console.log('CSP Report received');
     return () => {};
   }, []);
 
-  return null; // Não renderiza nada
+  return null; 
 };
 
 export default App;
