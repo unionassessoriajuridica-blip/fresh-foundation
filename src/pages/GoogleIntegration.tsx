@@ -1,13 +1,18 @@
 ///src/pages/GoogleIntegration.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Settings, Shield } from 'lucide-react';
+import { ArrowLeft, Settings, Shield, Check, Calendar as CalendarIcon } from 'lucide-react';
 import { GoogleIntegrationCard } from '@/components/GoogleIntegrationCard';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+import Swal from 'sweetalert2';
 
 const GoogleIntegration = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const success = searchParams.get('success');
+  const error = searchParams.get('error');
 
   // Configuração real do Google OAuth
   const googleAuth = useGoogleAuth({
@@ -20,6 +25,22 @@ const GoogleIntegration = () => {
       'https://www.googleapis.com/auth/calendar'
     ]
   });
+  
+   useEffect(() => {
+    if (success) {
+      Swal.fire({
+        title: 'Conexão estabelecida!',
+        text: 'Agora você pode usar todos os recursos integrados com o Google.',
+        icon: 'success'
+      });
+    } else if (error) {
+      Swal.fire({
+        title: 'Erro na conexão',
+        text: 'Não foi possível completar a integração com o Google.',
+        icon: 'error'
+      });
+    }
+  }, [success, error]);
 
   const handleConnect = (permissions: string[]) => {
     console.log('Permissões concedidas:', permissions);

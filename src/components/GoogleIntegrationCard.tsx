@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import {
   Mail,
   Calendar,
@@ -25,7 +27,7 @@ interface GoogleIntegrationCardProps {
     avatar?: string;
   };
 }
-declare const google: any; // Adicione se não reconhecer 'google'
+declare const google: any;
 export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   onConnect,
   onDisconnect,
@@ -36,8 +38,11 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
   const [gapiLoaded, setGapiLoaded] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
 
-  const clientId =
-    "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      console.log(
+        "GoogleIntegrationCard VITE_GOOGLE_CLIENT_ID:",
+        import.meta.env.VITE_GOOGLE_CLIENT_ID
+      );
   const scopes = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -148,26 +153,43 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
     },
   ];
 
-  const handleConnect = () => {
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
-    scope: "email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
-    callback: (tokenResponse) => {
-      if (tokenResponse && tokenResponse.access_token) {
-        onConnect?.(["gmail", "calendar"]);
-      }
-    },
-    error_callback: (error) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Falha ao conectar",
-        variant: "destructive",
-      });
-    }
-  });
-  client.requestAccessToken();
-};
+  const navigate = useNavigate();
 
+  const handleConnect = () => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id:
+        "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+      scope:
+        "email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+      callback: async (tokenResponse) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          onConnect?.(["gmail", "calendar"]);
+
+          // Adiciona o feedback visual e redirecionamento
+          await Swal.fire({
+            title: "Conectado com sucesso!",
+            text: "Sua conta Google foi integrada ao sistema.",
+            icon: "success",
+            confirmButtonText: "Ir para o Calendário",
+            showCancelButton: true,
+            cancelButtonText: "Ficar aqui",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/calendar");
+            }
+          });
+        }
+      },
+      error_callback: (error) => {
+        toast({
+          title: "Erro",
+          description: error.message || "Falha ao conectar",
+          variant: "destructive",
+        });
+      },
+    });
+    client.requestAccessToken();
+  };
   const handleDisconnect = async () => {
     try {
       await googleAuth.signOut();
@@ -333,7 +355,7 @@ export const GoogleIntegrationCard: React.FC<GoogleIntegrationCardProps> = ({
         <div className="pt-2 space-y-3">
           <Button
             onClick={handleConnect}
-            disabled={!gapiLoaded || isInitializing }
+            disabled={!gapiLoaded || isInitializing}
             className="w-full bg-google hover:bg-google/90"
           >
             {isInitializing ? (

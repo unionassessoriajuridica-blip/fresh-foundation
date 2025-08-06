@@ -49,7 +49,8 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
 
   const loadGoogleAPI = useCallback(async () => {
     const initializeGapi = () => {
-      const client_id = process.env.VITE_GOOGLE_CLIENT_ID;
+      const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      console.log("Valor de VITE_GOOGLE_CLIENT_ID:", client_id);
       const scope = [
         "profile",
         "email",
@@ -57,8 +58,8 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
         "https://www.googleapis.com/auth/gmail.send",
       ].join(" ");
 
-      window.gapi.load("auth2", () => {
-        window.gapi.auth2
+      window.gapi.load("auth2:client", () => {
+        window.gapi.client
           .init({
             client_id,
             scope,
@@ -66,11 +67,18 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
           .then(() => {
             const authInstance = window.gapi.auth2.getAuthInstance();
             const isSignedIn = authInstance.isSignedIn.get();
-
             if (isSignedIn) {
               const user = authInstance.currentUser.get();
               handleAuthSuccess(user);
             }
+          })
+          .catch((error: any) => {
+            console.error("Erro na inicialização do gapi.client:", error);
+            toast({
+              title: "Erro na inicialização",
+              description: "Falha ao inicializar a API do Google.",
+              variant: "destructive",
+            });
           });
       });
     };
@@ -78,14 +86,21 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
     if (typeof window !== "undefined" && !window.gapi) {
       const script = document.createElement("script");
       script.src = "https://apis.google.com/js/api.js";
+      script.async = true;
       script.onload = initializeGapi;
-      script.onerror = () =>
+      script.onerror = () => {
         console.error("Falha ao carregar o script do Google API");
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a API do Google.",
+          variant: "destructive",
+        });
+      };
       document.body.appendChild(script);
     } else if (window.gapi) {
       initializeGapi();
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadGoogleAPI();
@@ -149,16 +164,16 @@ export const useGoogleAuth = (config: GoogleAuthConfig) => {
   };
 
   return {
-  isAuthenticated,
-  userInfo,
-  isLoading,
-  signIn,
-  signOut,
-  getAccessToken,
-  setAccessToken,
-  setIsAuthenticated,
-  clientId: config.clientId
-} satisfies GoogleAuthReturn;
+    isAuthenticated,
+    userInfo,
+    isLoading,
+    signIn,
+    signOut,
+    getAccessToken,
+    setAccessToken,
+    setIsAuthenticated,
+    clientId: config.clientId,
+  } satisfies GoogleAuthReturn;
 };
 
 declare global {

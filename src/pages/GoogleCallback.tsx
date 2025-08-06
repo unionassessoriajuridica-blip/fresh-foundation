@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { Loader2 } from "lucide-react";
 
 export const GoogleCallback = () => {
@@ -14,17 +15,17 @@ export const GoogleCallback = () => {
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
       "https://www.googleapis.com/auth/gmail.send",
-      "https://www.googleapis.com/auth/calendar"
-    ]
+      "https://www.googleapis.com/auth/calendar",
+    ],
   });
+  const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Extrai o código da URL
         const params = new URLSearchParams(location.search);
-        const code = params.get('code');
-        const error = params.get('error');
+        const code = params.get("code");
+        const error = params.get("error");
 
         if (error) {
           throw new Error(error);
@@ -34,18 +35,17 @@ export const GoogleCallback = () => {
           throw new Error("Código de autorização não encontrado");
         }
 
-        // Troca o código por um token de acesso
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
+        const response = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams({
             code,
             client_id: googleAuth.clientId,
-            client_secret: process.env.VITE_GOOGLE_CLIENT_SECRET,
+            client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET,
             redirect_uri: `${window.location.origin}/google-integration/callback`,
-            grant_type: 'authorization_code',
+            grant_type: "authorization_code",
           }),
         });
 
@@ -55,29 +55,29 @@ export const GoogleCallback = () => {
           throw new Error(data.error || "Falha na autenticação");
         }
 
-        // Armazena os tokens e redireciona
-        localStorage.setItem('google_access_token', data.access_token);
-        localStorage.setItem('google_refresh_token', data.refresh_token);
-        
-        // Atualiza o estado de autenticação
+        localStorage.setItem("google_access_token", data.access_token);
+        localStorage.setItem("google_refresh_token", data.refresh_token);
+
         googleAuth.setAccessToken(data.access_token);
         googleAuth.setIsAuthenticated(true);
 
-        // Redireciona para a página de integração com sucesso
-        navigate('/google-integration?success=true');
+        // Carregar eventos do Google Calendar
+        await googleCalendar.loadEvents("primary");
+
+        navigate("/google-integration?success=true");
       } catch (err) {
-        console.error('Erro no callback:', err);
+        console.error("Erro no callback:", err);
         toast({
           title: "Erro na autenticação",
           description: err.message,
           variant: "destructive",
         });
-        navigate('/google-integration?error=true');
+        navigate("/google-integration?error=true");
       }
     };
 
     handleCallback();
-  }, [location, navigate, toast, googleAuth]);
+  }, [location, navigate, toast, googleAuth, googleCalendar]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
