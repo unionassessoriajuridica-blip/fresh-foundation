@@ -23,6 +23,7 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import Contato from "./pages/Contato";
 import Sobre from "./pages/Sobre";
 import Servicos from "./pages/Servicos";
+import { PrivateRoute } from "./components/PrivateRoute";
 
 const queryClient = new QueryClient();
 
@@ -33,30 +34,33 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Rotas Públicas */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/user-management" element={<UserManagement />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/novo-processo" element={<NewProcess />} />
-          <Route path="/processo/:id" element={<ProcessView />} />
-          <Route path="/financeiro" element={<Financial />} />
-          <Route
-            path="/financeiro/cliente/:clienteNome"
-            element={<ProcessFinancial />}
-          />
-          <Route path="/ia-facilita" element={<IAFacilita />} />
-          <Route path="/facilisign" element={<FaciliSign />} />
+          <Route path="/termos-servico" element={<TermosServico />} />
+          <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+          <Route path="/contato" element={<Contato />} />
+          <Route path="/sobre" element={<Sobre />} />
+          <Route path="/servicos" element={<Servicos />} />
+
+          {/* Rotas Protegidas */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/novo-processo" element={<NewProcess />} />
+            <Route path="/processo/:id" element={<ProcessView />} />
+            <Route path="/financeiro" element={<Financial />} />
+            <Route path="/financeiro/cliente/:clienteNome" element={<ProcessFinancial />} />
+            <Route path="/ia-facilita" element={<IAFacilita />} />
+            <Route path="/facilisign" element={<FaciliSign />} />
+            <Route path="/google-integration" element={<GoogleIntegration />} />
+            <Route path="/google-integration/callback" element={<GoogleCallback />} />
+            <Route path="/calendar" element={<CalendarManagement />} />
+          </Route>
+
+          {/* Outras Rotas */}
           <Route path="/_/IdpIFrameHttp/cspreport/fine-allowlist" element={<CSPReportHandler />} />
-          <Route path="/google-integration" element={<GoogleIntegration />} />
-          <Route path="/google-integration/callback" element={<GoogleCallback />}
-          />
-          <Route path="/calendar" element={<CalendarManagement />} />
           <Route path="*" element={<NotFound />} />
-        <Route path="/termos-servico" element={<TermosServico />} />
-        <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-        <Route path="/contato" element={<Contato />} />
-        <Route path="/sobre" element={<Sobre />} />
-        <Route path="/servicos" element={<Servicos />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
