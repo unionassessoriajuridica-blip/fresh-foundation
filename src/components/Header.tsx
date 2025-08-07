@@ -51,10 +51,9 @@ const Header = () => {
             </div>
           ) : (
             <Button
-              variant="purple"
               size="sm"
               onClick={handleAuthAction}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-gray-700"
             >
               <Lock className="w-4 h-4" />
               Login
