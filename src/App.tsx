@@ -43,8 +43,8 @@ const App = () => (
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/servicos" element={<Servicos />} />
 
-
-          
+          {/* Rotas Protegidas */}
+          <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/novo-processo" element={<NewProcess />} />
@@ -56,9 +56,6 @@ const App = () => (
             <Route path="/google-integration" element={<GoogleIntegration />} />
             <Route path="/google-integration/callback" element={<GoogleCallback />} />
             <Route path="/calendar" element={<CalendarManagement />} />
-
-          {/* Rotas Protegidas */}
-          <Route element={<PrivateRoute />}>
           </Route>
 
           {/* Outras Rotas */}

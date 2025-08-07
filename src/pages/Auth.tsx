@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock, Shield, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,7 +25,7 @@ const Auth = () => {
   const { toast } = useToast();
 
   // Verificar se usuário já está logado
-  useEffect(() => {
+  /**useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -27,7 +33,7 @@ const Auth = () => {
       }
     };
     checkUser();
-  }, [navigate]);
+  }, [navigate]);*/
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +46,8 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
-      }
+        emailRedirectTo: redirectUrl,
+      },
     });
 
     if (error) {
@@ -60,27 +66,34 @@ const Auth = () => {
     setLoading(false);
   };
 
+  // Auth.tsx
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        throw error;
+      }
+
+      // Adicione um pequeno delay para garantir que o estado seja atualizado
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      navigate("/dashboard"); // Navegue explicitamente para o dashboard
+    } catch (error) {
       if (error.message.includes("Invalid login credentials")) {
         setError("Email ou senha incorretos.");
       } else {
         setError(error.message);
       }
-    } else {
-      navigate("/");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -94,9 +107,7 @@ const Auth = () => {
           <h1 className="text-2xl font-bold text-foreground">
             🔒 Acesso Seguro
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Criptografia SSL 256-bit
-          </p>
+          <p className="text-muted-foreground mt-2">Criptografia SSL 256-bit</p>
         </div>
 
         <Card>
@@ -109,14 +120,14 @@ const Auth = () => {
               Faça login ou cadastre-se para acessar a plataforma
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Cadastro</TabsTrigger>
               </TabsList>
-              
+
               {error && (
                 <Alert variant="destructive" className="mt-4">
                   <AlertCircle className="h-4 w-4" />
@@ -148,17 +159,17 @@ const Auth = () => {
                       required
                     />
                   </div>
-                  <Button 
-                    type="submit" 
-                    variant="purple" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    variant="purple"
+                    className="w-full"
                     disabled={loading}
                   >
                     {loading ? "Entrando..." : "Entrar"}
                   </Button>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
@@ -184,10 +195,10 @@ const Auth = () => {
                       minLength={6}
                     />
                   </div>
-                  <Button 
-                    type="submit" 
-                    variant="purple" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    variant="purple"
+                    className="w-full"
                     disabled={loading}
                   >
                     {loading ? "Cadastrando..." : "Cadastrar"}

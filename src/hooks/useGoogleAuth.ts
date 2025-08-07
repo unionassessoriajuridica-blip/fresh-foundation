@@ -62,30 +62,36 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
 
   const { toast } = useToast();
 
-  const fetchUserInfo = useCallback(async (token: string) => {
-    try {
-      const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setState(prev => ({
-        ...prev,
-        userInfo: {
-          id: data.sub,
-          name: data.name,
-          email: data.email,
-          picture: data.picture,
-        },
-      }));
-    } catch (error) {
-      console.error("Failed to fetch user info", error);
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar informações do usuário",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
+  const fetchUserInfo = useCallback(
+    async (token: string) => {
+      try {
+        const res = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+        setState((prev) => ({
+          ...prev,
+          userInfo: {
+            id: data.sub,
+            name: data.name,
+            email: data.email,
+            picture: data.picture,
+          },
+        }));
+      } catch (error) {
+        console.error("Failed to fetch user info", error);
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar informações do usuário",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
 
   const initializeGSI = useCallback(() => {
     if (!window.google || !window.google.accounts) {
@@ -94,10 +100,10 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        setState(prev => ({ ...prev, gsiLoaded: true, isLoading: false }));
+        setState((prev) => ({ ...prev, gsiLoaded: true, isLoading: false }));
       };
       script.onerror = () => {
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
         toast({
           title: "Erro",
           description: "Falha ao carregar Google Identity Services",
@@ -106,29 +112,32 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
       };
       document.body.appendChild(script);
     } else {
-      setState(prev => ({ ...prev, gsiLoaded: true, isLoading: false }));
+      setState((prev) => ({ ...prev, gsiLoaded: true, isLoading: false }));
     }
   }, [toast]);
 
   useEffect(() => {
-    initializeGSI();
-    return () => {
-      const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-      if (script) document.body.removeChild(script);
-    };
+    if (!window.google || !window.google.accounts) {
+      initializeGSI();
+    } else {
+      setState((prev) => ({ ...prev, gsiLoaded: true, isLoading: false }));
+    }
+
+    return () => {}; // Remove o cleanup problemático
   }, [initializeGSI]);
 
   const signIn = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true }));
+    setState((prev) => ({ ...prev, isLoading: true }));
     try {
-      if (!state.gsiLoaded) throw new Error("Google Identity Services não carregado");
+      if (!state.gsiLoaded)
+        throw new Error("Google Identity Services não carregado");
 
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: config.clientId,
         scope: config.scopes.join(" "),
         callback: async (tokenResponse) => {
           if (tokenResponse.access_token) {
-            setState(prev => ({
+            setState((prev) => ({
               ...prev,
               accessToken: tokenResponse.access_token,
               isAuthenticated: true,
@@ -158,7 +167,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
         variant: "destructive",
       });
     } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState((prev) => ({ ...prev, isLoading: false }));
     }
   }, [config.clientId, config.scopes, fetchUserInfo, state.gsiLoaded, toast]);
 
@@ -197,10 +206,10 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
     signIn,
     signOut,
     getAccessToken: () => state.accessToken,
-    setAccessToken: (token: string | null) => 
-      setState(prev => ({ ...prev, accessToken: token })),
-    setIsAuthenticated: (value: boolean) => 
-      setState(prev => ({ ...prev, isAuthenticated: value })),
+    setAccessToken: (token: string | null) =>
+      setState((prev) => ({ ...prev, accessToken: token })),
+    setIsAuthenticated: (value: boolean) =>
+      setState((prev) => ({ ...prev, isAuthenticated: value })),
     clientId: config.clientId,
   };
 };

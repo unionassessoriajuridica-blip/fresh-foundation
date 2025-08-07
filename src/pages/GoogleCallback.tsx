@@ -5,12 +5,13 @@ import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { Loader2 } from "lucide-react";
 
+// GoogleCallback.tsx
 export const GoogleCallback = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const googleAuth = useGoogleAuth({
-    clientId: "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scopes: [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
@@ -18,7 +19,6 @@ export const GoogleCallback = () => {
       "https://www.googleapis.com/auth/calendar",
     ],
   });
-  const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -35,6 +35,7 @@ export const GoogleCallback = () => {
           throw new Error("Código de autorização não encontrado");
         }
 
+        // Troca o código por tokens
         const response = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
           headers: {
@@ -55,16 +56,14 @@ export const GoogleCallback = () => {
           throw new Error(data.error || "Falha na autenticação");
         }
 
+        // Armazena os tokens e marca como autenticado
         localStorage.setItem("google_access_token", data.access_token);
         localStorage.setItem("google_refresh_token", data.refresh_token);
-
         googleAuth.setAccessToken(data.access_token);
         googleAuth.setIsAuthenticated(true);
 
-        // Carregar eventos do Google Calendar
-        await googleCalendar.loadEvents("primary");
-
-        navigate("/google-integration?success=true");
+        // Redireciona para a página de calendário
+        navigate("/calendar");
       } catch (err) {
         console.error("Erro no callback:", err);
         toast({
@@ -77,8 +76,8 @@ export const GoogleCallback = () => {
     };
 
     handleCallback();
-  }, [location, navigate, toast, googleAuth, googleCalendar]);
-
+  }, [location, navigate, toast, googleAuth]);
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="flex flex-col items-center gap-4 text-center">
