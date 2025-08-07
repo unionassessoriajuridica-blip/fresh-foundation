@@ -1,6 +1,8 @@
 // src/components/Footer.tsx
 import { Link } from "react-router-dom";
 
+import SSLBadge from '@/components/SSLBadge';
+
 export const Footer = () => {
   return (
     <footer className="bg-card border-t border-border">

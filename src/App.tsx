@@ -20,6 +20,9 @@ import UserManagement from "./pages/UserManagement";
 import { GoogleCallback } from "./pages/GoogleCallback";
 import TermosServico from "./pages/TermosServico";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import Contato from "./pages/Contato";
+import Sobre from "./pages/Sobre";
+import Servicos from "./pages/Servicos";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +54,9 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         <Route path="/termos-servico" element={<TermosServico />} />
         <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+        <Route path="/contato" element={<Contato />} />
+        <Route path="/sobre" element={<Sobre />} />
+        <Route path="/servicos" element={<Servicos />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

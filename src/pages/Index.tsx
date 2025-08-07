@@ -5,8 +5,12 @@ import { Footer } from "@/components/Footer";
 import FeatureCard from "@/components/FeatureCard";
 import SSLBadge from "@/components/SSLBadge";
 import { Button } from "@/components/ui/button";
+import { Parallax } from "@/components/Parallax";
+import { ImageTextSection } from "@/components/ImageTextSection";
+import { FeaturesGrid } from "@/components/FeaturesGrid";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock, Zap, Calendar, FileText, Shield } from "lucide-react";
+import { FiShield, FiFileText, FiCalendar } from 'react-icons/fi';
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -111,8 +115,45 @@ const Index = () => {
           </div>
         </div>
       </main>
+      <Parallax
+        backgroundImage="/img/imagemt.jpg"
+        title="Soluções Jurídicas Inteligentes"
+        subtitle="Tecnologia de ponta para otimizar sua prática advocatícia"
+      />
       
+      <ImageTextSection
+        imageUrl="/img/escritorio.jpg"
+        title="Sua advocacia mais eficiente"
+        text="Reduza o tempo com burocracia e foque no que realmente importa"
+        features={[
+          "Automação de processos repetitivos",
+          "Gestão de documentos segura",
+          "Colaboração em tempo real"
+        ]}
+      />
+      
+      <FeaturesGrid
+        title="Nossos Diferenciais"
+        features={[
+          {
+            icon: <FiShield className="w-6 h-6 text-blue-600" />,
+            title: "Segurança 256-bit",
+            description: "Proteção militar para seus dados sensíveis"
+          },
+          {
+            icon: <FiFileText className="w-6 h-6 text-blue-600" />,
+            title: "Petições Automáticas",
+            description: "Geração de documentos com um clique"
+          },
+          {
+            icon: <FiCalendar className="w-6 h-6 text-blue-600" />,
+            title: "Gestão de Prazos",
+            description: "Alertas inteligentes para não perder datas importantes"
+          }
+        ]}
+      />
       <Footer />
+      <SSLBadge />
     </div>
   );
 };
