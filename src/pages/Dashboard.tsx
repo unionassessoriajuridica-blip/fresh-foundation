@@ -1,39 +1,75 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth.ts";
+import { useUserRole } from "@/hooks/useUserRole.ts";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
-import { 
-  FileText, 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  Plus, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import {
+  FileText,
+  Calendar,
+  Users,
+  DollarSign,
+  Plus,
   Search,
   Edit,
   Trash2,
   Bell,
   User,
-  Settings
- } from "lucide-react";
+  Settings,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client.ts";
-import { useUserRole } from "@/hooks/useUserRole.ts";
 import { useNavigate } from "react-router-dom";
 import { ClienteDataButton } from "@/components/ClienteDataButton.tsx";
-
 const Dashboard = () => {
   const { user, signOut } = useAuth();
-  const { canDelete, loading: roleLoading, isMaster } = useUserRole();
   const navigate = useNavigate();
+  const { canDelete } = useUserRole();
   const [processos, setProcessos] = useState<any[]>([]);
   const [stats, setStats] = useState({
     processosAtivos: 0,
     audienciasHoje: 0,
-    clientes: 0
+    clientes: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // ... outros estados e hooks permanecem iguais
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Número de processos por página
+
+  // Calcular processos a serem exibidos na página atual
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProcessos = processos.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Calcular total de páginas
+  const totalPages = Math.ceil(processos.length / itemsPerPage);
+
+  // Funções de navegação
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -49,49 +85,50 @@ const Dashboard = () => {
       }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    globalThis.addEventListener("focus", handleFocus);
+    return () => globalThis.removeEventListener("focus", handleFocus);
   }, [user]);
 
   const loadData = async () => {
     try {
       // Carregar processos com dados do cliente
       const { data: processosData, error: processosError } = await supabase
-        .from('processos')
-        .select(`
+        .from("processos")
+        .select(
+          `
           *,
           clientes (
             nome
           )
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .eq("user_id", user?.id || "")
+        .order("created_at", { ascending: false });
 
       if (processosError) {
-        console.error('Erro ao carregar processos:', processosError);
+        console.error("Erro ao carregar processos:", processosError);
         throw processosError;
       }
 
-      console.log('Processos carregados:', processosData);
+      console.log("Processos carregados:", processosData);
       setProcessos(processosData || []);
-      
+
       // Contar clientes únicos
       const { data: clientesData, error: clientesError } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('user_id', user?.id);
+        .from("clientes")
+        .select("id")
+        .eq("user_id", user?.id || "");
 
       if (clientesError) throw clientesError;
-      
+
       // Atualizar estatísticas
       setStats({
         processosAtivos: processosData?.length || 0,
         audienciasHoje: 0,
-        clientes: clientesData?.length || 0
+        clientes: clientesData?.length || 0,
       });
-
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error("Erro ao carregar dados:", error);
     } finally {
       setLoading(false);
     }
@@ -99,24 +136,28 @@ const Dashboard = () => {
 
   const handleEditProcesso = (processoId: string) => {
     // Agora vai para a página de visualização
-    window.location.href = `/processo/${processoId}`;
+    globalThis.location.href = `/processo/${processoId}`;
   };
 
   const handleDeleteProcesso = async (processoId: string) => {
-    if (confirm('Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.')) {
+    if (
+      confirm(
+        "Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita."
+      )
+    ) {
       try {
         const { error } = await supabase
-          .from('processos')
+          .from("processos")
           .delete()
-          .eq('id', processoId);
+          .eq("id", processoId);
 
         if (error) throw error;
 
         // Recarregar dados
         loadData();
       } catch (error) {
-        console.error('Erro ao excluir processo:', error);
-        alert('Erro ao excluir processo');
+        console.error("Erro ao excluir processo:", error);
+        alert("Erro ao excluir processo");
       }
     }
   };
@@ -126,20 +167,20 @@ const Dashboard = () => {
       title: "Processos Ativos",
       value: stats.processosAtivos.toString(),
       icon: FileText,
-      color: "text-primary"
+      color: "text-primary",
     },
     {
-      title: "Audiências Hoje", 
+      title: "Audiências Hoje",
       value: stats.audienciasHoje.toString(),
       icon: Calendar,
-      color: "text-success"
+      color: "text-success",
     },
     {
       title: "Clientes",
-      value: stats.clientes.toString(), 
+      value: stats.clientes.toString(),
       icon: Users,
-      color: "text-purple"
-    }
+      color: "text-purple",
+    },
   ];
 
   return (
@@ -151,7 +192,7 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold text-primary">Facilita Adv</h1>
             <span className="text-muted-foreground">Dashboard</span>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative">
               <Bell className="w-5 h-5 text-muted-foreground" />
@@ -159,15 +200,17 @@ const Dashboard = () => {
                 {stats.processosAtivos}
               </span>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.email?.split('@')[0] || 'Usuário'}</span>
+                <span className="text-sm font-medium">
+                  {user?.email?.split("@")[0] || "Usuário"}
+                </span>
                 <span className="text-xs text-muted-foreground">Advogado</span>
               </div>
             </div>
-            
+
             <Button variant="outline" size="sm" onClick={signOut}>
               Sair
             </Button>
@@ -183,7 +226,9 @@ const Dashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {stat.title}
+                    </p>
                     <p className="text-3xl font-bold">{stat.value}</p>
                   </div>
                   <stat.icon className={`w-8 h-8 ${stat.color}`} />
@@ -195,69 +240,114 @@ const Dashboard = () => {
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/novo-processo")}>
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate("/novo-processo")}
+          >
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               <Plus className="w-12 h-12 text-primary mb-4" />
               <h3 className="font-semibold">Novo Processo</h3>
-              <p className="text-sm text-muted-foreground">Criar processo judicial</p>
+              <p className="text-sm text-muted-foreground">
+                Criar processo judicial
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/ia-facilita")}>
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate("/ia-facilita")}
+          >
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               <FileText className="w-12 h-12 text-blue-600 mb-4" />
               <h3 className="font-semibold">IA Facilita</h3>
-              <p className="text-sm text-muted-foreground">Assistente inteligente</p>
+              <p className="text-sm text-muted-foreground">
+                Assistente inteligente
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/facilisign")}>
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate("/facilisign")}
+          >
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               <FileText className="w-12 h-12 text-indigo-600 mb-4" />
               <h3 className="font-semibold">FaciliSign</h3>
-              <p className="text-sm text-muted-foreground">Assinatura digital</p>
+              <p className="text-sm text-muted-foreground">
+                Assinatura digital
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/google-integration")}>
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate("/google-integration")}
+          >
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               <Calendar className="w-12 h-12 text-green-600 mb-4" />
               <h3 className="font-semibold">Google</h3>
-              <p className="text-sm text-muted-foreground">Integrações Google</p>
+              <p className="text-sm text-muted-foreground">
+                Integrações Google
+              </p>
             </CardContent>
           </Card>
 
           {/* Always show the Users card for now - will be conditional later */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/user-management")}>
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate("/user-management")}
+          >
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               <Users className="w-12 h-12 text-purple-600 mb-4" />
               <h3 className="font-semibold">Gerenciar Usuários</h3>
-              <p className="text-sm text-muted-foreground">Cadastrar e gerenciar usuários</p>
+              <p className="text-sm text-muted-foreground">
+                Cadastrar e gerenciar usuários
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
-          <Button className="bg-primary hover:bg-primary/90" onClick={() => window.location.href = '/novo-processo'}>
+          <Button
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => (globalThis.location.href = "/novo-processo")}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Novo Processo
           </Button>
-          <Button variant="success" onClick={() => window.location.href = '/financeiro'}>
+          <Button
+            variant="success"
+            onClick={() => (globalThis.location.href = "/financeiro")}
+          >
             <DollarSign className="w-4 h-4 mr-2" />
             Financeiro
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => window.location.href = '/facilisign'}>
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={() => (globalThis.location.href = "/facilisign")}
+          >
             FaciliSign ID
           </Button>
-          <Button variant="purple" onClick={() => window.location.href = '/ia-facilita'}>
+          <Button
+            variant="purple"
+            onClick={() => (globalThis.location.href = "/ia-facilita")}
+          >
             IA-Facilita
           </Button>
-          <Button variant="outline" className="border-google text-google hover:bg-google hover:text-white" onClick={() => window.location.href = '/google-integration'}>
+          <Button
+            variant="outline"
+            className="border-google text-google hover:bg-google hover:text-white"
+            onClick={() => (globalThis.location.href = "/google-integration")}
+          >
             <Settings className="w-4 h-4 mr-2" />
             Integração Google
           </Button>
-          <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white" onClick={() => window.location.href = '/calendar'}>
+          <Button
+            variant="outline"
+            className="border-primary text-primary hover:bg-primary hover:text-white"
+            onClick={() => (globalThis.location.href = "/calendar")}
+          >
             <Calendar className="w-4 h-4 mr-2" />
             Agenda
           </Button>
@@ -275,7 +365,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                  <Input 
+                  <Input
                     placeholder="Buscar processos ativos..."
                     className="pl-10 w-80"
                   />
@@ -292,71 +382,124 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input 
+                <Input
                   placeholder="Buscar processos ativos..."
                   className="pl-10 w-80"
                 />
               </div>
-              <span className="text-sm text-muted-foreground">{processos.length} processo(s) ativo(s)</span>
+              <span className="text-sm text-muted-foreground">
+                {processos.length} processo(s) ativo(s)
+              </span>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+              <p className="text-center py-8 text-muted-foreground">
+                Carregando...
+              </p>
             ) : processos.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">Nenhum processo cadastrado. Clique em "Novo Processo" para começar.</p>
+              <p className="text-center py-8 text-muted-foreground">
+                Nenhum processo cadastrado. Clique em "Novo Processo" para
+                começar.
+              </p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>AÇÕES</TableHead>
-                    <TableHead>Nº PROCESSO</TableHead>
-                    <TableHead>CLIENTE</TableHead>
-                    <TableHead>TIPO DO PROCESSO</TableHead>
-                    <TableHead>CLIENTE PRESO</TableHead>
-                    <TableHead>PRAZO</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processos.map((processo) => (
-                    <TableRow key={processo.id}>
-                       <TableCell>
-                         <div className="flex gap-2">
-                           <Button 
-                             size="sm" 
-                             variant="outline"
-                             onClick={() => handleEditProcesso(processo.id)}
-                           >
-                             <Edit className="w-4 h-4 text-success" />
-                           </Button>
-                           {canDelete() && (
-                             <Button 
-                               size="sm" 
-                               variant="outline"
-                               onClick={() => handleDeleteProcesso(processo.id)}
-                             >
-                               <Trash2 className="w-4 h-4 text-warning" />
-                             </Button>
-                           )}
-                         </div>
-                       </TableCell>
-                      <TableCell className="font-mono">{processo.numero_processo}</TableCell>
-                      <TableCell>{processo.clientes?.nome || 'Cliente não encontrado'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                          {processo.tipo_processo}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={processo.cliente_preso ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-success/10 text-success border-success/20"}>
-                          {processo.cliente_preso ? "SIM" : "NÃO"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{processo.prazo ? new Date(processo.prazo).toLocaleDateString('pt-BR') : '-'}</TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>AÇÕES</TableHead>
+                      <TableHead>Nº PROCESSO</TableHead>
+                      <TableHead>CLIENTE</TableHead>
+                      <TableHead>TIPO DO PROCESSO</TableHead>
+                      <TableHead>CLIENTE PRESO</TableHead>
+                      <TableHead>PRAZO</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {currentProcessos.map((processo) => (
+                      <TableRow key={processo.id}>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditProcesso(processo.id)}
+                            >
+                              <Edit className="w-4 h-4 text-success" />
+                            </Button>
+                            {canDelete && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleDeleteProcesso(processo.id)
+                                }
+                              >
+                                <Trash2 className="w-4 h-4 text-warning" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {processo.numero_processo}
+                        </TableCell>
+                        <TableCell>
+                          {processo.clientes?.nome || "Cliente não encontrado"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="bg-primary/10 text-primary border-primary/20"
+                          >
+                            {processo.tipo_processo}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              processo.cliente_preso
+                                ? "bg-destructive/10 text-destructive border-destructive/20"
+                                : "bg-success/10 text-success border-success/20"
+                            }
+                          >
+                            {processo.cliente_preso ? "SIM" : "NÃO"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {processo.prazo
+                            ? new Date(processo.prazo).toLocaleDateString(
+                                "pt-BR"
+                              )
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {/* Controles de paginação */}
+                <div className="flex justify-between items-center mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

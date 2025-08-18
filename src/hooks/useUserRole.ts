@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
 
 export const useUserRole = () => {
   const { user } = useAuth();
