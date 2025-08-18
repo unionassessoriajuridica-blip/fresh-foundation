@@ -1,0 +1,129 @@
+├── facilita-adv/
+├── dist/
+│     ├─── assets/
+│     │     ├─ index-6VfYjiEG.js
+│     │     ├─ index-BI8xNwor.css
+│     │     ├─ index.es-CSEW3y2q.js
+│     │     └─ purify.es-BFmJLeH.js
+│     │
+│     ├─── favicon.ico
+│     ├─── google200261c3d0adc1a6.html
+│     ├─── index.html
+│     ├─── placeholder.svg
+│     └─── robots.txt     
+│           
+├── node_modules/
+│
+├── public/
+│      ├─ favicon.ico
+│      ├─ google200261c3d0adc1a6.html
+│      ├─ index.html
+│      ├─ placeholder.svg
+│      └─ robots.txt           
+│ 
+├── src/│  
+│     │    
+│     ├─ components/    
+│     │    ├─ ui/**diretório de estitilazação 
+│     │    ├─ AdvancedChatInput.tsx     
+│     │    ├─ ClienteDataButton.tsx  
+│     │    ├─ ClienteDataCard.tsx  
+│     │    ├─ DocumentUpload.tsx 
+│     │    ├─ FeatureCard.tsx  
+│     │    ├─ FileUpload.tsx     
+│     │    ├─ FinanceiroSummary.tsx  
+│     │    ├─ FinancialReports.tsx  
+│     │    ├─ GmailSender.tsx
+│     │    ├─ GoogleCalendarCard.tsx  
+│     │    ├─ GoogleIntegrationCard.tsx  
+│     │    ├─ GooglePermissionsDialog.tsx  
+│     │    ├─ Header.tsx       
+│     │    ├─ NotificationCenter.tsx     
+│     │    ├─ ParcelaCard.tsx  
+│     │    ├─ ProcessNotes.tsx  
+│     │    ├─ ResponsavelFinanceiro.tsx
+│     │    ├─ SSLBadge.tsx   
+│     │    └─ SubtleNotificationBell.tsx  
+│     │                    
+│     ├─ content/   
+│     │    ├─ politica-privacidade.md  
+│     │    └─ termos.md 
+│     │    
+│     ├─ hooks/   
+│     │    ├─ use-mobile.tsx  
+│     │    ├─ use-toast.ts  
+│     │    ├─ useAuth.ts
+│     │    ├─ useClienteExcel.ts  
+│     │    ├─ useDocuSeal.ts  
+│     │    ├─ useEmailService.ts       
+│     │    ├─ useFileUploads.ts     
+│     │    ├─ useGmail.ts  
+│     │    ├─ useGoogleAuth.ts  
+│     │    ├─ useGoogleCalendar.ts
+│     │    ├─ usePermissions.ts   
+│     │    └─ useUserRole.ts  
+│     │    
+│     ├─ integration/ 
+│     │    └─ supabase/
+│     │             ├─ client.ts
+│     │             └─ types.ts 
+│     ├─ lib/
+│     │     └─ utils.ts
+│     │
+│     ├─ pages/ 
+│     │   ├─ api/
+│     │   │   └─ auth/   
+│     │   │       └─ [...nextauth].js 
+│     │   │
+│     │   ├─ Auth.tsx
+│     │   ├─ CalendarManagement.tsx
+│     │   ├─ Dashboard.tsx
+│     │   ├─ FaciliSign.tsx
+│     │   ├─ Financial.tsx
+│     │   ├─ FrontendLayout.tsx
+│     │   ├─ GoogleCallback.tsx
+│     │   ├─ GoogleIntegration.tsx
+│     │   ├─ IAFacilita.tsx
+│     │   ├─ Index.tsx
+│     │   ├─ NewProcess.tsx
+│     │   ├─ NotFound.tsx
+│     │   ├─ PoliticaPrivacidade.tsx
+│     │   ├─ ProcessFinancial.tsx
+│     │   ├─ ProcessView.tsx
+│     │   ├─ TermosServico.tsx
+│     │   └─ UserManagement.tsx
+│     │          
+│     ├─ utils/ 
+│     │   ├─ currency.tsx
+│     │   └─ dataValidation.tsx
+│     │   
+│     ├─ App.css
+│     ├─ App.tsx
+│     ├─ index.tsx
+│     ├─ main.tsx
+│     └─ vite-env.d.ts
+│
+├── supabase/ 
+│        └─ functions/
+│               ├──────────── docuseal-upload/
+│        				   └─── index.ts
+├── .env.local
+├── .gitgnore
+├── .bun.lockb
+├── components.json
+├── deno.json
+├── eslint.config.js
+├── import_map.json
+├── index.html
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.ts
+├── tsconfig.app.json
+├── tsconfig.deno.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vercel.json
+└── vite.config.ts

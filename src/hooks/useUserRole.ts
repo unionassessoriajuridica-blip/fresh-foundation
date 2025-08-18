@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,50 +7,39 @@ export const useUserRole = () => {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadUserRoles();
-    } else {
-      setRoles([]);
-      setLoading(false);
-    }
-  }, [user]);
-
-  const loadUserRoles = async () => {
+  const loadUserRoles = useCallback(async () => {
     try {
+      if (!user?.id) {
+        setRoles([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Erro ao carregar roles:', error);
-        setRoles([]);
-      } else {
-        setRoles(data.map(r => r.role));
-      }
+      setRoles(error ? [] : data?.map(r => r.role) || []);
     } catch (error) {
       console.error('Erro ao carregar roles:', error);
       setRoles([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const hasRole = (role: string) => {
-    return roles.includes(role);
-  };
+  useEffect(() => {
+    loadUserRoles();
+  }, [loadUserRoles]);
 
-  const isMaster = () => hasRole('master');
-  const isAdmin = () => hasRole('admin');
-  const canDelete = () => isMaster(); // Apenas master pode excluir
+  const hasRole = (role: string) => roles.includes(role);
 
   return {
     roles,
     loading,
     hasRole,
-    isMaster: isMaster(),
-    isAdmin: isAdmin(),
-    canDelete
+    isMaster: hasRole('master'),
+    isAdmin: hasRole('admin'),
+    canDelete: hasRole('master')
   };
 };

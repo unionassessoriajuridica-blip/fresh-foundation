@@ -8,40 +8,12 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // useAuth.ts
-  // useAuth.ts
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      // Persiste os tokens no localStorage
-      if (session) {
-        localStorage.setItem("supabase_session", JSON.stringify(session));
-      } else {
-        localStorage.removeItem("supabase_session");
-      }
-    });
-
-    // Verifica se há sessão no localStorage
-    const savedSession = localStorage.getItem("supabase_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        setSession(session);
-        setUser(session?.user ?? null);
-      } catch (e) {
-        localStorage.removeItem("supabase_session");
-      }
-    }
-
-    // Verifica a sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        localStorage.setItem("supabase_session", JSON.stringify(session));
+    const { data: { subscription }, error } = supabase.auth.onAuthStateChange((event, session) => {
+      if (error) {
+        console.error("Erro na sessão:", error);
+        setLoading(false);
+        return;
       }
       setSession(session);
       setUser(session?.user ?? null);
@@ -53,7 +25,6 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
-      // Mostrar mensagem de confirmação
       const result = await Swal.fire({
         title: "Encerrar sessão?",
         text: "Você está prestes a sair do sistema.",
@@ -66,19 +37,14 @@ export const useAuth = () => {
       });
 
       if (result.isConfirmed) {
-        // Mostrar loader durante o logout
         Swal.fire({
           title: "Encerrando o sistema...",
           allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
+          didOpen: () => Swal.showLoading(),
         });
 
-        // Fazer logout no Supabase
         await supabase.auth.signOut();
 
-        // Feedback visual de sucesso
         await Swal.fire({
           icon: "success",
           title: "Sessão encerrada!",
@@ -88,8 +54,7 @@ export const useAuth = () => {
           showConfirmButton: false,
         });
 
-        // Redirecionar usando variável de ambiente
-        window.location.href = import.meta.env.VITE_APP_URL || "/";
+        window.location.href = "/";
       }
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -101,11 +66,5 @@ export const useAuth = () => {
     }
   };
 
-  return {
-    user,
-    session,
-    loading,
-    signOut,
-    isAuthenticated: !!session,
-  };
+  return { user, session, loading, signOut, isAuthenticated: !!session };
 };

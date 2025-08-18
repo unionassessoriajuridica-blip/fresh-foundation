@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client.ts';
+import { useAuth } from '@/hooks/useAuth.ts';
+import { useToast } from '@/hooks/use-toast.ts';
 
 interface UploadedFile {
   id: string;
@@ -92,9 +92,14 @@ export const useFileUpload = () => {
     } catch (error) {
       console.error('❌ Upload error:', error);
       
+      let errorMessage = "Falha ao enviar arquivo";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Erro no upload",
-        description: error.message || "Falha ao enviar arquivo",
+        description: errorMessage,
         variant: "destructive",
       });
       

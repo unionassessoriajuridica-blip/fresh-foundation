@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => {
-  // Carrega as variáveis de ambiente
   const env = loadEnv(mode, process.cwd(), "");
 
   return {

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { ArrowLeft, Calendar, Clock, Plus, Loader2 } from "lucide-react";
-import { GoogleCalendarCard } from "@/components/GoogleCalendarCard";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { GoogleCalendarCard } from "@/components/GoogleCalendarCard.tsx";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth.ts";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar.ts";
 import Swal from "sweetalert2";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,8 +90,13 @@ const CalendarManagement = () => {
 
   // Carrega dados quando autenticação muda
   useEffect(() => {
-    loadCalendarData();
-  }, [googleAuth.isAuthenticated, googleAuth.getAccessToken()]);
+    // Verifica se já existe um token no localStorage
+    const token = localStorage.getItem("google_access_token");
+    if (token && !googleAuth.isAuthenticated) {
+      googleAuth.setAccessToken(token);
+      googleAuth.setIsAuthenticated(true);
+    }
+  }, [googleAuth]);
 
   // Manipuladores de conexão
   const handleConnectGoogle = async () => {

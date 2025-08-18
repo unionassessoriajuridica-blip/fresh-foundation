@@ -1,20 +1,21 @@
-import { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/components/ui/card.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Lock, Shield, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
+import { useToast } from "@/hooks/use-toast.ts";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -24,16 +25,17 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Verificar se usuário já está logado
-  /**useEffect(() => {
+  useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         navigate("/");
       }
     };
     checkUser();
-  }, [navigate]);*/
+  }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,24 +75,20 @@ const Auth = () => {
     setError("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Adicione um pequeno delay para garantir que o estado seja atualizado
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      navigate("/dashboard"); // Navegue explicitamente para o dashboard
+      // Obter o token JWT do usuário logado
+      const token = data.session?.access_token;
+      console.log("Token JWT:", token); 
+
+      navigate("/dashboard");
     } catch (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        setError("Email ou senha incorretos.");
-      } else {
-        setError(error.message);
-      }
+      // Tratamento de erro existente
     } finally {
       setLoading(false);
     }

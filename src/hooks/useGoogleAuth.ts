@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast.ts";
 
 interface GoogleUserInfo {
   name: string;
@@ -56,9 +56,24 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
     isAuthenticated: false,
     userInfo: null as GoogleUserInfo | null,
     isLoading: true,
-    accessToken: null as string | null,
+    accessToken: localStorage.getItem("google_access_token"),
     gsiLoaded: false,
   });
+
+  const verifyToken = useCallback(async (token: string) => {
+    try {
+      const response = await fetch(
+        "https://www.googleapis.com/oauth2/v3/tokeninfo",
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }, []);
 
   const { toast } = useToast();
 
@@ -117,14 +132,55 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
   }, [toast]);
 
   useEffect(() => {
-    if (!window.google || !window.google.accounts) {
-      initializeGSI();
-    } else {
-      setState((prev) => ({ ...prev, gsiLoaded: true, isLoading: false }));
-    }
+    const initialize = async () => {
+      // 1. Carrega a biblioteca GSI se necessário
+      if (!window.google || !window.google.accounts) {
+        initializeGSI();
+      } else {
+        setState((prev) => ({ ...prev, gsiLoaded: true }));
+      }
 
-    return () => {}; // Remove o cleanup problemático
-  }, [initializeGSI]);
+      // 2. Verifica se há um token armazenado
+      const storedToken = localStorage.getItem("google_access_token");
+
+      if (storedToken) {
+        try {
+          setState((prev) => ({ ...prev, isLoading: true }));
+
+          // 3. Verifica se o token ainda é válido
+          const tokenValid = await verifyToken(storedToken);
+
+          if (tokenValid) {
+            // 4. Atualiza o estado e busca informações do usuário
+            setState((prev) => ({
+              ...prev,
+              accessToken: storedToken,
+              isAuthenticated: true,
+              gsiLoaded: true,
+            }));
+
+            await fetchUserInfo(storedToken);
+          } else {
+            // 5. Token inválido - limpa o storage
+            localStorage.removeItem("google_access_token");
+          }
+        } catch (error) {
+          console.error("Erro na verificação do token:", error);
+          localStorage.removeItem("google_access_token");
+        } finally {
+          setState((prev) => ({ ...prev, isLoading: false }));
+        }
+      } else {
+        setState((prev) => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    initialize();
+
+    return () => {
+      // Limpeza opcional se necessário
+    };
+  }, [initializeGSI, fetchUserInfo, verifyToken]);
 
   const signIn = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true }));
@@ -137,9 +193,13 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
         scope: config.scopes.join(" "),
         callback: async (tokenResponse) => {
           if (tokenResponse.access_token) {
+            localStorage.setItem(
+              "google_access_token",
+              tokenResponse.access_token
+            );
             setState((prev) => ({
               ...prev,
-              accessToken: tokenResponse.access_token,
+              accessToken: tokenResponse.access_token ?? null,
               isAuthenticated: true,
             }));
             await fetchUserInfo(tokenResponse.access_token);
@@ -177,6 +237,7 @@ export const useGoogleAuth = (config: GoogleAuthConfig): GoogleAuthReturn => {
         window.google.accounts.oauth2.revoke(state.accessToken, () => {
           console.log("Token revogado");
         });
+        localStorage.removeItem("google_access_token");
       }
       setState({
         isAuthenticated: false,

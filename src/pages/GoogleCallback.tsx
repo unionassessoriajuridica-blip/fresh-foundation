@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { useToast } from "@/hooks/use-toast.ts";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth.ts";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar.ts";
 import { Loader2 } from "lucide-react";
 
 // GoogleCallback.tsx

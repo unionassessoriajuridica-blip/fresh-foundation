@@ -22,7 +22,7 @@ const Header = () => {
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-primary">
             <div className="flex items-center">
-              <img src="/img/logounion.png" alt="FacilitaAdv Logo" className="h-16" />
+              <img src="/img/logosite.png" alt="FacilitaAdv Logo" className="h-16" />
             </div>
           </h1>
         </div>
