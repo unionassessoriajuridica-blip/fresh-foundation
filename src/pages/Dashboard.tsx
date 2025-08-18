@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/hooks/useAuth.ts";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
 import { 
   FileText, 
   Calendar, 
@@ -18,10 +18,10 @@ import {
   User,
   Settings
  } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useUserRole } from "@/hooks/useUserRole.ts";
 import { useNavigate } from "react-router-dom";
-import { ClienteDataButton } from "@/components/ClienteDataButton";
+import { ClienteDataButton } from "@/components/ClienteDataButton.tsx";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
