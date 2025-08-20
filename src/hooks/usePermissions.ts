@@ -1,8 +1,13 @@
+// usePermissions.ts - VERSÃO COMPLETAMENTE CORRIGIDA
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client.ts';
 import { useToast } from '@/hooks/use-toast.ts';
+import { useAuth } from '@/hooks/useAuth.ts';
 
 export type UserPermission = 
+  | 'READ'
+  | 'WRITE'
+  | 'ADMIN'
   | 'financeiro'
   | 'ia_facilita' 
   | 'facilisign'
@@ -10,56 +15,77 @@ export type UserPermission =
   | 'google_integration'
   | 'agenda'
   | 'modificar_clientes'
-  | 'excluir_processo';
+  | 'excluir_processo'
+  | 'user_management';
 
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadUserPermissions();
-  }, []);
+  const { user } = useAuth();
 
   const loadUserPermissions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase.rpc('get_user_permissions', {
-        _user_id: user.id
-      });
-
-      if (error) throw error;
+      console.log('Iniciando carregamento de permissões para user:', user?.id);
       
-      setPermissions(data || []);
+      if (!user?.id) {
+        console.log('Nenhum usuário logado, retornando permissões vazias');
+        setPermissions([]);
+        setLoading(false);
+        return;
+      }
+
+      // DEBUG: Verificar se a tabela existe e tem dados
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('user_permissions')
+        .select('count')
+        .limit(1);
+
+      console.log('Verificação da tabela:', tableCheck, tableError);
+
+      // Buscar permissões do usuário
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', user.id);
+
+      console.log('Resultado da query de permissões:', data, error);
+
+      if (error) {
+        console.error('Erro ao carregar permissões:', error);
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar permissões',
+          variant: 'destructive',
+        });
+        setPermissions([]);
+        return;
+      }
+      
+      const perms = data?.map(item => item.permission as UserPermission) || [];
+      console.log('Permissões mapeadas:', perms);
+      setPermissions(perms);
     } catch (error) {
-      console.error('Error loading permissions:', error);
+      console.error('Erro inesperado ao carregar permissões:', error);
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const hasPermission = (permission: UserPermission): boolean => {
-    return permissions.includes(permission);
-  };
-
-  const checkPermission = async (permission: UserPermission): Promise<boolean> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      const { data, error } = await supabase.rpc('has_permission', {
-        _user_id: user.id,
-        _permission: permission
-      });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error checking permission:', error);
-      return false;
+  useEffect(() => {
+    if (user) {
+      loadUserPermissions();
+    } else {
+      setLoading(false);
+      setPermissions([]);
     }
+  }, [user]);
+
+  const hasPermission = (permission: UserPermission): boolean => {
+    const hasPerm = permissions.includes(permission);
+    console.log(`Verificando permissão ${permission}:`, hasPerm);
+    return hasPerm;
   };
 
   const requirePermission = (permission: UserPermission, action: string = 'realizar esta ação') => {
@@ -78,7 +104,6 @@ export const usePermissions = () => {
     permissions,
     loading,
     hasPermission,
-    checkPermission,
     requirePermission,
     refreshPermissions: loadUserPermissions
   };

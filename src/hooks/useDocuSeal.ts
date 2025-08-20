@@ -35,6 +35,17 @@ interface Template {
   }>;
 }
 
+export interface DocuSealField {
+  name: string;
+  type: "signature" | "text" | "date" | "checkbox" | "initial";
+  required?: boolean;
+  page: number;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+}
+
 export const useDocuSeal = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -103,7 +114,8 @@ export const useDocuSeal = () => {
   const uploadDocument = async (
     file: File,
     title: string = "",
-    documentId?: string
+    documentId?: string,
+    fields?: DocuSealField[] // Novo parâmetro opcional
   ) => {
     setUploading(true);
     try {
@@ -111,17 +123,19 @@ export const useDocuSeal = () => {
         fileName: file.name,
         title,
         documentId,
+        fields,
       });
 
       const formData = new FormData();
       formData.append("file", file);
       if (title) formData.append("title", title);
       if (documentId) formData.append("documentId", documentId);
+      if (fields) formData.append("fields", JSON.stringify(fields));
 
       const { data, error } = await supabase.functions.invoke(
         "docuseal-upload",
         {
-          body: formData, 
+          body: formData,
         }
       );
 
@@ -151,7 +165,7 @@ export const useDocuSeal = () => {
       });
       throw error;
     } finally {
-      setUploading(false); // Garanta reset em finally
+      setUploading(false);
     }
   };
 
@@ -269,7 +283,7 @@ export const useDocuSeal = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-
+  
   return {
     loading,
     uploading,

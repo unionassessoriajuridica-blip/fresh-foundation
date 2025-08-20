@@ -46,6 +46,7 @@ import {
   useDocuSeal,
   type DocumentoDigital,
   type Signatario,
+  type DocuSealField,
 } from "@/hooks/useDocuSeal.ts";
 import { useToast } from "@/hooks/use-toast.ts";
 import { supabase } from "@/integrations/supabase/client.ts";
@@ -58,9 +59,46 @@ const FaciliSign = () => {
   const [pageSize] = useState(10);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentTitle, setDocumentTitle] = useState("");
+  const [camposAssinatura, setCamposAssinatura] = useState<DocuSealField[]>([]);
+  // Adicione esta função para adicionar campos padrão
+  const adicionarCamposPadrao = () => {
+    const camposPadrao: DocuSealField[] = [
+      {
+        name: "assinatura",
+        type: "signature",
+        required: true,
+        page: 0,
+        x: 100,
+        y: 500,
+        width: 200,
+        height: 80,
+      },
+      {
+        name: "data",
+        type: "date",
+        required: true,
+        page: 0,
+        x: 100,
+        y: 600,
+      },
+      {
+        name: "nome",
+        type: "text",
+        required: true,
+        page: 0,
+        x: 100,
+        y: 400,
+        width: 200,
+        height: 30,
+      },
+    ];
+    setCamposAssinatura(camposPadrao);
+  };
+
   const [signatarios, setSignatarios] = useState<Signatario[]>([
     { nome: "", email: "" },
   ]);
+
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentoDigital | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -230,7 +268,10 @@ const FaciliSign = () => {
           tipo: selectedFile.type,
           tamanho: selectedFile.size,
           status: "UPLOAD_SUPABASE",
-          metadata: { original_filename: selectedFile.name },
+          metadata: {
+            original_filename: selectedFile.name,
+            campos_predefinidos: camposAssinatura.length > 0,
+          },
         })
         .select()
         .single();
@@ -238,11 +279,12 @@ const FaciliSign = () => {
       if (error) throw error;
       console.log("Documento criado no Supabase:", data.id);
 
-      // Upload para DocuSeal
+      // Upload para DocuSeal com campos
       const uploadResponse = await uploadDocument(
         selectedFile,
         documentTitle,
-        data.id
+        data.id,
+        camposAssinatura.length > 0 ? camposAssinatura : undefined
       );
       console.log("Resposta do upload:", uploadResponse);
 
@@ -255,6 +297,7 @@ const FaciliSign = () => {
       setShowUploadDialog(false);
       setSelectedFile(null);
       setDocumentTitle("");
+      setCamposAssinatura([]);
     } catch (error) {
       console.error("Erro no upload completo:", error);
       toast({
@@ -378,6 +421,37 @@ const FaciliSign = () => {
                   >
                     Cancelar
                   </Button>
+                </div>
+                <div className="border rounded-md p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Campos de Assinatura</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={adicionarCamposPadrao}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Campos Padrão
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {camposAssinatura.length > 0
+                      ? `Documento terá ${camposAssinatura.length} campos de assinatura`
+                      : "Nenhum campo definido (será necessário configurar manualmente no DocuSeal)"}
+                  </p>
+                  {camposAssinatura.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      <p>Campos incluídos:</p>
+                      <ul className="list-disc pl-4 mt-1">
+                        {camposAssinatura.map((campo, index) => (
+                          <li key={index}>
+                            {campo.name} ({campo.type})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             </DialogContent>

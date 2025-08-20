@@ -26,14 +26,69 @@ const responseWithCors = (
   });
 };
 
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+interface DocuSealField {
+  name: string;
+  type: "signature" | "text" | "date" | "checkbox" | "initial";
+  required?: boolean;
+  page: number;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+}
+
+// Adicione esta função para extrair o número de páginas do PDF
+async function getPdfPageCount(file: File): Promise<number> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Verifica se é um PDF (magic number %PDF)
+    if (uint8Array[0] === 0x25 && uint8Array[1] === 0x50 && uint8Array[2] === 0x44 && uint8Array[3] === 0x46) {
+      const text = new TextDecoder().decode(uint8Array.slice(0, 1000)); // Lê apenas os primeiros bytes
+      
+      // Procura por "/Count" que indica o número de páginas em alguns PDFs
+      const countMatch = text.match(/\/Count\s+(\d+)/);
+      if (countMatch) {
+        return parseInt(countMatch[1]);
+      }
+      
+      // Procura por "/Type\s*\/Pages" que pode indicar a estrutura de páginas
+      const pagesMatch = text.match(/\/Type\s*\/Pages/);
+      if (pagesMatch) {
+        // Se não encontrou Count, assume pelo menos 1 página
+        return 1;
+      }
+    }
+    
+    // Fallback: conta ocorrências de "endobj" que geralmente indicam objetos de página
+    const fullText = new TextDecoder().decode(uint8Array);
+    const pageObjectMatches = fullText.match(/\/Type\s*\/Page\b/g);
+    if (pageObjectMatches) {
+      return pageObjectMatches.length;
+    }
+    
+    // Último fallback: conta "endobj" dividido por um fator empírico
+    const endobjMatches = fullText.match(/endobj\b/g);
+    if (endobjMatches && endobjMatches.length > 10) {
+      return Math.max(1, Math.floor(endobjMatches.length / 10));
+    }
+    
+    return 1; // Fallback final
+  } catch (error) {
+    console.error("Erro ao contar páginas do PDF:", error);
+    return 1; // Fallback em caso de erro
   }
+}
 
 serve(async (req) => {
   console.log(`Received request: ${req.method} ${req.url}`);
@@ -74,71 +129,48 @@ serve(async (req) => {
     console.log("Authentication error:", authError?.message);
     return responseWithCors({ error: "Unauthorized" }, 401);
   }
+
   // Upload route
   const routePath = url.pathname.replace("/functions/v1", "");
   if (req.method === "POST" && routePath === "/docuseal-upload") {
     try {
       console.log("Iniciando upload para DocuSeal");
       const contentType = req.headers.get("content-type") || "";
-      if (!contentType.includes("multipart/form-data")) {
-        return responseWithCors({ error: "Invalid content type" }, 400);
-      }
-      const formData = await req.formData();
-      const file = formData.get("file");
-      const title = formData.get("title") as string | null;
-      const documentId = formData.get("documentId") as string | null;
 
-      if (!(file instanceof Blob)) {
-        return responseWithCors({ error: "Invalid file type" }, 400);
-      }
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await req.formData();
+        const file = formData.get("file");
+        const title = formData.get("title") as string | null;
+        const documentId = formData.get("documentId") as string | null;
+        const fieldsJson = formData.get("fields") as string | null;
 
-      if (!documentId) {
-        return responseWithCors({ error: "Document ID is required" }, 400);
-      }
+        // Parse dos campos se fornecidos
+        let fields: DocuSealField[] = [];
+        if (fieldsJson) {
+          try {
+            fields = JSON.parse(fieldsJson);
+            console.log("Campos parseados:", fields);
+          } catch (e) {
+            console.error("Erro ao parsear campos:", e);
+            return responseWithCors({ error: "Invalid fields format" }, 400);
+          }
+        }
 
-      const uploadFile =
-        file instanceof File
-          ? file
-          : new File([file], "document.pdf", { type: file.type });
+        if (!(file instanceof Blob)) {
+          return responseWithCors({ error: "Invalid file type" }, 400);
+        }
 
-      // Verifique o arquivo
-      console.log("File details:", {
-        name: uploadFile.name,
-        size: uploadFile.size,
-        type: uploadFile.type,
-        lastModified: uploadFile.lastModified,
-      });
+        if (!documentId) {
+          return responseWithCors({ error: "Document ID is required" }, 400);
+        }
 
-      // 1. Upload to DocuSeal
-      const docusealForm = new FormData();
-      docusealForm.append("template[document]", uploadFile, uploadFile.name);
-      if (title) docusealForm.append("template[name]", title);
+        const uploadFile =
+          file instanceof File
+            ? file
+            : new File([file], "document.pdf", { type: file.type });
 
-      // Adicione logs antes do fetch:
-      console.log("Enviando para DocuSeal:", {
-        url: `${docusealBaseUrl}/templates`,
-        fileInfo: {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          title: title,
-          documentId: documentId,
-        },
-        title,
-      });
-
-      // Log para debug - mostre as entradas do FormData
-      for (const [key, value] of docusealForm.entries()) {
-        console.log(`FormData entry: ${key}`, value);
-      }
-
-      const uploadResponse = await fetch(`${docusealBaseUrl}/templates/pdf`, {
-        method: "POST",
-        headers: {
-          "X-Auth-Token": docusealApiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        // Preparar dados para upload - FORMATO CORRETO PARA DOCUSEAL
+        const uploadData: any = {
           name: title || "Documento sem título",
           documents: [
             {
@@ -146,75 +178,150 @@ serve(async (req) => {
               file: await fileToBase64(uploadFile),
             },
           ],
-        }),
-      });
+        };
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        console.error("DocuSeal error:", errorData);
-        return responseWithCors(
-          {
-            error: "Failed to upload to DocuSeal",
-            details: errorData,
-          },
-          uploadResponse.status
+        // No seu código principal, modifique esta parte:
+if (fields.length > 0) {
+  // Obter o número total de páginas do PDF
+  const totalPages = await getPdfPageCount(uploadFile);
+  console.log(`PDF tem ${totalPages} página(s)`);
+  
+  // Os campos devem estar dentro do documento, não no nível raiz
+  uploadData.documents[0].fields = fields.map((field) => {
+    // Determinar a página correta
+    let pageNumber;
+    
+    if (field.page) {
+      // Se já tem página definida, usa ela
+      pageNumber = field.page;
+    } else if (totalPages === 1) {
+      // Se tem apenas 1 página, usa a primeira
+      pageNumber = 1;
+    } else {
+      // Se tem múltiplas páginas, usa a última
+      pageNumber = totalPages;
+    }
+    
+    return {
+      name: field.name,
+      type: field.type,
+      required: field.required || false,
+      areas: [
+        {
+          page: pageNumber, // Usa a página calculada
+          x: field.x / 595,
+          y: field.y / 842,
+          w: field.width ? field.width / 595 : 0.3,
+          h: field.height ? field.height / 842 : 0.05,
+        },
+      ],
+    };
+  });
+  
+  console.log(
+    "Campos formatados para API:",
+    uploadData.documents[0].fields
+  );
+}
+
+        console.log(
+          "Dados enviados para DocuSeal:",
+          JSON.stringify(uploadData, null, 2)
         );
-      }
 
-      const docusealData = await uploadResponse.json();
-      console.log("Resposta do DocuSeal:", docusealData);
-      const { error: updateError } = await supabaseClient
-        .from("documentos_digitais")
-        .update({
-          docuseal_template_id: docusealData.id, // ⬅️ ID do DocuSeal
-          status: "TEMPLATE_CRIADO",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", documentId);
-
-      if (updateError) throw updateError;
-      if (!docusealData.id) {
-        throw new Error("DocuSeal não retornou o ID do template");
-      }
-
-      // 2. Atualiza o documento no Supabase com os dados do DocuSeal
-      const { data: document, error: dbError } = await supabaseClient
-        .from("documentos_digitais")
-        .update({
-          docuseal_template_id: docusealData.id.toString(),
-          status: "TEMPLATE_CRIADO",
-          updated_at: new Date().toISOString(),
-          metadata: {
-            docuseal_response: docusealData,
+        // 1. Upload para o DocuSeal - ENDPOINT CORRETO
+        const uploadResponse = await fetch(`${docusealBaseUrl}/templates/pdf`, {
+          method: "POST",
+          headers: {
+            "X-Auth-Token": docusealApiKey,
+            "Content-Type": "application/json",
+            Accept: "application/json",
           },
-        })
-        .eq("id", documentId)
-        .select()
-        .single();
+          body: JSON.stringify(uploadData),
+        });
 
-      if (dbError) {
-        console.error("Supabase update error:", dbError);
-        return responseWithCors(
-          { error: "Database error", details: dbError.message },
-          500
-        );
+        const responseText = await uploadResponse.text();
+        console.log("Resposta bruta do DocuSeal:", responseText);
+
+        if (!uploadResponse.ok) {
+          console.error("DocuSeal error response:", responseText);
+          let errorDetails;
+          try {
+            errorDetails = JSON.parse(responseText);
+          } catch {
+            errorDetails = responseText;
+          }
+
+          return responseWithCors(
+            {
+              error: "Failed to upload to DocuSeal",
+              details: errorDetails,
+              status: uploadResponse.status,
+            },
+            uploadResponse.status
+          );
+        }
+
+        let docusealData;
+        try {
+          docusealData = JSON.parse(responseText);
+          console.log("Resposta parseada do DocuSeal:", docusealData);
+        } catch (e) {
+          console.error("Erro ao parsear resposta do DocuSeal:", e);
+          return responseWithCors(
+            { error: "Invalid response from DocuSeal" },
+            502
+          );
+        }
+
+        // 2. Atualizar o documento no Supabase
+        const { data: document, error: dbError } = await supabaseClient
+          .from("documentos_digitais")
+          .update({
+            docuseal_template_id: docusealData.id
+              ? docusealData.id.toString()
+              : null,
+            status: docusealData.id ? "TEMPLATE_CRIADO" : "ERRO",
+            updated_at: new Date().toISOString(),
+            metadata: {
+              docuseal_response: docusealData,
+              campos_definidos: fields.length > 0,
+              campos: fields,
+              upload_timestamp: new Date().toISOString(),
+            },
+          })
+          .eq("id", documentId)
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error("Supabase update error:", dbError);
+          return responseWithCors(
+            { error: "Database error", details: dbError.message },
+            500
+          );
+        }
+
+        return responseWithCors({
+          success: true,
+          document,
+          docuseal_data: docusealData,
+          campos_adicionados: fields.length > 0,
+        });
+      } else {
+        return responseWithCors({ error: "Invalid content type" }, 400);
       }
-
-      return responseWithCors({
-        success: true,
-        document,
-        docuseal_data: docusealData,
-      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       console.error("Detailed error:", errorMessage);
+      console.error("Stack:", error instanceof Error ? error.stack : "No stack");
       return responseWithCors(
         {
-          error: "DocuSeal connection error",
+          error: "Internal server error",
           details: errorMessage,
         },
-        502
+        500
       );
     }
   }

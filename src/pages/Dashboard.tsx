@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth.ts";
-import { useUserRole } from "@/hooks/useUserRole.ts";
+import { usePermissions } from "@/hooks/usePermissions.ts";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -34,10 +34,15 @@ import {
 import { supabase } from "@/integrations/supabase/client.ts";
 import { useNavigate } from "react-router-dom";
 import { ClienteDataButton } from "@/components/ClienteDataButton.tsx";
+
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { canDelete } = useUserRole();
+  const {
+    hasPermission,
+    permissions,
+    loading: permissionsLoading,
+  } = usePermissions();
   const [processos, setProcessos] = useState<any[]>([]);
   const [stats, setStats] = useState({
     processosAtivos: 0,
@@ -46,19 +51,34 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // ... outros estados e hooks permanecem iguais
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Número de processos por página
+  // Debug para verificar permissões
+  // No Dashboard.tsx, adicione isso no início do componente:
+  useEffect(() => {
+    console.log("=== DEBUG PERMISSÕES ===");
+    console.log("User ID:", user?.id);
+    console.log("Todas as permissões:", permissions);
+    console.log("Tem facilisign?", hasPermission("facilisign"));
+    console.log("Tem user_management?", hasPermission("user_management"));
+    console.log("Tem google_integration?", hasPermission("google_integration"));
+    console.log("Tem financeiro?", hasPermission("financeiro"));
+    console.log("Tem agenda?", hasPermission("agenda"));
+    console.log("Tem ia_facilita?", hasPermission("ia_facilita"));
+    window.__debugPermissions = {
+      permissions,
+      hasPermission: (perm: string) => permissions.includes(perm),
+      userId: user?.id,
+    };
+    console.log("Debug permissions exposed:", window.__debugPermissions);
+  }, [permissions, hasPermission, user]);
 
-  // Calcular processos a serem exibidos na página atual
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentProcessos = processos.slice(indexOfFirstItem, indexOfLastItem);
-
-  // Calcular total de páginas
   const totalPages = Math.ceil(processos.length / itemsPerPage);
 
-  // Funções de navegação
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -77,7 +97,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Recarregar dados quando a página receber foco
   useEffect(() => {
     const handleFocus = () => {
       if (user) {
@@ -91,7 +110,6 @@ const Dashboard = () => {
 
   const loadData = async () => {
     try {
-      // Carregar processos com dados do cliente
       const { data: processosData, error: processosError } = await supabase
         .from("processos")
         .select(
@@ -113,7 +131,6 @@ const Dashboard = () => {
       console.log("Processos carregados:", processosData);
       setProcessos(processosData || []);
 
-      // Contar clientes únicos
       const { data: clientesData, error: clientesError } = await supabase
         .from("clientes")
         .select("id")
@@ -121,7 +138,6 @@ const Dashboard = () => {
 
       if (clientesError) throw clientesError;
 
-      // Atualizar estatísticas
       setStats({
         processosAtivos: processosData?.length || 0,
         audienciasHoje: 0,
@@ -135,7 +151,6 @@ const Dashboard = () => {
   };
 
   const handleEditProcesso = (processoId: string) => {
-    // Agora vai para a página de visualização
     globalThis.location.href = `/processo/${processoId}`;
   };
 
@@ -153,7 +168,6 @@ const Dashboard = () => {
 
         if (error) throw error;
 
-        // Recarregar dados
         loadData();
       } catch (error) {
         console.error("Erro ao excluir processo:", error);
@@ -182,6 +196,17 @@ const Dashboard = () => {
       color: "text-purple",
     },
   ];
+
+  if (permissionsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando permissões...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -240,117 +265,166 @@ const Dashboard = () => {
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate("/novo-processo")}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <Plus className="w-12 h-12 text-primary mb-4" />
-              <h3 className="font-semibold">Novo Processo</h3>
-              <p className="text-sm text-muted-foreground">
-                Criar processo judicial
-              </p>
-            </CardContent>
-          </Card>
+          {hasPermission("novo_processo") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/novo-processo")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Plus className="w-12 h-12 text-primary mb-4" />
+                <h3 className="font-semibold">Novo Processo</h3>
+                <p className="text-sm text-muted-foreground">
+                  Criar processo judicial
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {hasPermission("ia_facilita") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/ia-facilita")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <FileText className="w-12 h-12 text-blue-600 mb-4" />
+                <h3 className="font-semibold">IA Facilita</h3>
+                <p className="text-sm text-muted-foreground">
+                  Assistente inteligente
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {hasPermission("facilisign") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/facilisign")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <FileText className="w-12 h-12 text-indigo-600 mb-4" />
+                <h3 className="font-semibold">FaciliSign</h3>
+                <p className="text-sm text-muted-foreground">
+                  Assinatura digital
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate("/ia-facilita")}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <FileText className="w-12 h-12 text-blue-600 mb-4" />
-              <h3 className="font-semibold">IA Facilita</h3>
-              <p className="text-sm text-muted-foreground">
-                Assistente inteligente
-              </p>
-            </CardContent>
-          </Card>
+          {hasPermission("google_integration") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/google-integration")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Calendar className="w-12 h-12 text-green-600 mb-4" />
+                <h3 className="font-semibold">Google</h3>
+                <p className="text-sm text-muted-foreground">
+                  Integrações Google
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate("/facilisign")}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <FileText className="w-12 h-12 text-indigo-600 mb-4" />
-              <h3 className="font-semibold">FaciliSign</h3>
-              <p className="text-sm text-muted-foreground">
-                Assinatura digital
-              </p>
-            </CardContent>
-          </Card>
+          {hasPermission("user_management") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/user-management")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Users className="w-12 h-12 text-purple-600 mb-4" />
+                <h3 className="font-semibold">Gerenciar Usuários</h3>
+                <p className="text-sm text-muted-foreground">
+                  Cadastrar e gerenciar usuários
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate("/google-integration")}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <Calendar className="w-12 h-12 text-green-600 mb-4" />
-              <h3 className="font-semibold">Google</h3>
-              <p className="text-sm text-muted-foreground">
-                Integrações Google
-              </p>
-            </CardContent>
-          </Card>
+          {hasPermission("financeiro") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/financeiro")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <DollarSign className="w-12 h-12 text-green-600 mb-4" />
+                <h3 className="font-semibold">Financeiro</h3>
+                <p className="text-sm text-muted-foreground">
+                  Gestão financeira
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Always show the Users card for now - will be conditional later */}
-          <Card
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate("/user-management")}
-          >
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <Users className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="font-semibold">Gerenciar Usuários</h3>
-              <p className="text-sm text-muted-foreground">
-                Cadastrar e gerenciar usuários
-              </p>
-            </CardContent>
-          </Card>
+          {hasPermission("agenda") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/calendar")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Calendar className="w-12 h-12 text-blue-600 mb-4" />
+                <h3 className="font-semibold">Agenda</h3>
+                <p className="text-sm text-muted-foreground">
+                  Gestão de compromissos
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
+          {hasPermission("novo_processo") && (
           <Button
             className="bg-primary hover:bg-primary/90"
-            onClick={() => (globalThis.location.href = "/novo-processo")}
+            onClick={() => navigate("/novo-processo")}
           >
             <Plus className="w-4 h-4 mr-2" />
             Novo Processo
           </Button>
-          <Button
-            variant="success"
-            onClick={() => (globalThis.location.href = "/financeiro")}
-          >
-            <DollarSign className="w-4 h-4 mr-2" />
-            Financeiro
-          </Button>
-          <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            onClick={() => (globalThis.location.href = "/facilisign")}
-          >
-            FaciliSign ID
-          </Button>
-          <Button
-            variant="purple"
-            onClick={() => (globalThis.location.href = "/ia-facilita")}
-          >
-            IA-Facilita
-          </Button>
-          <Button
-            variant="outline"
-            className="border-google text-google hover:bg-google hover:text-white"
-            onClick={() => (globalThis.location.href = "/google-integration")}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Integração Google
-          </Button>
-          <Button
-            variant="outline"
-            className="border-primary text-primary hover:bg-primary hover:text-white"
-            onClick={() => (globalThis.location.href = "/calendar")}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Agenda
-          </Button>
+          )}
+          
+          {hasPermission("financeiro") && (
+            <Button variant="success" onClick={() => navigate("/financeiro")}>
+              <DollarSign className="w-4 h-4 mr-2" />
+              Financeiro
+            </Button>
+          )}
+
+          {hasPermission("facilisign") && (
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={() => navigate("/facilisign")}
+            >
+              FaciliSign ID
+            </Button>
+          )}
+
+          {hasPermission("ia_facilita") && (
+            <Button variant="purple" onClick={() => navigate("/ia-facilita")}>
+              IA-Facilita
+            </Button>
+          )}
+
+          {hasPermission("google_integration") && (
+            <Button
+              variant="outline"
+              className="border-google text-google hover:bg-google hover:text-white"
+              onClick={() => navigate("/google-integration")}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Integração Google
+            </Button>
+          )}
+
+          {hasPermission("agenda") && (
+            <Button
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+              onClick={() => navigate("/calendar")}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Agenda
+            </Button>
+          )}
+
           <ClienteDataButton />
         </div>
 
@@ -427,7 +501,7 @@ const Dashboard = () => {
                             >
                               <Edit className="w-4 h-4 text-success" />
                             </Button>
-                            {canDelete && (
+                            {hasPermission("excluir_processo") && (
                               <Button
                                 size="sm"
                                 variant="outline"

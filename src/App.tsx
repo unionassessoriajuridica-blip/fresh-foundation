@@ -24,6 +24,7 @@ import Contato from "./pages/Contato.tsx";
 import Sobre from "./pages/Sobre.tsx";
 import Servicos from "./pages/Servicos.tsx";
 import { PrivateRoute } from "./components/PrivateRoute.tsx";
+import AcceptInvitation from "./pages/AcceptInvitation.tsx";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/contato" element={<Contato />} />
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/servicos" element={<Servicos />} />
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
           {/* Rotas Protegidas */}
           <Route element={<PrivateRoute />}>

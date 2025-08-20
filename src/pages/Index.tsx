@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import FeatureCard from "@/components/FeatureCard";
-import SSLBadge from "@/components/SSLBadge";
-import { Button } from "@/components/ui/button";
-import { Parallax } from "@/components/Parallax";
-import { ImageTextSection } from "@/components/ImageTextSection";
-import { FeaturesGrid } from "@/components/FeaturesGrid";
-import { useAuth } from "@/hooks/useAuth";
+import Header from "@/components/Header.tsx";
+import { Footer } from "@/components/Footer.tsx";
+import FeatureCard from "@/components/FeatureCard.tsx";
+import SSLBadge from "@/components/SSLBadge.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Parallax } from "@/components/Parallax.tsx";
+import { ImageTextSection } from "@/components/ImageTextSection.tsx";
+import { FeaturesGrid } from "@/components/FeaturesGrid.tsx";
+import { useAuth } from "@/hooks/useAuth.ts";
 import { Lock, Zap, Calendar, FileText, Shield } from "lucide-react";
 import { FiShield, FiFileText, FiCalendar } from 'react-icons/fi';
 

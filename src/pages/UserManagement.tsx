@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { Button } from '@/components/ui/button.tsx';
+import { Badge } from '@/components/ui/badge.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
+import { Checkbox } from '@/components/ui/checkbox.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog.tsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.tsx';
 import { ArrowLeft, Plus, Users, Mail, Settings, Trash2, Shield, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast.ts';
+import { supabase } from '@/integrations/supabase/client.ts';
+import { useAuth } from '@/hooks/useAuth.ts';
 
 interface UserInvitation {
   id: string;

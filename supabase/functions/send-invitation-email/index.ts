@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    // Verifique se a chave API existe
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.log('RESEND_API_KEY not configured, simulating email');
+      // Modo simulação para desenvolvimento
+      const { invitationId, email, nome } = await req.json();
+      
+      return new Response(JSON.stringify({ 
+        success: true,
+        warning: 'Email simulation mode - RESEND_API_KEY not configured',
+        email: email,
+        nome: nome
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const resend = new Resend(resendApiKey);
 
     const { invitationId, email, nome, inviterName } = await req.json()
 
@@ -61,7 +78,7 @@ serve(async (req) => {
       .join(', ')
 
     const emailResponse = await resend.emails.send({
-      from: "FacilitaAdv <noreply@facilita.adv.br>",
+      from: "FacilitaAdv <noreply@noreply.facilita.adv.br>", // Use resend.dev para teste
       to: [email],
       subject: "Convite para acessar o FacilitaAdv",
       html: `
@@ -109,7 +126,7 @@ serve(async (req) => {
 
     if (emailResponse.error) {
       console.error('Error sending email:', emailResponse.error);
-      return new Response(JSON.stringify({ error: 'Failed to send email' }), {
+      return new Response(JSON.stringify({ error: 'Failed to send email: ' + emailResponse.error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -124,7 +141,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Send invitation email error:', error)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ error: 'Internal server error: ' + error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -12,8 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { Lock, Shield, AlertCircle } from "lucide-react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs.tsx";
+import { Lock, Shield, AlertCircle, MailCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { useToast } from "@/hooks/use-toast.ts";
 
@@ -22,73 +26,184 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [invitationData, setInvitationData] = useState<any>(null);
+  const [defaultTab, setDefaultTab] = useState("login");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const invitationToken = searchParams.get("invitation_token");
+  const tabParam = searchParams.get("tab");
 
   useEffect(() => {
     const checkUser = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
+        return;
+      }
+
+      // Processar token de convite se existir
+      if (invitationToken) {
+        await validateInvitationToken(invitationToken);
+      }
+
+      if (tabParam === "signup" || invitationToken) {
+        setDefaultTab("signup");
       }
     };
     checkUser();
-  }, [navigate]);
+  }, [navigate, tabParam, invitationToken]);
+
+  const validateInvitationToken = async (token: string) => {
+    try {
+      setLoading(true);
+      const { data: invitation, error } = await supabase
+        .from("user_invitations")
+        .select("*")
+        .eq("token", token)
+        .single();
+
+      if (error) throw error;
+
+      if (!invitation) {
+        setError("Convite inválido ou não encontrado");
+        return;
+      }
+
+      // Verificar se expirou
+      const isExpired = new Date(invitation.expires_at) < new Date();
+      if (isExpired) {
+        setError("Este convite expirou. Solicite um novo convite.");
+        return;
+      }
+
+      if (invitation.status === "ACCEPTED") {
+        setError("Este convite já foi utilizado.");
+        return;
+      }
+
+      // Preencher email automaticamente
+      setEmail(invitation.email);
+      setInvitationData(invitation);
+    } catch (error: any) {
+      console.error("Erro ao validar convite:", error);
+      setError("Erro ao processar convite. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const redirectUrl = `${window.location.origin}/`;
+    try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl,
+            data: {
+              nome: invitationData?.nome || "",
+              invited_by: invitationData?.invited_by || null,
+            },
+          },
+        });
 
-    if (error) {
-      if (error.message.includes("already registered")) {
-        setError("Este email já está cadastrado. Tente fazer login.");
-      } else {
-        setError(error.message);
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
+          setError("Este email já está cadastrado. Tente fazer login.");
+        } else {
+          setError(signUpError.message);
+        }
+        return;
       }
-    } else {
+
+      // Processar convite se existir
+      if (invitationToken && signUpData.user) {
+        await processInvitationAcceptance(signUpData.user.id);
+      }
+
       toast({
         title: "Cadastro realizado!",
         description: "Verifique seu email para confirmar a conta.",
       });
-    }
 
-    setLoading(false);
+      // Redirecionar para login após cadastro bem-sucedido
+      setDefaultTab("login");
+    } catch (error: any) {
+      setError(error.message || "Erro ao realizar cadastro");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Auth.tsx
+  const processInvitationAcceptance = async (userId: string) => {
+    try {
+      // Atualizar status do convite
+      const { error: updateError } = await supabase
+        .from("user_invitations")
+        .update({
+          status: "ACCEPTED",
+          accepted_at: new Date().toISOString(),
+          user_id: userId,
+        })
+        .eq("token", invitationData.token);
+
+      if (updateError) {
+        console.error("Erro ao atualizar convite:", updateError);
+        throw updateError;
+      }
+
+      // Copiar permissões do convite para o usuário
+      if (invitationData?.permissions?.length > 0) {
+        const permissionsToInsert = invitationData.permissions.map(
+          (permission: string) => ({
+            user_id: userId,
+            permission: permission,
+            granted_by: invitationData.invited_by,
+          })
+        );
+
+        const { error: permError } = await supabase
+          .from("user_permissions")
+          .insert(permissionsToInsert);
+
+        if (permError) {
+          console.error("Erro ao adicionar permissões:", permError);
+          throw permError;
+        }
+      }
+      console.log("Permissões concedidas com sucesso para o usuário:", userId);
+    } catch (error) {
+      console.error("Erro ao processar aceitação do convite:", error);
+      // Não impedir o cadastro por erro no processamento do convite
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
-      // Obter o token JWT do usuário logado
-      const token = data.session?.access_token;
-      console.log("Token JWT:", token); 
-
       navigate("/dashboard");
-    } catch (error) {
-      // Tratamento de erro existente
+    } catch (error: any) {
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -115,12 +230,19 @@ const Auth = () => {
               Área Protegida
             </CardTitle>
             <CardDescription>
-              Faça login ou cadastre-se para acessar a plataforma
+              {invitationData ? (
+                <div className="flex items-center justify-center gap-2 text-green-600">
+                  <MailCheck className="w-4 h-4" />
+                  Convite válido para {invitationData.nome}
+                </div>
+              ) : (
+                "Faça login ou cadastre-se para acessar a plataforma"
+              )}
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue={tabParam || "login"} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Cadastro</TabsTrigger>
@@ -144,6 +266,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={!!invitationData}
                     />
                   </div>
                   <div className="space-y-2">
@@ -179,6 +302,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={!!invitationData}
                     />
                   </div>
                   <div className="space-y-2">
@@ -193,13 +317,23 @@ const Auth = () => {
                       minLength={6}
                     />
                   </div>
+                  {invitationData && (
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        <strong>Convite de:</strong> {invitationData.nome}
+                        <br />
+                        <strong>Permissões:</strong>{" "}
+                        {invitationData.permissions?.join(", ") || "Nenhuma"}
+                      </p>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     variant="purple"
                     className="w-full"
                     disabled={loading}
                   >
-                    {loading ? "Cadastrando..." : "Cadastrar"}
+                    {loading ? "Cadastrando..." : "Aceitar Convite e Cadastrar"}
                   </Button>
                 </form>
               </TabsContent>
