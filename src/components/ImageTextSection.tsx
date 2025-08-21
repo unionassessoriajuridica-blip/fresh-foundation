@@ -1,3 +1,4 @@
+import React from 'react';
 interface ImageTextSectionProps {
   imageUrl: string;
   title: string;

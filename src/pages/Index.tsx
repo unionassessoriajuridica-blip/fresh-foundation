@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header.tsx";
 import { Footer } from "@/components/Footer.tsx";
@@ -10,7 +10,8 @@ import { ImageTextSection } from "@/components/ImageTextSection.tsx";
 import { FeaturesGrid } from "@/components/FeaturesGrid.tsx";
 import { useAuth } from "@/hooks/useAuth.ts";
 import { Lock, Zap, Calendar, FileText, Shield } from "lucide-react";
-import { FiShield, FiFileText, FiCalendar } from 'react-icons/fi';
+import { FiShield, FiFileText, FiCalendar } from "react-icons/fi";
+import { ImageHeader } from "@/components/ImageHeader.tsx";
 
 const Index = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -47,14 +48,16 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-16">
         {/* Hero Section */}
-        <div className="text-center max-w-4xl mx-auto mb-16">
-          <div className="mb-6">
-            <Lock className="w-12 h-12 text-warning mx-auto mb-4" />
-          </div>
+        <div className="text-center max-w-5xl mx-auto mb-16">
 
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
-            🔒 Facilite sua advocacia <br />
-            com tecnologia de ponta
+          <h1 className="text-4xl md:text-8xl font-bold text-foreground mb-6 leading-tight">
+            <ImageHeader
+              imageUrl="/img/facilita-logo.png"
+              altText="Ícone Facilite"
+              text=""
+              imageClassName="w-50 h-30"
+            />
+            <br />🔐 Sua advocacia com tecnologia de ponta
           </h1>
 
           <p className="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
@@ -118,37 +121,39 @@ const Index = () => {
         backgroundImage="/img/imagemt.jpg"
         title="Soluções Jurídicas Inteligentes"
         subtitle="Tecnologia de ponta para otimizar sua prática advocatícia"
+        whatsappLink="https://wa.me/5516993508206?text=Olá! Gostaria de saber mais sobre os serviços."
       />
-      
+
       <ImageTextSection
-        imageUrl="/img/escritorio.jpg"
+        imageUrl="/img/adv-1.jpg"
         title="Sua advocacia mais eficiente"
         text="Reduza o tempo com burocracia e foque no que realmente importa"
         features={[
           "Automação de processos repetitivos",
           "Gestão de documentos segura",
-          "Colaboração em tempo real"
+          "Colaboração em tempo real",
         ]}
       />
-      
+
       <FeaturesGrid
         title="Nossos Diferenciais"
         features={[
           {
             icon: <FiShield className="w-6 h-6 text-blue-600" />,
             title: "Segurança 256-bit",
-            description: "Proteção militar para seus dados sensíveis"
+            description: "Proteção militar para seus dados sensíveis",
           },
           {
             icon: <FiFileText className="w-6 h-6 text-blue-600" />,
             title: "Petições Automáticas",
-            description: "Geração de documentos com um clique"
+            description: "Geração de documentos com um clique",
           },
           {
             icon: <FiCalendar className="w-6 h-6 text-blue-600" />,
             title: "Gestão de Prazos",
-            description: "Alertas inteligentes para não perder datas importantes"
-          }
+            description:
+              "Alertas inteligentes para não perder datas importantes",
+          },
         ]}
       />
       <Footer />

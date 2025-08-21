@@ -1,8 +1,9 @@
+import React from "react";
 import { Lock, LogOut, User } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth.ts";
+import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
-import { FrontendMenu } from "./Menu";
+import { FrontendMenu } from "./Menu.tsx";
 
 const Header = () => {
   const { user, signOut, isAuthenticated } = useAuth();
@@ -22,7 +23,7 @@ const Header = () => {
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-primary">
             <div className="flex items-center">
-              <img src="/img/logosite.png" alt="FacilitaAdv Logo" className="h-16" />
+              <img src="/img/logosite.png" alt="FacilitaAdv Logo" className="h-20" />
             </div>
           </h1>
         </div>
