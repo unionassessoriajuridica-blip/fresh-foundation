@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import { Upload, FileText, Trash2, Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useAuth } from "@/hooks/useAuth.ts";
 
 interface Documento {
   id: string;
@@ -61,22 +61,39 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
 
     setUploading(true);
     try {
-      // Criar nome único para o arquivo
-      const fileExtension = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}_${selectedFile.name}`;
-      const filePath = `${user.id}/${fileName}`;
+      // Criar nome único para o arquivo (remover acentos e caracteres especiais)
+      const cleanFileName = selectedFile.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+        .replace(/[^a-zA-Z0-9._-]/g, '_'); // Substitui caracteres especiais por underscore
+
+      const fileExtension = cleanFileName.split('.').pop();
+      const uniqueFileName = `${Date.now()}_${cleanFileName}`;
+      const filePath = `${user.id}/${uniqueFileName}`;
+
+      console.log('Fazendo upload do arquivo:', filePath);
 
       // Upload para Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('processo-documentos')
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload realizado com sucesso:', uploadData);
 
       // Obter URL pública do arquivo
       const { data: urlData } = supabase.storage
         .from('processo-documentos')
         .getPublicUrl(filePath);
+
+      console.log('URL pública:', urlData);
 
       // Salvar informações do documento no banco
       const { data: documentoData, error: dbError } = await supabase
@@ -85,7 +102,7 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
           {
             user_id: user.id,
             cliente_nome: clienteNome,
-            nome_arquivo: selectedFile.name,
+            nome_arquivo: selectedFile.name, // Nome original
             tipo_arquivo: selectedFile.type || 'application/octet-stream',
             tamanho_arquivo: selectedFile.size,
             url_arquivo: urlData.publicUrl,
@@ -95,7 +112,10 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Erro ao salvar no banco:', dbError);
+        throw dbError;
+      }
 
       // Atualizar lista de documentos
       onDocumentosChange([...documentos, documentoData]);
@@ -114,10 +134,11 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
       });
 
     } catch (error: any) {
+      console.error('Erro completo:', error);
       toast({
         variant: "destructive",
         title: "Erro ao enviar documento",
-        description: error.message,
+        description: error.message || "Erro desconhecido ao fazer upload",
       });
     } finally {
       setUploading(false);
@@ -127,15 +148,21 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
   const handleRemoveDocument = async (documento: Documento) => {
     try {
       // Extrair caminho do arquivo da URL
-      const urlParts = documento.url_arquivo.split('/');
-      const filePath = urlParts.slice(-2).join('/'); // user_id/filename
+      const url = new URL(documento.url_arquivo);
+      const pathParts = url.pathname.split('/');
+      const filePath = pathParts.slice(-2).join('/'); // user_id/filename
+
+      console.log('Removendo arquivo:', filePath);
 
       // Remover arquivo do storage
       const { error: storageError } = await supabase.storage
         .from('processo-documentos')
         .remove([filePath]);
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Erro ao remover do storage:', storageError);
+        throw storageError;
+      }
 
       // Remover registro do banco
       const { error: dbError } = await supabase
@@ -143,7 +170,10 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
         .delete()
         .eq('id', documento.id);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Erro ao remover do banco:', dbError);
+        throw dbError;
+      }
 
       // Atualizar lista
       onDocumentosChange(documentos.filter(doc => doc.id !== documento.id));
@@ -154,10 +184,11 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
       });
 
     } catch (error: any) {
+      console.error('Erro ao remover:', error);
       toast({
         variant: "destructive",
         title: "Erro ao remover documento",
-        description: error.message,
+        description: error.message || "Erro desconhecido",
       });
     }
   };

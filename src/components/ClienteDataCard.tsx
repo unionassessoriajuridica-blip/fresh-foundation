@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { Button } from '@/components/ui/button.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog.tsx';
 import { Download, Upload, FileSpreadsheet, Info } from 'lucide-react';
-import { useClienteExcel } from '@/hooks/useClienteExcel';
+import { useClienteExcel } from '@/hooks/useClienteExcel.ts';
 
 export const ClienteDataCard = () => {
   const [showDialog, setShowDialog] = useState(false);

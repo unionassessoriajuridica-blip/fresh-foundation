@@ -208,6 +208,54 @@ const Dashboard = () => {
     );
   }
 
+  // Função para determinar a cor com base na proximidade do prazo
+const getPrazoColor = (prazo: string) => {
+  if (!prazo) return "default";
+  
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0); // Remove a hora para comparar apenas a data
+  
+  const dataPrazo = new Date(prazo);
+  dataPrazo.setHours(0, 0, 0, 0);
+  
+  const diffTime = dataPrazo.getTime() - hoje.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return "destructive"; // Vencido - vermelho
+  } else if (diffDays === 0) {
+    return "destructive"; // Vence hoje - também vermelho
+  } else if (diffDays <= 5) {
+    return "warning"; // 5 dias ou menos - laranja
+  } else {
+    return "success"; // Em dia - verde
+  }
+};
+
+// Função para obter o texto descritivo do prazo
+const getPrazoText = (prazo: string) => {
+  if (!prazo) return "-";
+  
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  
+  const dataPrazo = new Date(prazo);
+  dataPrazo.setHours(0, 0, 0, 0);
+  
+  const diffTime = dataPrazo.getTime() - hoje.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return `Vencido há ${Math.abs(diffDays)} dia(s)`;
+  } else if (diffDays === 0) {
+    return "Vence hoje";
+  } else if (diffDays === 1) {
+    return "Vence amanhã";
+  } else {
+    return `Vence em ${diffDays} dias`;
+  }
+};
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -491,7 +539,7 @@ const Dashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {currentProcessos.map((processo) => (
-                      <TableRow key={processo.id}>
+                      <TableRow key={processo.id}>                        
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -541,12 +589,27 @@ const Dashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {processo.prazo
-                            ? new Date(processo.prazo).toLocaleDateString(
-                                "pt-BR"
-                              )
-                            : "-"}
-                        </TableCell>
+  {processo.prazo ? (
+    <div className="flex flex-col">
+      <Badge
+        variant={getPrazoColor(processo.prazo)}
+        className="w-fit mb-1"
+      >
+        {getPrazoColor(processo.prazo) === "destructive" && "Vencido"}
+        {getPrazoColor(processo.prazo) === "warning" && "Próximo"}
+        {getPrazoColor(processo.prazo) === "success" && "Em dia"}
+      </Badge>
+      <div className="text-sm">
+        {new Date(processo.prazo).toLocaleDateString("pt-BR")}
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {getPrazoText(processo.prazo)}
+      </div>
+    </div>
+  ) : (
+    "-"
+  )}
+</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

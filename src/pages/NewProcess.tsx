@@ -1,19 +1,47 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, FileText, User, DollarSign, StickyNote } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { formatCurrencyInput, parseCurrency, formatCurrency } from "@/utils/currency";
-import DocumentUpload from "@/components/DocumentUpload";
-import ProcessNotes from "@/components/ProcessNotes";
+import { Button } from "@/components/ui/button.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import {
+  ArrowLeft,
+  FileText,
+  User,
+  DollarSign,
+  StickyNote,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useAuth } from "@/hooks/useAuth.ts";
+import {
+  formatCurrencyInput,
+  parseCurrency,
+  formatCurrency,
+} from "@/utils/currency.ts";
+import DocumentUpload from "@/components/DocumentUpload.tsx";
+import ProcessNotes from "@/components/ProcessNotes.tsx";
+import {
+  formatCPF,
+  formatRG,
+  formatPhone,
+  formatCEP,
+  removeMask,
+} from "@/utils/masks.ts";
 
 const NewProcess = () => {
   const navigate = useNavigate();
@@ -24,7 +52,7 @@ const NewProcess = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
   const [processoId, setProcessoId] = useState<string | null>(null);
-  
+
   const [clienteData, setClienteData] = useState({
     nomeCompleto: "",
     rg: "",
@@ -35,14 +63,14 @@ const NewProcess = () => {
     endereco: "",
     bairro: "",
     cidade: "",
-    cep: ""
+    cep: "",
   });
 
   const [processoData, setProcessoData] = useState({
     numeroProcesso: "",
     tipoProcesso: "",
     temPrazo: false,
-    prazo: ""
+    prazo: "",
   });
 
   const [financeiroData, setFinanceiroData] = useState({
@@ -54,7 +82,7 @@ const NewProcess = () => {
     incluirTMP: false,
     valorTMP: "",
     vencimentoTMP: "",
-    quantidadeMesesTMP: ""
+    quantidadeMesesTMP: "",
   });
 
   const [documentos, setDocumentos] = useState<any[]>([]);
@@ -68,23 +96,56 @@ const NewProcess = () => {
     telefone: "",
     email: "",
     endereco_completo: "",
-    cep: ""
+    cep: "",
   });
 
   const tiposProcesso = [
     "Criminal",
-    "Cível", 
+    "Cível",
     "Trabalhista",
     "Família",
     "Previdenciário",
     "Tributário",
     "Administrativo",
-    "Consumidor"
+    "Consumidor",
   ];
+
+  // Funções para aplicar máscaras
+  const handleCpfChange = (value: string) => {
+    setClienteData({ ...clienteData, cpf: formatCPF(value) });
+  };
+
+  const handleRgChange = (value: string) => {
+    setClienteData({ ...clienteData, rg: formatRG(value) });
+  };
+
+  const handleTelefoneChange = (value: string) => {
+    setClienteData({ ...clienteData, telefone: formatPhone(value) });
+  };
+
+  const handleCepChange = (value: string) => {
+    setClienteData({ ...clienteData, cep: formatCEP(value) });
+  };
+
+  const handleResponsavelCpfChange = (value: string) => {
+    setResponsavelData({ ...responsavelData, cpf: formatCPF(value) });
+  };
+
+  const handleResponsavelRgChange = (value: string) => {
+    setResponsavelData({ ...responsavelData, rg: formatRG(value) });
+  };
+
+  const handleResponsavelTelefoneChange = (value: string) => {
+    setResponsavelData({ ...responsavelData, telefone: formatPhone(value) });
+  };
+
+  const handleResponsavelCepChange = (value: string) => {
+    setResponsavelData({ ...responsavelData, cep: formatCEP(value) });
+  };
 
   // Verificar se está em modo de edição e carregar dados existentes
   useEffect(() => {
-    const editId = searchParams.get('edit');
+    const editId = searchParams.get("edit");
     if (editId && user) {
       setIsEditMode(true);
       setProcessoId(editId);
@@ -95,105 +156,128 @@ const NewProcess = () => {
   const loadProcessData = async (id: string) => {
     try {
       setLoading(true);
-      
+
       // Carregar dados do processo com cliente
       const { data: processo, error: processoError } = await supabase
-        .from('processos')
-        .select(`
+        .from("processos")
+        .select(
+          `
           *,
           clientes (*)
-        `)
-        .eq('id', id)
-        .eq('user_id', user?.id)
+        `
+        )
+        .eq("id", id)
+        .eq("user_id", user?.id)
         .single();
 
       if (processoError) {
-        console.error('Erro ao carregar processo:', processoError);
+        console.error("Erro ao carregar processo:", processoError);
         toast({
           variant: "destructive",
           title: "Erro",
           description: "Processo não encontrado.",
         });
-        navigate('/dashboard');
+        navigate("/dashboard");
         return;
       }
 
       // Preencher dados do cliente
       if (processo.clientes) {
         const cliente = processo.clientes;
-        const enderecoParts = cliente.endereco?.split(', ') || ['', '', '', ''];
-        
+        const enderecoParts = cliente.endereco?.split(", ") || ["", "", "", ""];
+
         setClienteData({
-          nomeCompleto: cliente.nome || '',
-          rg: '', // RG não está sendo salvo na tabela clientes atual
-          cpf: cliente.cpf_cnpj || '',
-          dataNascimento: '',
-          telefone: cliente.telefone || '',
-          email: cliente.email || '',
-          endereco: enderecoParts[0] || '',
-          bairro: enderecoParts[1] || '',
-          cidade: enderecoParts[2]?.split(' - ')[0] || '',
-          cep: enderecoParts[2]?.split(' - ')[1] || ''
+          nomeCompleto: cliente.nome || "",
+          rg: "", // RG não está sendo salvo na tabela clientes atual
+          cpf: cliente.cpf_cnpj || "",
+          dataNascimento: "",
+          telefone: cliente.telefone || "",
+          email: cliente.email || "",
+          endereco: enderecoParts[0] || "",
+          bairro: enderecoParts[1] || "",
+          cidade: enderecoParts[2]?.split(" - ")[0] || "",
+          cep: enderecoParts[2]?.split(" - ")[1] || "",
         });
       }
 
       // Preencher dados do processo
       setProcessoData({
-        numeroProcesso: processo.numero_processo || '',
-        tipoProcesso: processo.tipo_processo || '',
+        numeroProcesso: processo.numero_processo || "",
+        tipoProcesso: processo.tipo_processo || "",
         temPrazo: !!processo.prazo,
-        prazo: processo.prazo || ''
+        prazo: processo.prazo || "",
       });
 
       // Carregar dados financeiros
       const { data: financeiroData, error: financeiroError } = await supabase
-        .from('financeiro')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('cliente_nome', processo.clientes?.nome)
-        .order('created_at', { ascending: true });
+        .from("financeiro")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("cliente_nome", processo.clientes?.nome)
+        .order("created_at", { ascending: true });
 
       if (!financeiroError && financeiroData && financeiroData.length > 0) {
         // Processar dados financeiros para reconstruir os valores originais
-        const entrada = financeiroData.find(f => f.tipo === 'Entrada');
-        const honorarios = financeiroData.filter(f => f.tipo === 'Honorários');
-        const tmp = financeiroData.filter(f => f.tipo === 'TMP');
+        const entrada = financeiroData.find((f) => f.tipo === "Entrada");
+        const honorarios = financeiroData.filter(
+          (f) => f.tipo === "Honorários"
+        );
+        const tmp = financeiroData.filter((f) => f.tipo === "TMP");
 
-        const valorHonorarios = honorarios.reduce((total, h) => total + Number(h.valor), 0) + (entrada ? Number(entrada.valor) : 0);
-        
+        const valorHonorarios =
+          honorarios.reduce((total, h) => total + Number(h.valor), 0) +
+          (entrada ? Number(entrada.valor) : 0);
+
         setFinanceiroData({
-          valorHonorarios: valorHonorarios.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          valorEntrada: entrada ? Number(entrada.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '',
-          dataEntrada: entrada?.vencimento || '',
+          valorHonorarios: valorHonorarios.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }),
+          valorEntrada: entrada
+            ? Number(entrada.valor).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })
+            : "",
+          dataEntrada: entrada?.vencimento || "",
           quantidadeParcelas: honorarios.length.toString(),
-          dataPrimeiroVencimento: honorarios[0]?.vencimento || '',
+          dataPrimeiroVencimento: honorarios[0]?.vencimento || "",
           incluirTMP: tmp.length > 0,
-          valorTMP: tmp.length > 0 ? Number(tmp[0].valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '',
-          vencimentoTMP: tmp[0]?.vencimento || '',
-          quantidadeMesesTMP: tmp.length.toString()
+          valorTMP:
+            tmp.length > 0
+              ? Number(tmp[0].valor).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })
+              : "",
+          vencimentoTMP: tmp[0]?.vencimento || "",
+          quantidadeMesesTMP: tmp.length.toString(),
         });
       }
 
       // Carregar observações
       const { data: observacoesData, error: observacoesError } = await supabase
-        .from('observacoes_processo')
-        .select('*')
-        .eq('processo_id', id)
-        .eq('user_id', user?.id);
+        .from("observacoes_processo")
+        .select("*")
+        .eq("processo_id", id)
+        .eq("user_id", user?.id);
 
       if (!observacoesError && observacoesData) {
-        setObservacoes(observacoesData.map(obs => ({
-          titulo: obs.titulo,
-          conteudo: obs.conteudo
-        })));
+        setObservacoes(
+          observacoesData.map((obs) => ({
+            id: obs.id, // Garantir que o ID UUID está presente
+            titulo: obs.titulo,
+            conteudo: obs.conteudo,
+          }))
+        );
       }
 
       // Carregar documentos
       const { data: documentosData, error: documentosError } = await supabase
-        .from('documentos_processo')
-        .select('*')
-        .eq('processo_id', id)
-        .eq('user_id', user?.id);
+        .from("documentos_processo")
+        .select("*")
+        .eq("processo_id", id)
+        .eq("user_id", user?.id);
 
       if (!documentosError && documentosData) {
         setDocumentos(documentosData);
@@ -201,28 +285,27 @@ const NewProcess = () => {
 
       // Carregar responsável financeiro
       const { data: responsavelData, error: responsavelError } = await supabase
-        .from('responsavel_financeiro')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
+        .from("responsavel_financeiro")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (!responsavelError && responsavelData && responsavelData.length > 0) {
         const resp = responsavelData[0];
         setResponsavelData({
-          nome: resp.nome || '',
-          rg: resp.rg || '',
-          cpf: resp.cpf || '',
-          data_nascimento: resp.data_nascimento || '',
-          telefone: resp.telefone || '',
-          email: resp.email || '',
-          endereco_completo: resp.endereco_completo || '',
-          cep: resp.cep || ''
+          nome: resp.nome || "",
+          rg: resp.rg || "",
+          cpf: resp.cpf || "",
+          data_nascimento: resp.data_nascimento || "",
+          telefone: resp.telefone || "",
+          email: resp.email || "",
+          endereco_completo: resp.endereco_completo || "",
+          cep: resp.cep || "",
         });
       }
-
     } catch (error) {
-      console.error('Erro ao carregar dados do processo:', error);
+      console.error("Erro ao carregar dados do processo:", error);
       toast({
         variant: "destructive",
         title: "Erro",
@@ -246,12 +329,55 @@ const NewProcess = () => {
   };
 
   const handleSubmit = async () => {
-    console.log('=== INICIANDO SALVAMENTO ===');
-    console.log('User:', user);
-    console.log('Cliente Data:', clienteData);
-    console.log('Processo Data:', processoData);
-    console.log('Financeiro Data:', financeiroData);
-    
+    console.log("=== INICIANDO SALVAMENTO ===");
+    console.log("User:", user);
+    console.log("Cliente Data:", clienteData);
+    console.log("Processo Data:", processoData);
+    console.log("Financeiro data:", financeiroData);
+    console.log("Responsável data:", responsavelData);
+    console.log("User ID:", user?.id);
+
+    // Verifique se os valores estão sendo convertidos corretamente:
+    console.log(
+      "Valor honorários convertido:",
+      parseCurrency(financeiroData.valorHonorarios)
+    );
+    console.log(
+      "Valor entrada convertido:",
+      parseCurrency(financeiroData.valorEntrada || "0")
+    );
+    console.log("Dados financeiros processados:", {
+      valorHonorarios: parseCurrency(financeiroData.valorHonorarios),
+      valorEntrada: parseCurrency(financeiroData.valorEntrada || "0"),
+      quantidadeParcelas: parseInt(financeiroData.quantidadeParcelas || "1"),
+      dataPrimeiroVencimento: financeiroData.dataPrimeiroVencimento,
+      incluirTMP: financeiroData.incluirTMP,
+      valorTMP: parseCurrency(financeiroData.valorTMP || "0"),
+      quantidadeMesesTMP: parseInt(financeiroData.quantidadeMesesTMP || "0"),
+    });
+    // Validação da parte financeira
+    if (parseCurrency(financeiroData.valorHonorarios) <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "Valor dos honorários deve ser maior que zero.",
+      });
+      return;
+    }
+
+    if (
+      financeiroData.dataPrimeiroVencimento &&
+      !financeiroData.quantidadeParcelas
+    ) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description:
+          "Quantidade de parcelas é obrigatória quando há data de vencimento.",
+      });
+      return;
+    }
+
     if (!user) {
       toast({
         variant: "destructive",
@@ -274,7 +400,7 @@ const NewProcess = () => {
     if (!processoData.numeroProcesso) {
       toast({
         variant: "destructive",
-        title: "Erro de validação", 
+        title: "Erro de validação",
         description: "Número do processo é obrigatório.",
       });
       return;
@@ -292,48 +418,254 @@ const NewProcess = () => {
     setLoading(true);
 
     try {
+      let clienteId = "";
+      let processoCreatedId = "";
+
       if (isEditMode && processoId) {
         // MODO DE EDIÇÃO - Atualizar dados existentes
-        console.log('=== ATUALIZANDO PROCESSO ===');
-        
+        console.log("=== ATUALIZANDO PROCESSO ===");
+
         // Primeiro buscar o processo existente
-        const { data: processoExistente, error: processoExistenteError } = await supabase
-          .from('processos')
-          .select('*, clientes(*)')
-          .eq('id', processoId)
-          .single();
+        const { data: processoExistente, error: processoExistenteError } =
+          await supabase
+            .from("processos")
+            .select("*, clientes(*)")
+            .eq("id", processoId)
+            .single();
 
         if (processoExistenteError) throw processoExistenteError;
 
+        clienteId = processoExistente.cliente_id;
+        processoCreatedId = processoId;
+
+        // 🔥 ADICIONE ESTA PARTE - LIMPAR E RECRIAR DADOS FINANCEIROS
+        console.log("=== ATUALIZANDO REGISTROS FINANCEIROS ===");
+
+        // Primeiro limpar os registros financeiros existentes
+        const { error: deleteFinanceError } = await supabase
+          .from("financeiro")
+          .delete()
+          .eq("cliente_nome", clienteData.nomeCompleto)
+          .eq("user_id", user.id);
+
+        if (deleteFinanceError) {
+          console.error("Erro ao limpar financeiro:", deleteFinanceError);
+          throw deleteFinanceError;
+        }
+        console.log("✅ Registros financeiros antigos removidos");
+
+        try {
+          if (financeiroData.valorHonorarios) {
+            const valorHonorarios = parseCurrency(
+              financeiroData.valorHonorarios
+            );
+            const valorEntrada = parseCurrency(
+              financeiroData.valorEntrada || "0"
+            );
+            const quantidadeParcelas = parseInt(
+              financeiroData.quantidadeParcelas || "1"
+            );
+
+            console.log("Valores financeiros:", {
+              valorHonorarios,
+              valorEntrada,
+              quantidadeParcelas,
+            });
+
+            if (valorEntrada > 0 && financeiroData.dataEntrada) {
+              console.log("Criando entrada...");
+              const { error: entradaError } = await supabase
+                .from("financeiro")
+                .insert([
+                  {
+                    user_id: user.id,
+                    cliente_nome: clienteData.nomeCompleto,
+                    valor: valorEntrada,
+                    tipo: "Entrada",
+                    status: "PENDENTE",
+                    vencimento: financeiroData.dataEntrada,
+                  },
+                ]);
+
+              if (entradaError) {
+                console.error("Erro ao criar entrada:", entradaError);
+                throw entradaError;
+              }
+              console.log("✅ Entrada criada com sucesso");
+            }
+
+            const valorRestante = valorHonorarios - valorEntrada;
+            const valorParcela = valorRestante / quantidadeParcelas;
+
+            if (financeiroData.dataPrimeiroVencimento) {
+              const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
+
+              console.log("Criando parcelas de honorários...", {
+                valorRestante,
+                valorParcela,
+              });
+
+              for (let i = 0; i < quantidadeParcelas; i++) {
+                const dataVencimento = new Date(dataBase);
+                dataVencimento.setMonth(dataVencimento.getMonth() + i);
+
+                const { error: parcelaError } = await supabase
+                  .from("financeiro")
+                  .insert([
+                    {
+                      user_id: user.id,
+                      cliente_nome: clienteData.nomeCompleto,
+                      valor: valorParcela,
+                      tipo: "Honorários",
+                      status: "PENDENTE",
+                      vencimento: dataVencimento.toISOString(),
+                    },
+                  ]);
+
+                if (parcelaError) {
+                  console.error(
+                    `Erro ao criar parcela ${i + 1}:`,
+                    parcelaError
+                  );
+                  throw parcelaError;
+                }
+              }
+              console.log("✅ Parcelas de honorários criadas com sucesso");
+            }
+
+            if (
+              financeiroData.incluirTMP &&
+              financeiroData.valorTMP &&
+              financeiroData.vencimentoTMP
+            ) {
+              console.log("Criando parcelas de TMP...");
+              const valorTMP = parseCurrency(financeiroData.valorTMP);
+              const quantidadeMesesTMP = parseInt(
+                financeiroData.quantidadeMesesTMP || "1"
+              );
+              const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
+
+              for (let i = 0; i < quantidadeMesesTMP; i++) {
+                const dataVencimentoTMP = new Date(dataBaseTMP);
+                dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
+
+                const { error: tmpError } = await supabase
+                  .from("financeiro")
+                  .insert([
+                    {
+                      user_id: user.id,
+                      cliente_nome: clienteData.nomeCompleto,
+                      valor: valorTMP,
+                      tipo: "TMP",
+                      status: "PENDENTE",
+                      vencimento: dataVencimentoTMP.toISOString(),
+                    },
+                  ]);
+
+                if (tmpError) {
+                  console.error(`Erro ao criar TMP ${i + 1}:`, tmpError);
+                  throw tmpError;
+                }
+              }
+              console.log("✅ Parcelas de TMP criadas com sucesso");
+            }
+          }
+        } catch (financeError) {
+          console.error(
+            "Erro específico na atualização financeira:",
+            financeError
+          );
+          throw financeError;
+        }
+
+        // 🔥 TAMBÉM ATUALIZE O RESPONSÁVEL FINANCEIRO
+        console.log("=== ATUALIZANDO RESPONSÁVEL FINANCEIRO ===");
+
+        // Primeiro limpar responsável existente (ou atualizar)
+        const { error: deleteRespError } = await supabase
+          .from("responsavel_financeiro")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("cpf", removeMask(responsavelData.cpf));
+
+        if (deleteRespError) {
+          console.error("Erro ao limpar responsável:", deleteRespError);
+          // Não precisa parar o processo por isso, só logar
+        }
+
+        if (responsavelData.nome && responsavelData.cpf) {
+          const { error: respError } = await supabase
+            .from("responsavel_financeiro")
+            .insert([
+              {
+                user_id: user.id,
+                nome: responsavelData.nome,
+                rg: removeMask(responsavelData.rg),
+                cpf: removeMask(responsavelData.cpf),
+                data_nascimento: responsavelData.data_nascimento,
+                telefone: removeMask(responsavelData.telefone),
+                email: responsavelData.email,
+                endereco_completo: responsavelData.endereco_completo,
+                cep: removeMask(responsavelData.cep),
+              },
+            ]);
+
+          if (respError) {
+            console.error("Erro ao salvar responsável financeiro:", respError);
+            throw respError;
+          }
+          console.log("✅ Responsável financeiro atualizado com sucesso");
+        }
+
+        toast({
+          title: "Processo atualizado!",
+          description: "Os dados do processo foram atualizados com sucesso.",
+        });
+
         // Atualizar dados do cliente
         const { error: clienteError } = await supabase
-          .from('clientes')
+          .from("clientes")
           .update({
             nome: clienteData.nomeCompleto,
             email: clienteData.email,
             telefone: clienteData.telefone,
-            cpf_cnpj: clienteData.cpf,
-            endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`
+            cpf_cnpj: removeMask(clienteData.cpf),
+            endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`,
           })
-          .eq('id', processoExistente.cliente_id);
+          .eq("id", processoExistente.cliente_id);
 
         if (clienteError) throw clienteError;
 
         // Atualizar dados do processo
         const { error: processoError } = await supabase
-          .from('processos')
+          .from("processos")
           .update({
             numero_processo: processoData.numeroProcesso,
             tipo_processo: processoData.tipoProcesso,
-            prazo: processoData.temPrazo ? processoData.prazo : null
+            prazo: processoData.temPrazo ? processoData.prazo : null,
           })
-          .eq('id', processoId);
+          .eq("id", processoId);
 
         if (processoError) throw processoError;
 
-        // Atualizar dados financeiros se necessário
-        // Por simplicidade, manteremos os registros financeiros existentes
-        // Em uma implementação mais avançada, você poderia implementar a atualização completa
+        // Limpar observações e documentos existentes antes de adicionar os novos
+        const { error: deleteObsError } = await supabase
+          .from("observacoes_processo")
+          .delete()
+          .eq("processo_id", processoId)
+          .eq("user_id", user.id);
+
+        if (deleteObsError)
+          console.error("Erro ao limpar observações:", deleteObsError);
+
+        const { error: deleteDocsError } = await supabase
+          .from("documentos_processo")
+          .delete()
+          .eq("processo_id", processoId)
+          .eq("user_id", user.id);
+
+        if (deleteDocsError)
+          console.error("Erro ao limpar documentos:", deleteDocsError);
 
         toast({
           title: "Processo atualizado!",
@@ -341,32 +673,33 @@ const NewProcess = () => {
         });
       } else {
         // MODO DE CRIAÇÃO - Criar novos registros
-        console.log('=== CRIANDO CLIENTE ===');
+        console.log("=== CRIANDO CLIENTE ===");
         const { data: clienteCreated, error: clienteError } = await supabase
-          .from('clientes')
+          .from("clientes")
           .insert([
             {
               user_id: user.id,
               nome: clienteData.nomeCompleto,
               email: clienteData.email,
               telefone: clienteData.telefone,
-              cpf_cnpj: clienteData.cpf,
-              endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`
-            }
+              cpf_cnpj: removeMask(clienteData.cpf),
+              endereco: `${clienteData.endereco}, ${clienteData.bairro}, ${clienteData.cidade} - ${clienteData.cep}`,
+            },
           ])
           .select()
           .single();
 
         if (clienteError) {
-          console.error('Erro ao criar cliente:', clienteError);
+          console.error("Erro ao criar cliente:", clienteError);
           throw clienteError;
         }
-        
-        console.log('Cliente criado com sucesso:', clienteCreated);
 
-        console.log('=== CRIANDO PROCESSO ===');
+        console.log("Cliente criado com sucesso:", clienteCreated);
+        clienteId = clienteCreated.id;
+
+        console.log("=== CRIANDO PROCESSO ===");
         const { data: processoCreated, error: processoError } = await supabase
-          .from('processos')
+          .from("processos")
           .insert([
             {
               user_id: user.id,
@@ -374,157 +707,165 @@ const NewProcess = () => {
               cliente_id: clienteCreated.id,
               tipo_processo: processoData.tipoProcesso,
               prazo: processoData.temPrazo ? processoData.prazo : null,
-              status: 'ATIVO'
-            }
+              status: "ATIVO",
+            },
           ])
           .select()
           .single();
 
         if (processoError) {
-          console.error('Erro ao criar processo:', processoError);
+          console.error("Erro ao criar processo:", processoError);
           throw processoError;
         }
 
-        console.log('Processo criado com sucesso:', processoCreated);
+        console.log("Processo criado com sucesso:", processoCreated);
+        processoCreatedId = processoCreated.id;
 
-        console.log('=== CRIANDO REGISTROS FINANCEIROS ===');
-        if (financeiroData.valorHonorarios) {
-          const valorHonorarios = parseCurrency(financeiroData.valorHonorarios);
-          const valorEntrada = parseCurrency(financeiroData.valorEntrada || '0');
-          const quantidadeParcelas = parseInt(financeiroData.quantidadeParcelas || '1');
+        console.log("=== CRIANDO REGISTROS FINANCEIROS ===");
+        try {
+          if (financeiroData.valorHonorarios) {
+            const valorHonorarios = parseCurrency(
+              financeiroData.valorHonorarios
+            );
+            const valorEntrada = parseCurrency(
+              financeiroData.valorEntrada || "0"
+            );
+            const quantidadeParcelas = parseInt(
+              financeiroData.quantidadeParcelas || "1"
+            );
 
-          console.log('Valores financeiros:', { valorHonorarios, valorEntrada, quantidadeParcelas });
+            console.log("Valores financeiros:", {
+              valorHonorarios,
+              valorEntrada,
+              quantidadeParcelas,
+            });
 
-          if (valorEntrada > 0) {
-            console.log('Criando entrada...');
-            const { error: entradaError } = await supabase
-              .from('financeiro')
-              .insert([
-                {
-                  user_id: user.id,
-                  cliente_nome: clienteData.nomeCompleto,
-                  valor: valorEntrada,
-                  tipo: 'Entrada',
-                  status: 'PENDENTE',
-                  vencimento: financeiroData.dataEntrada
-                }
-              ]);
-            
-            if (entradaError) {
-              console.error('Erro ao criar entrada:', entradaError);
-              throw entradaError;
-            }
-            console.log('Entrada criada com sucesso');
-          }
-
-          const valorRestante = valorHonorarios - valorEntrada;
-          const valorParcela = valorRestante / quantidadeParcelas;
-          const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
-
-          console.log('Criando parcelas de honorários...', { valorRestante, valorParcela });
-
-          for (let i = 0; i < quantidadeParcelas; i++) {
-            const dataVencimento = new Date(dataBase);
-            dataVencimento.setMonth(dataVencimento.getMonth() + i);
-
-            const { error: parcelaError } = await supabase
-              .from('financeiro')
-              .insert([
-                {
-                  user_id: user.id,
-                  cliente_nome: clienteData.nomeCompleto,
-                  valor: valorParcela,
-                  tipo: 'Honorários',
-                  status: 'PENDENTE',
-                  vencimento: dataVencimento.toISOString().split('T')[0]
-                }
-              ]);
-            
-            if (parcelaError) {
-              console.error(`Erro ao criar parcela ${i + 1}:`, parcelaError);
-              throw parcelaError;
-            }
-          }
-          console.log('Parcelas de honorários criadas com sucesso');
-
-          if (financeiroData.incluirTMP) {
-            console.log('Criando parcelas de TMP...');
-            const valorTMP = parseCurrency(financeiroData.valorTMP);
-            const quantidadeMesesTMP = parseInt(financeiroData.quantidadeMesesTMP || '1');
-            const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
-
-            for (let i = 0; i < quantidadeMesesTMP; i++) {
-              const dataVencimentoTMP = new Date(dataBaseTMP);
-              dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
-
-              const { error: tmpError } = await supabase
-                .from('financeiro')
+            if (valorEntrada > 0 && financeiroData.dataEntrada) {
+              console.log("Criando entrada...");
+              const { error: entradaError } = await supabase
+                .from("financeiro")
                 .insert([
                   {
                     user_id: user.id,
                     cliente_nome: clienteData.nomeCompleto,
-                    valor: valorTMP,
-                    tipo: 'TMP',
-                    status: 'PENDENTE',
-                    vencimento: dataVencimentoTMP.toISOString().split('T')[0]
-                  }
+                    valor: valorEntrada,
+                    tipo: "Entrada",
+                    status: "PENDENTE",
+                    vencimento: financeiroData.dataEntrada,
+                  },
                 ]);
-              
-              if (tmpError) {
-                console.error(`Erro ao criar TMP ${i + 1}:`, tmpError);
-                throw tmpError;
+
+              if (entradaError) {
+                console.error("Erro ao criar entrada:", entradaError);
+                throw entradaError;
               }
+              console.log("Entrada criada com sucesso");
             }
-            console.log('Parcelas de TMP criadas com sucesso');
-          }
-        }
 
-        console.log('=== SALVANDO OBSERVAÇÕES ===');
-        if (observacoes.length > 0) {
-          for (const observacao of observacoes) {
-            const { error: obsError } = await supabase
-              .from('observacoes_processo')
-              .insert([
-                {
-                  user_id: user.id,
-                  processo_id: processoCreated.id,
-                  cliente_nome: clienteData.nomeCompleto,
-                  titulo: observacao.titulo,
-                  conteudo: observacao.conteudo
+            const valorRestante = valorHonorarios - valorEntrada;
+            const valorParcela = valorRestante / quantidadeParcelas;
+
+            if (financeiroData.dataPrimeiroVencimento) {
+              const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
+
+              console.log("Criando parcelas de honorários...", {
+                valorRestante,
+                valorParcela,
+              });
+
+              for (let i = 0; i < quantidadeParcelas; i++) {
+                const dataVencimento = new Date(dataBase);
+                dataVencimento.setMonth(dataVencimento.getMonth() + i);
+
+                const { error: parcelaError } = await supabase
+                  .from("financeiro")
+                  .insert([
+                    {
+                      user_id: user.id,
+                      cliente_nome: clienteData.nomeCompleto,
+                      valor: valorParcela,
+                      tipo: "Honorários",
+                      status: "PENDENTE",
+                      vencimento: dataVencimento.toISOString(),
+                    },
+                  ]);
+
+                if (parcelaError) {
+                  console.error(
+                    `Erro ao criar parcela ${i + 1}:`,
+                    parcelaError
+                  );
+                  throw parcelaError;
                 }
-              ]);
-            
-            if (obsError) {
-              console.error('Erro ao salvar observação:', obsError);
-              throw obsError;
+              }
+              console.log("Parcelas de honorários criadas com sucesso");
+            }
+
+            if (
+              financeiroData.incluirTMP &&
+              financeiroData.valorTMP &&
+              financeiroData.vencimentoTMP
+            ) {
+              console.log("Criando parcelas de TMP...");
+              const valorTMP = parseCurrency(financeiroData.valorTMP);
+              const quantidadeMesesTMP = parseInt(
+                financeiroData.quantidadeMesesTMP || "1"
+              );
+              const dataBaseTMP = new Date(financeiroData.vencimentoTMP);
+
+              for (let i = 0; i < quantidadeMesesTMP; i++) {
+                const dataVencimentoTMP = new Date(dataBaseTMP);
+                dataVencimentoTMP.setMonth(dataVencimentoTMP.getMonth() + i);
+
+                const { error: tmpError } = await supabase
+                  .from("financeiro")
+                  .insert([
+                    {
+                      user_id: user.id,
+                      cliente_nome: clienteData.nomeCompleto,
+                      valor: valorTMP,
+                      tipo: "TMP",
+                      status: "PENDENTE",
+                      vencimento: dataVencimentoTMP.toISOString(), // CORRIGIDO
+                    },
+                  ]);
+
+                if (tmpError) {
+                  console.error(`Erro ao criar TMP ${i + 1}:`, tmpError);
+                  throw tmpError;
+                }
+              }
+              console.log("Parcelas de TMP criadas com sucesso");
             }
           }
-          console.log('Observações salvas com sucesso');
+        } catch (financeError) {
+          console.error("Erro específico na criação financeira:", financeError);
+          throw financeError;
         }
 
-        console.log('=== SALVANDO RESPONSÁVEL FINANCEIRO ===');
+        console.log("=== SALVANDO RESPONSÁVEL FINANCEIRO ===");
         if (responsavelData.nome && responsavelData.cpf) {
           const { error: respError } = await supabase
-            .from('responsavel_financeiro')
+            .from("responsavel_financeiro")
             .insert([
               {
                 user_id: user.id,
                 nome: responsavelData.nome,
-                rg: responsavelData.rg,
-                cpf: responsavelData.cpf,
+                rg: removeMask(responsavelData.rg),
+                cpf: removeMask(responsavelData.cpf),
                 data_nascimento: responsavelData.data_nascimento,
-                telefone: responsavelData.telefone,
+                telefone: removeMask(responsavelData.telefone),
                 email: responsavelData.email,
                 endereco_completo: responsavelData.endereco_completo,
-                cep: responsavelData.cep
-              }
+                cep: removeMask(responsavelData.cep),
+              },
             ]);
-          
+
           if (respError) {
-            console.error('Erro ao salvar responsável financeiro:', respError);
+            console.error("Erro ao salvar responsável financeiro:", respError);
             throw respError;
           }
-          console.log('Responsável financeiro salvo com sucesso');
+          console.log("Responsável financeiro salvo com sucesso");
         }
 
         toast({
@@ -533,13 +874,68 @@ const NewProcess = () => {
         });
       }
 
-      navigate('/dashboard');
+      // SALVAR OBSERVAÇÕES (para ambos os modos)
+      console.log("=== SALVANDO OBSERVAÇÕES ===");
+      if (observacoes.length > 0 && processoCreatedId) {
+        for (const observacao of observacoes) {
+          // Inserir nova observação (não tentar atualizar para evitar problemas com UUID)
+          const { error: obsError } = await supabase
+            .from("observacoes_processo")
+            .insert([
+              {
+                user_id: user.id,
+                processo_id: processoCreatedId,
+                cliente_nome: clienteData.nomeCompleto,
+                titulo: observacao.titulo,
+                conteudo: observacao.conteudo,
+              },
+            ]);
+
+          if (obsError) {
+            console.error("Erro ao salvar observação:", obsError);
+            throw obsError;
+          }
+        }
+        console.log("Observações salvas com sucesso");
+      }
+
+      // SALVAR DOCUMENTOS (para ambos os modos)
+      console.log("=== SALVANDO DOCUMENTOS ===");
+      if (documentos.length > 0 && processoCreatedId) {
+        for (const documento of documentos) {
+          // Inserir novo documento (não tentar atualizar para evitar problemas com UUID)
+          const { error: docError } = await supabase
+            .from("documentos_processo")
+            .insert([
+              {
+                user_id: user.id,
+                processo_id: processoCreatedId,
+                cliente_nome: clienteData.nomeCompleto,
+                nome_arquivo: documento.nome_arquivo,
+                tipo_arquivo: documento.tipo_arquivo,
+                tamanho_arquivo: documento.tamanho_arquivo,
+                url_arquivo: documento.url_arquivo,
+                descricao: documento.descricao || "",
+              },
+            ]);
+
+          if (docError) {
+            console.error("Erro ao salvar documento:", docError);
+            throw docError;
+          }
+        }
+        console.log("Documentos salvos com sucesso");
+      }
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 10000);
     } catch (error: any) {
-      console.error('=== ERRO GERAL ===', error);
+      console.error("=== ERRO GERAL ===", error);
       toast({
         variant: "destructive",
         title: "Erro ao criar processo",
-        description: error.message,
+        description: error.message || "Erro desconhecido ao salvar o processo",
       });
     } finally {
       setLoading(false);
@@ -561,7 +957,9 @@ const NewProcess = () => {
           <Input
             id="nomeCompleto"
             value={clienteData.nomeCompleto}
-            onChange={(e) => setClienteData({ ...clienteData, nomeCompleto: e.target.value })}
+            onChange={(e) =>
+              setClienteData({ ...clienteData, nomeCompleto: e.target.value })
+            }
             placeholder="Nome completo do cliente"
             required
           />
@@ -573,8 +971,9 @@ const NewProcess = () => {
             <Input
               id="rg"
               value={clienteData.rg}
-              onChange={(e) => setClienteData({ ...clienteData, rg: e.target.value })}
+              onChange={(e) => handleRgChange(e.target.value)}
               placeholder="Número do RG"
+              maxLength={12}
             />
           </div>
 
@@ -583,8 +982,9 @@ const NewProcess = () => {
             <Input
               id="cpf"
               value={clienteData.cpf}
-              onChange={(e) => setClienteData({ ...clienteData, cpf: e.target.value })}
+              onChange={(e) => handleCpfChange(e.target.value)}
               placeholder="000.000.000-00"
+              maxLength={14}
             />
           </div>
         </div>
@@ -596,7 +996,12 @@ const NewProcess = () => {
               id="dataNascimento"
               type="date"
               value={clienteData.dataNascimento}
-              onChange={(e) => setClienteData({ ...clienteData, dataNascimento: e.target.value })}
+              onChange={(e) =>
+                setClienteData({
+                  ...clienteData,
+                  dataNascimento: e.target.value,
+                })
+              }
             />
           </div>
 
@@ -605,8 +1010,9 @@ const NewProcess = () => {
             <Input
               id="telefone"
               value={clienteData.telefone}
-              onChange={(e) => setClienteData({ ...clienteData, telefone: e.target.value })}
+              onChange={(e) => handleTelefoneChange(e.target.value)}
               placeholder="(00) 00000-0000"
+              maxLength={15}
             />
           </div>
         </div>
@@ -617,7 +1023,9 @@ const NewProcess = () => {
             id="email"
             type="email"
             value={clienteData.email}
-            onChange={(e) => setClienteData({ ...clienteData, email: e.target.value })}
+            onChange={(e) =>
+              setClienteData({ ...clienteData, email: e.target.value })
+            }
             placeholder="email@cliente.com"
           />
         </div>
@@ -627,7 +1035,9 @@ const NewProcess = () => {
           <Input
             id="endereco"
             value={clienteData.endereco}
-            onChange={(e) => setClienteData({ ...clienteData, endereco: e.target.value })}
+            onChange={(e) =>
+              setClienteData({ ...clienteData, endereco: e.target.value })
+            }
             placeholder="Rua, número, complemento"
           />
         </div>
@@ -638,7 +1048,9 @@ const NewProcess = () => {
             <Input
               id="bairro"
               value={clienteData.bairro}
-              onChange={(e) => setClienteData({ ...clienteData, bairro: e.target.value })}
+              onChange={(e) =>
+                setClienteData({ ...clienteData, bairro: e.target.value })
+              }
               placeholder="Bairro"
             />
           </div>
@@ -648,7 +1060,9 @@ const NewProcess = () => {
             <Input
               id="cidade"
               value={clienteData.cidade}
-              onChange={(e) => setClienteData({ ...clienteData, cidade: e.target.value })}
+              onChange={(e) =>
+                setClienteData({ ...clienteData, cidade: e.target.value })
+              }
               placeholder="Cidade"
             />
           </div>
@@ -659,17 +1073,21 @@ const NewProcess = () => {
           <Input
             id="cep"
             value={clienteData.cep}
-            onChange={(e) => setClienteData({ ...clienteData, cep: e.target.value })}
+            onChange={(e) => handleCepChange(e.target.value)}
             placeholder="00000-000"
+            maxLength={9}
           />
         </div>
 
         <div className="flex justify-between pt-6">
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Cancelar
           </Button>
-          <Button onClick={handleNextStep} className="bg-primary hover:bg-primary/90">
+          <Button
+            onClick={handleNextStep}
+            className="bg-primary hover:bg-primary/90"
+          >
             Próximo
             <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
           </Button>
@@ -685,7 +1103,9 @@ const NewProcess = () => {
           <FileText className="w-16 h-16 text-primary mx-auto" />
         </div>
         <CardTitle className="text-2xl">Dados do Processo</CardTitle>
-        <p className="text-muted-foreground">Informações sobre o processo judicial</p>
+        <p className="text-muted-foreground">
+          Informações sobre o processo judicial
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
@@ -693,7 +1113,12 @@ const NewProcess = () => {
           <Input
             id="numeroProcesso"
             value={processoData.numeroProcesso}
-            onChange={(e) => setProcessoData({ ...processoData, numeroProcesso: e.target.value })}
+            onChange={(e) =>
+              setProcessoData({
+                ...processoData,
+                numeroProcesso: e.target.value,
+              })
+            }
             placeholder="0000000-00.0000.0.00.0000"
             required
           />
@@ -701,23 +1126,32 @@ const NewProcess = () => {
 
         <div>
           <Label htmlFor="tipoProcesso">Tipo do Processo *</Label>
-          <Select value={processoData.tipoProcesso} onValueChange={(value) => setProcessoData({ ...processoData, tipoProcesso: value })}>
+          <Select
+            value={processoData.tipoProcesso}
+            onValueChange={(value) =>
+              setProcessoData({ ...processoData, tipoProcesso: value })
+            }
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione o tipo" />
             </SelectTrigger>
             <SelectContent>
               {tiposProcesso.map((tipo) => (
-                <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                <SelectItem key={tipo} value={tipo}>
+                  {tipo}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="flex items-center space-x-2">
-          <Checkbox 
+          <Checkbox
             id="temPrazo"
             checked={processoData.temPrazo}
-            onCheckedChange={(checked) => setProcessoData({ ...processoData, temPrazo: checked as boolean })}
+            onCheckedChange={(checked) =>
+              setProcessoData({ ...processoData, temPrazo: checked as boolean })
+            }
           />
           <Label htmlFor="temPrazo">Este processo tem prazo</Label>
         </div>
@@ -729,7 +1163,9 @@ const NewProcess = () => {
               id="prazo"
               type="date"
               value={processoData.prazo}
-              onChange={(e) => setProcessoData({ ...processoData, prazo: e.target.value })}
+              onChange={(e) =>
+                setProcessoData({ ...processoData, prazo: e.target.value })
+              }
             />
           </div>
         )}
@@ -739,7 +1175,10 @@ const NewProcess = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Anterior
           </Button>
-          <Button onClick={handleNextStep} className="bg-primary hover:bg-primary/90">
+          <Button
+            onClick={handleNextStep}
+            className="bg-primary hover:bg-primary/90"
+          >
             Próximo
             <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
           </Button>
@@ -750,6 +1189,7 @@ const NewProcess = () => {
 
   const renderStep3 = () => {
     const handleCurrencyChange = (field: string, value: string) => {
+      const cleanValue = value.replace(/[^\d,]/g, "").replace(",", ".");
       const formattedValue = formatCurrencyInput(value);
       setFinanceiroData({ ...financeiroData, [field]: formattedValue });
     };
@@ -759,21 +1199,21 @@ const NewProcess = () => {
         return {
           valorRestante: 0,
           valorParcela: 0,
-          totalHonorarios: 0
+          totalHonorarios: 0,
         };
       }
-      
+
       const honorarios = parseCurrency(financeiroData.valorHonorarios);
-      const entrada = parseCurrency(financeiroData.valorEntrada || '0');
-      const parcelas = parseInt(financeiroData.quantidadeParcelas || '1');
-      
+      const entrada = parseCurrency(financeiroData.valorEntrada || "0");
+      const parcelas = parseInt(financeiroData.quantidadeParcelas || "1");
+
       const valorRestante = honorarios - entrada;
       const valorParcela = valorRestante / parcelas;
-      
+
       return {
         valorRestante,
         valorParcela,
-        totalHonorarios: honorarios
+        totalHonorarios: honorarios,
       };
     };
 
@@ -786,7 +1226,9 @@ const NewProcess = () => {
             <DollarSign className="w-16 h-16 text-primary mx-auto" />
           </div>
           <CardTitle className="text-2xl">Configuração Financeira</CardTitle>
-          <p className="text-muted-foreground">Configure os valores e formas de pagamento</p>
+          <p className="text-muted-foreground">
+            Configure os valores e formas de pagamento
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
@@ -794,7 +1236,9 @@ const NewProcess = () => {
             <Input
               id="valorHonorarios"
               value={financeiroData.valorHonorarios}
-              onChange={(e) => handleCurrencyChange('valorHonorarios', e.target.value)}
+              onChange={(e) =>
+                handleCurrencyChange("valorHonorarios", e.target.value)
+              }
               placeholder="R$ 0,00"
               required
             />
@@ -806,7 +1250,9 @@ const NewProcess = () => {
               <Input
                 id="valorEntrada"
                 value={financeiroData.valorEntrada}
-                onChange={(e) => handleCurrencyChange('valorEntrada', e.target.value)}
+                onChange={(e) =>
+                  handleCurrencyChange("valorEntrada", e.target.value)
+                }
                 placeholder="R$ 0,00"
               />
             </div>
@@ -817,7 +1263,12 @@ const NewProcess = () => {
                 id="dataEntrada"
                 type="date"
                 value={financeiroData.dataEntrada}
-                onChange={(e) => setFinanceiroData({ ...financeiroData, dataEntrada: e.target.value })}
+                onChange={(e) =>
+                  setFinanceiroData({
+                    ...financeiroData,
+                    dataEntrada: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
@@ -830,118 +1281,173 @@ const NewProcess = () => {
                 type="number"
                 min="1"
                 value={financeiroData.quantidadeParcelas}
-                onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeParcelas: e.target.value })}
+                onChange={(e) =>
+                  setFinanceiroData({
+                    ...financeiroData,
+                    quantidadeParcelas: e.target.value,
+                  })
+                }
                 placeholder="Ex: 12"
               />
             </div>
 
             <div>
-              <Label htmlFor="dataPrimeiroVencimento">Data do Primeiro Vencimento</Label>
+              <Label htmlFor="dataPrimeiroVencimento">
+                Data do Primeiro Vencimento
+              </Label>
               <Input
                 id="dataPrimeiroVencimento"
                 type="date"
                 value={financeiroData.dataPrimeiroVencimento}
-                onChange={(e) => setFinanceiroData({ ...financeiroData, dataPrimeiroVencimento: e.target.value })}
+                onChange={(e) =>
+                  setFinanceiroData({
+                    ...financeiroData,
+                    dataPrimeiroVencimento: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
 
           {/* Resumo do parcelamento */}
-          {financeiroData.valorHonorarios && financeiroData.quantidadeParcelas && (
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Resumo do Parcelamento:</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Total dos Honorários:</span>
-                  <span className="font-medium">{financeiroData.valorHonorarios}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Valor da Entrada:</span>
-                  <span className="font-medium">{financeiroData.valorEntrada || 'R$ 0,00'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Valor a Parcelar:</span>
-                  <span className="font-medium">{formatCurrency(resumo.valorRestante)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Valor por Parcela:</span>
-                  <span className="font-medium">{formatCurrency(resumo.valorParcela)}</span>
+          {financeiroData.valorHonorarios &&
+            financeiroData.quantidadeParcelas && (
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Resumo do Parcelamento:</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Total dos Honorários:</span>
+                    <span className="font-medium">
+                      {financeiroData.valorHonorarios}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Valor da Entrada:</span>
+                    <span className="font-medium">
+                      {financeiroData.valorEntrada || "R$ 0,00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Valor a Parcelar:</span>
+                    <span className="font-medium">
+                      {formatCurrency(resumo.valorRestante)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Valor por Parcela:</span>
+                    <span className="font-medium">
+                      {formatCurrency(resumo.valorParcela)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Checkbox 
+              <Checkbox
                 id="incluirTMP"
                 checked={financeiroData.incluirTMP}
-                onCheckedChange={(checked) => setFinanceiroData({ ...financeiroData, incluirTMP: checked as boolean })}
+                onCheckedChange={(checked) =>
+                  setFinanceiroData({
+                    ...financeiroData,
+                    incluirTMP: checked as boolean,
+                  })
+                }
               />
-              <Label htmlFor="incluirTMP">Incluir TMP (Taxa de Manutenção Processual)</Label>
+              <Label htmlFor="incluirTMP">
+                Incluir TMP (Taxa de Manutenção Processual)
+              </Label>
             </div>
 
             {financeiroData.incluirTMP && (
               <div className="bg-muted p-4 rounded-lg space-y-4">
                 <h4 className="font-medium">Configuração da TMP:</h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="valorTMP">Valor da TMP *</Label>
                     <Input
                       id="valorTMP"
                       value={financeiroData.valorTMP}
-                      onChange={(e) => handleCurrencyChange('valorTMP', e.target.value)}
+                      onChange={(e) =>
+                        handleCurrencyChange("valorTMP", e.target.value)
+                      }
                       placeholder="R$ 0,00"
                       required
                     />
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="vencimentoTMP">Primeiro Vencimento da TMP *</Label>
+                    <Label htmlFor="vencimentoTMP">
+                      Primeiro Vencimento da TMP *
+                    </Label>
                     <Input
                       id="vencimentoTMP"
                       type="date"
                       value={financeiroData.vencimentoTMP}
-                      onChange={(e) => setFinanceiroData({ ...financeiroData, vencimentoTMP: e.target.value })}
+                      onChange={(e) =>
+                        setFinanceiroData({
+                          ...financeiroData,
+                          vencimentoTMP: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="quantidadeMesesTMP">Quantidade de Meses da TMP *</Label>
+                  <Label htmlFor="quantidadeMesesTMP">
+                    Quantidade de Meses da TMP *
+                  </Label>
                   <Input
                     id="quantidadeMesesTMP"
                     type="number"
                     min="1"
                     value={financeiroData.quantidadeMesesTMP}
-                    onChange={(e) => setFinanceiroData({ ...financeiroData, quantidadeMesesTMP: e.target.value })}
+                    onChange={(e) =>
+                      setFinanceiroData({
+                        ...financeiroData,
+                        quantidadeMesesTMP: e.target.value,
+                      })
+                    }
                     placeholder="Ex: 12"
                     required
                   />
                 </div>
 
-                {financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && (
-                  <div className="bg-background p-3 rounded border">
-                    <p className="text-sm">
-                      <span className="font-medium">Total TMP:</span> {formatCurrency(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP))}
-                      <br />
-                      <span className="font-medium">Valor Mensal:</span> {financeiroData.valorTMP}
-                      <br />
-                      <span className="font-medium">Duração:</span> {financeiroData.quantidadeMesesTMP} meses
-                    </p>
-                  </div>
-                )}
+                {financeiroData.valorTMP &&
+                  financeiroData.quantidadeMesesTMP && (
+                    <div className="bg-background p-3 rounded border">
+                      <p className="text-sm">
+                        <span className="font-medium">Total TMP:</span>{" "}
+                        {formatCurrency(
+                          parseCurrency(financeiroData.valorTMP) *
+                            parseInt(financeiroData.quantidadeMesesTMP)
+                        )}
+                        <br />
+                        <span className="font-medium">Valor Mensal:</span>{" "}
+                        {financeiroData.valorTMP}
+                        <br />
+                        <span className="font-medium">Duração:</span>{" "}
+                        {financeiroData.quantidadeMesesTMP} meses
+                      </p>
+                    </div>
+                  )}
               </div>
             )}
           </div>
 
           {/* Seção do Responsável Financeiro */}
           <div className="space-y-4">
-            <h4 className="font-medium text-lg border-t pt-6">Responsável Financeiro</h4>
-            <p className="text-sm text-muted-foreground">Cadastre os dados da pessoa responsável pelo financeiro</p>
-            
+            <h4 className="font-medium text-lg border-t pt-6">
+              Responsável Financeiro
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              Cadastre os dados da pessoa responsável pelo financeiro
+            </p>
+
             <div className="bg-muted p-4 rounded-lg space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -949,19 +1455,25 @@ const NewProcess = () => {
                   <Input
                     id="responsavelNome"
                     value={responsavelData.nome}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, nome: e.target.value })}
+                    onChange={(e) =>
+                      setResponsavelData({
+                        ...responsavelData,
+                        nome: e.target.value,
+                      })
+                    }
                     placeholder="Digite o nome completo"
                     required
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="responsavelRG">RG *</Label>
                   <Input
                     id="responsavelRG"
                     value={responsavelData.rg}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, rg: e.target.value })}
+                    onChange={(e) => handleResponsavelRgChange(e.target.value)}
                     placeholder="Digite o RG"
+                    maxLength={12}
                     required
                   />
                 </div>
@@ -971,19 +1483,27 @@ const NewProcess = () => {
                   <Input
                     id="responsavelCPF"
                     value={responsavelData.cpf}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, cpf: e.target.value })}
+                    onChange={(e) => handleResponsavelCpfChange(e.target.value)}
                     placeholder="Digite o CPF"
+                    maxLength={14}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="responsavelDataNascimento">Data de Nascimento *</Label>
+                  <Label htmlFor="responsavelDataNascimento">
+                    Data de Nascimento *
+                  </Label>
                   <Input
                     id="responsavelDataNascimento"
                     type="date"
                     value={responsavelData.data_nascimento}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, data_nascimento: e.target.value })}
+                    onChange={(e) =>
+                      setResponsavelData({
+                        ...responsavelData,
+                        data_nascimento: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
@@ -993,8 +1513,11 @@ const NewProcess = () => {
                   <Input
                     id="responsavelTelefone"
                     value={responsavelData.telefone}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, telefone: e.target.value })}
+                    onChange={(e) =>
+                      handleResponsavelTelefoneChange(e.target.value)
+                    }
                     placeholder="Digite o telefone"
+                    maxLength={15}
                     required
                   />
                 </div>
@@ -1005,7 +1528,12 @@ const NewProcess = () => {
                     id="responsavelEmail"
                     type="email"
                     value={responsavelData.email}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, email: e.target.value })}
+                    onChange={(e) =>
+                      setResponsavelData({
+                        ...responsavelData,
+                        email: e.target.value,
+                      })
+                    }
                     placeholder="Digite o e-mail"
                     required
                   />
@@ -1016,8 +1544,9 @@ const NewProcess = () => {
                   <Input
                     id="responsavelCEP"
                     value={responsavelData.cep}
-                    onChange={(e) => setResponsavelData({ ...responsavelData, cep: e.target.value })}
+                    onChange={(e) => handleResponsavelCepChange(e.target.value)}
                     placeholder="Digite o CEP"
+                    maxLength={9}
                     required
                   />
                 </div>
@@ -1028,7 +1557,12 @@ const NewProcess = () => {
                 <Textarea
                   id="responsavelEndereco"
                   value={responsavelData.endereco_completo}
-                  onChange={(e) => setResponsavelData({ ...responsavelData, endereco_completo: e.target.value })}
+                  onChange={(e) =>
+                    setResponsavelData({
+                      ...responsavelData,
+                      endereco_completo: e.target.value,
+                    })
+                  }
                   placeholder="Digite o endereço completo"
                   rows={3}
                   required
@@ -1038,146 +1572,232 @@ const NewProcess = () => {
           </div>
 
           {/* Preview das Parcelas */}
-          {financeiroData.valorHonorarios && financeiroData.quantidadeParcelas && financeiroData.dataPrimeiroVencimento && (
-            <div className="space-y-4">
-              <h4 className="font-medium text-lg">Preview das Parcelas</h4>
-              
-              {/* Entrada */}
-              {financeiroData.valorEntrada && financeiroData.dataEntrada && (
-                <div className="bg-background p-4 rounded-lg border">
-                  <h5 className="font-medium mb-3 text-green-700">Entrada</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
-                    <div>
-                      <span className="font-medium">Valor:</span>
-                      <p className="text-green-600 font-semibold">{financeiroData.valorEntrada}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Vencimento:</span>
-                      <p>{new Date(financeiroData.dataEntrada).toLocaleDateString('pt-BR')}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Status:</span>
-                      <p className="text-orange-600">Pendente</p>
-                    </div>
-                    <div>
-                      <Button size="sm" disabled className="opacity-50">
-                        Dar Baixa
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {financeiroData.valorHonorarios &&
+            financeiroData.quantidadeParcelas &&
+            financeiroData.dataPrimeiroVencimento && (
+              <div className="space-y-4">
+                <h4 className="font-medium text-lg">Preview das Parcelas</h4>
 
-              {/* Honorários */}
-              <div className="bg-background p-4 rounded-lg border">
-                <h5 className="font-medium mb-3 text-blue-700">Honorários ({financeiroData.quantidadeParcelas} parcelas)</h5>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {Array.from({ length: parseInt(financeiroData.quantidadeParcelas) }, (_, index) => {
-                    const dataBase = new Date(financeiroData.dataPrimeiroVencimento);
-                    const dataVencimento = new Date(dataBase);
-                    dataVencimento.setMonth(dataVencimento.getMonth() + index);
-                    
-                    return (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
-                        <div>
-                          <span className="font-medium">Parcela {index + 1}:</span>
-                          <p className="text-blue-600 font-semibold">{formatCurrency(resumo.valorParcela)}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Vencimento:</span>
-                          <p>{dataVencimento.toLocaleDateString('pt-BR')}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Status:</span>
-                          <p className="text-orange-600">Pendente</p>
-                        </div>
-                        <div>
-                          <Button size="sm" disabled className="opacity-50">
-                            Dar Baixa
-                          </Button>
-                          <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
-                        </div>
+                {/* Entrada */}
+                {financeiroData.valorEntrada && financeiroData.dataEntrada && (
+                  <div className="bg-background p-4 rounded-lg border">
+                    <h5 className="font-medium mb-3 text-green-700">Entrada</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
+                      <div>
+                        <span className="font-medium">Valor:</span>
+                        <p className="text-green-600 font-semibold">
+                          {financeiroData.valorEntrada}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* TMP */}
-              {financeiroData.incluirTMP && financeiroData.valorTMP && financeiroData.quantidadeMesesTMP && financeiroData.vencimentoTMP && (
-                <div className="bg-background p-4 rounded-lg border">
-                  <h5 className="font-medium mb-3 text-orange-700">TMP - Taxa de Manutenção Processual ({financeiroData.quantidadeMesesTMP} parcelas)</h5>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {Array.from({ length: parseInt(financeiroData.quantidadeMesesTMP) }, (_, index) => {
-                      const dataBase = new Date(financeiroData.vencimentoTMP);
-                      const dataVencimento = new Date(dataBase);
-                      dataVencimento.setMonth(dataVencimento.getMonth() + index);
-                      
-                      return (
-                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted">
-                          <div>
-                            <span className="font-medium">TMP {index + 1}:</span>
-                            <p className="text-orange-600 font-semibold">{financeiroData.valorTMP}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Vencimento:</span>
-                            <p>{dataVencimento.toLocaleDateString('pt-BR')}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Status:</span>
-                            <p className="text-orange-600">Pendente</p>
-                          </div>
-                          <div>
-                            <Button size="sm" disabled className="opacity-50">
-                              Dar Baixa
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-1">Disponível após salvar</p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                      <div>
+                        <span className="font-medium">Vencimento:</span>
+                        <p>
+                          {new Date(
+                            financeiroData.dataEntrada
+                          ).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Status:</span>
+                        <p className="text-orange-600">Pendente</p>
+                      </div>
+                      <div>
+                        <Button size="sm" disabled className="opacity-50">
+                          Dar Baixa
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Disponível após salvar
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Resumo Total */}
-              <div className="bg-muted p-4 rounded-lg">
-                <h5 className="font-medium mb-3">Resumo Total</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><span className="font-medium">Total de Parcelas:</span> {
-                      (financeiroData.valorEntrada ? 1 : 0) + 
-                      parseInt(financeiroData.quantidadeParcelas || '0') + 
-                      (financeiroData.incluirTMP ? parseInt(financeiroData.quantidadeMesesTMP || '0') : 0)
-                    }</p>
-                    <p><span className="font-medium">Valor Total dos Honorários:</span> {financeiroData.valorHonorarios}</p>
-                    {financeiroData.incluirTMP && (
-                      <p><span className="font-medium">Valor Total da TMP:</span> {formatCurrency(parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP))}</p>
+                {/* Honorários */}
+                <div className="bg-background p-4 rounded-lg border">
+                  <h5 className="font-medium mb-3 text-blue-700">
+                    Honorários ({financeiroData.quantidadeParcelas} parcelas)
+                  </h5>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {Array.from(
+                      { length: parseInt(financeiroData.quantidadeParcelas) },
+                      (_, index) => {
+                        const dataBase = new Date(
+                          financeiroData.dataPrimeiroVencimento
+                        );
+                        const dataVencimento = new Date(dataBase);
+                        dataVencimento.setMonth(
+                          dataVencimento.getMonth() + index
+                        );
+
+                        return (
+                          <div
+                            key={index}
+                            className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted"
+                          >
+                            <div>
+                              <span className="font-medium">
+                                Parcela {index + 1}:
+                              </span>
+                              <p className="text-blue-600 font-semibold">
+                                {formatCurrency(resumo.valorParcela)}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Vencimento:</span>
+                              <p>
+                                {dataVencimento.toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Status:</span>
+                              <p className="text-orange-600">Pendente</p>
+                            </div>
+                            <div>
+                              <Button size="sm" disabled className="opacity-50">
+                                Dar Baixa
+                              </Button>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Disponível após salvar
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
                     )}
                   </div>
-                  <div>
-                    <p><span className="font-medium">Valor Total Geral:</span> {
-                      formatCurrency(
-                        parseCurrency(financeiroData.valorHonorarios) + 
-                        (financeiroData.incluirTMP ? parseCurrency(financeiroData.valorTMP) * parseInt(financeiroData.quantidadeMesesTMP) : 0)
-                      )
-                    }</p>
-                    <p className="text-muted-foreground text-xs mt-2">
-                      Após salvar o processo, você poderá gerenciar e dar baixa nestas parcelas na seção Financeiro
-                    </p>
+                </div>
+
+                {/* TMP */}
+                {financeiroData.incluirTMP &&
+                  financeiroData.valorTMP &&
+                  financeiroData.quantidadeMesesTMP &&
+                  financeiroData.vencimentoTMP && (
+                    <div className="bg-background p-4 rounded-lg border">
+                      <h5 className="font-medium mb-3 text-orange-700">
+                        TMP - Taxa de Manutenção Processual (
+                        {financeiroData.quantidadeMesesTMP} parcelas)
+                      </h5>
+                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                        {Array.from(
+                          {
+                            length: parseInt(financeiroData.quantidadeMesesTMP),
+                          },
+                          (_, index) => {
+                            const dataBase = new Date(
+                              financeiroData.vencimentoTMP
+                            );
+                            const dataVencimento = new Date(dataBase);
+                            dataVencimento.setMonth(
+                              dataVencimento.getMonth() + index
+                            );
+
+                            return (
+                              <div
+                                key={index}
+                                className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm py-2 border-b border-muted"
+                              >
+                                <div>
+                                  <span className="font-medium">
+                                    TMP {index + 1}:
+                                  </span>
+                                  <p className="text-orange-600 font-semibold">
+                                    {financeiroData.valorTMP}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-medium">
+                                    Vencimento:
+                                  </span>
+                                  <p>
+                                    {dataVencimento.toLocaleDateString("pt-BR")}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Status:</span>
+                                  <p className="text-orange-600">Pendente</p>
+                                </div>
+                                <div>
+                                  <Button
+                                    size="sm"
+                                    disabled
+                                    className="opacity-50"
+                                  >
+                                    Dar Baixa
+                                  </Button>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Disponível após salvar
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Resumo Total */}
+                <div className="bg-muted p-4 rounded-lg">
+                  <h5 className="font-medium mb-3">Resumo Total</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p>
+                        <span className="font-medium">Total de Parcelas:</span>{" "}
+                        {(financeiroData.valorEntrada ? 1 : 0) +
+                          parseInt(financeiroData.quantidadeParcelas || "0") +
+                          (financeiroData.incluirTMP
+                            ? parseInt(financeiroData.quantidadeMesesTMP || "0")
+                            : 0)}
+                      </p>
+                      <p>
+                        <span className="font-medium">
+                          Valor Total dos Honorários:
+                        </span>{" "}
+                        {financeiroData.valorHonorarios}
+                      </p>
+                      {financeiroData.incluirTMP && (
+                        <p>
+                          <span className="font-medium">
+                            Valor Total da TMP:
+                          </span>{" "}
+                          {formatCurrency(
+                            parseCurrency(financeiroData.valorTMP) *
+                              parseInt(financeiroData.quantidadeMesesTMP)
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p>
+                        <span className="font-medium">Valor Total Geral:</span>{" "}
+                        {formatCurrency(
+                          parseCurrency(financeiroData.valorHonorarios) +
+                            (financeiroData.incluirTMP
+                              ? parseCurrency(financeiroData.valorTMP) *
+                                parseInt(financeiroData.quantidadeMesesTMP)
+                              : 0)
+                        )}
+                      </p>
+                      <p className="text-muted-foreground text-xs mt-2">
+                        Após salvar o processo, você poderá gerenciar e dar
+                        baixa nestas parcelas na seção Financeiro
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div className="flex justify-between pt-6">
             <Button variant="outline" onClick={handlePrevStep}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Anterior
             </Button>
-            <Button onClick={handleNextStep} className="bg-primary hover:bg-primary/90">
+            <Button
+              onClick={handleNextStep}
+              className="bg-primary hover:bg-primary/90"
+            >
               Próximo
               <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
             </Button>
@@ -1194,18 +1814,20 @@ const NewProcess = () => {
           <StickyNote className="w-16 h-16 text-primary mx-auto" />
         </div>
         <CardTitle className="text-2xl">Documentos e Observações</CardTitle>
-        <p className="text-muted-foreground">Anexe documentos e adicione observações importantes</p>
+        <p className="text-muted-foreground">
+          Anexe documentos e adicione observações importantes
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Upload de Documentos */}
-        <DocumentUpload 
+        <DocumentUpload
           clienteNome={clienteData.nomeCompleto}
           documentos={documentos}
           onDocumentosChange={setDocumentos}
         />
 
         {/* Observações */}
-        <ProcessNotes 
+        <ProcessNotes
           clienteNome={clienteData.nomeCompleto}
           observacoes={observacoes}
           onObservacoesChange={setObservacoes}
@@ -1216,8 +1838,16 @@ const NewProcess = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Anterior
           </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="bg-primary hover:bg-primary/90">
-            {loading ? "Salvando..." : (isEditMode ? "Atualizar Processo" : "Finalizar Cadastro")}
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {loading
+              ? "Salvando..."
+              : isEditMode
+              ? "Atualizar Processo"
+              : "Finalizar Cadastro"}
           </Button>
         </div>
       </CardContent>
@@ -1228,29 +1858,67 @@ const NewProcess = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-2xl">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">{isEditMode ? 'Editar Processo' : 'Novo Processo'}</h1>
+          <h1 className="text-2xl font-bold">
+            {isEditMode ? "Editar Processo" : "Novo Processo"}
+          </h1>
         </div>
 
         {/* Progress indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentStep >= 1
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               1
             </div>
-            <div className={`w-16 h-1 ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div
+              className={`w-16 h-1 ${
+                currentStep >= 2 ? "bg-primary" : "bg-muted"
+              }`}
+            ></div>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentStep >= 2
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               2
             </div>
-            <div className={`w-16 h-1 ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div
+              className={`w-16 h-1 ${
+                currentStep >= 3 ? "bg-primary" : "bg-muted"
+              }`}
+            ></div>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentStep >= 3
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               3
             </div>
-            <div className={`w-16 h-1 ${currentStep >= 4 ? 'bg-primary' : 'bg-muted'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 4 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <div
+              className={`w-16 h-1 ${
+                currentStep >= 4 ? "bg-primary" : "bg-muted"
+              }`}
+            ></div>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentStep >= 4
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               4
             </div>
           </div>
