@@ -48,16 +48,16 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-16">
         {/* Hero Section */}
-        <div className="text-center max-w-5xl mx-auto mb-16">
+        <div className="text-center max-w-4xl mx-auto mb-16">
 
-          <h1 className="text-4xl md:text-8xl font-bold text-foreground mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             <ImageHeader
-              imageUrl="/img/facilita-logo.png"
+              imageUrl="/img/facilita-lg.png"
               altText="Ícone Facilite"
               text=""
               imageClassName="w-50 h-30"
             />
-            <br />🔐 Sua advocacia com tecnologia de ponta
+            <br />Sua advocacia com tecnologia de ponta
           </h1>
 
           <p className="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
