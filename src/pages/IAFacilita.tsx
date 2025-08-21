@@ -1,11 +1,11 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { ArrowLeft, Bot, User, Globe, Zap, Search, Eye } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { AdvancedChatInput } from "@/components/AdvancedChatInput";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { AdvancedChatInput } from "@/components/AdvancedChatInput.tsx";
 
 interface Message {
   id: number;

@@ -51,17 +51,22 @@ async function getPdfPageCount(file: File): Promise<number> {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    
+
     // Verifica se é um PDF (magic number %PDF)
-    if (uint8Array[0] === 0x25 && uint8Array[1] === 0x50 && uint8Array[2] === 0x44 && uint8Array[3] === 0x46) {
+    if (
+      uint8Array[0] === 0x25 &&
+      uint8Array[1] === 0x50 &&
+      uint8Array[2] === 0x44 &&
+      uint8Array[3] === 0x46
+    ) {
       const text = new TextDecoder().decode(uint8Array.slice(0, 1000)); // Lê apenas os primeiros bytes
-      
+
       // Procura por "/Count" que indica o número de páginas em alguns PDFs
       const countMatch = text.match(/\/Count\s+(\d+)/);
       if (countMatch) {
         return parseInt(countMatch[1]);
       }
-      
+
       // Procura por "/Type\s*\/Pages" que pode indicar a estrutura de páginas
       const pagesMatch = text.match(/\/Type\s*\/Pages/);
       if (pagesMatch) {
@@ -69,20 +74,20 @@ async function getPdfPageCount(file: File): Promise<number> {
         return 1;
       }
     }
-    
+
     // Fallback: conta ocorrências de "endobj" que geralmente indicam objetos de página
     const fullText = new TextDecoder().decode(uint8Array);
     const pageObjectMatches = fullText.match(/\/Type\s*\/Page\b/g);
     if (pageObjectMatches) {
       return pageObjectMatches.length;
     }
-    
+
     // Último fallback: conta "endobj" dividido por um fator empírico
     const endobjMatches = fullText.match(/endobj\b/g);
     if (endobjMatches && endobjMatches.length > 10) {
       return Math.max(1, Math.floor(endobjMatches.length / 10));
     }
-    
+
     return 1; // Fallback final
   } catch (error) {
     console.error("Erro ao contar páginas do PDF:", error);
@@ -180,49 +185,67 @@ serve(async (req) => {
           ],
         };
 
-        // No seu código principal, modifique esta parte:
-if (fields.length > 0) {
-  // Obter o número total de páginas do PDF
-  const totalPages = await getPdfPageCount(uploadFile);
-  console.log(`PDF tem ${totalPages} página(s)`);
-  
-  // Os campos devem estar dentro do documento, não no nível raiz
-  uploadData.documents[0].fields = fields.map((field) => {
-    // Determinar a página correta
-    let pageNumber;
-    
-    if (field.page) {
-      // Se já tem página definida, usa ela
-      pageNumber = field.page;
-    } else if (totalPages === 1) {
-      // Se tem apenas 1 página, usa a primeira
-      pageNumber = 1;
-    } else {
-      // Se tem múltiplas páginas, usa a última
-      pageNumber = totalPages;
-    }
-    
-    return {
-      name: field.name,
-      type: field.type,
-      required: field.required || false,
-      areas: [
-        {
-          page: pageNumber, // Usa a página calculada
-          x: field.x / 595,
-          y: field.y / 842,
-          w: field.width ? field.width / 595 : 0.3,
-          h: field.height ? field.height / 842 : 0.05,
-        },
-      ],
-    };
-  });
-  
-  console.log(
-    "Campos formatados para API:",
-    uploadData.documents[0].fields
-  );
-}
+        // Substitua a parte do processamento de campos por:
+        if (fields.length > 0) {
+          const totalPages = await getPdfPageCount(uploadFile);
+          console.log(`PDF tem ${totalPages} página(s)`);
+
+          uploadData.documents[0].fields = [];
+
+          for (const field of fields) {
+            // CORREÇÃO: Mapear "initial" para "initials" (que é o tipo correto do DocuSeal)
+            let fieldType = field.type;
+            if (fieldType === "initial") {
+              fieldType = "initials"; // ← TIPO CORRETO PARA RUBRICA
+            }
+
+            if (fieldType === "initials") {
+              // Rubricas em todas as páginas
+              for (let i = 1; i <= totalPages; i++) {
+                uploadData.documents[0].fields.push({
+                  name: `${field.name}_page_${i}`,
+                  type: fieldType, // Agora será "initials"
+                  required: field.required || false,
+                  areas: [
+                    {
+                      page: i,
+                      x: field.x / 595,
+                      y: field.y / 842,
+                      w: (field.width || 100) / 595,
+                      h: (field.height || 50) / 842,
+                    },
+                  ],
+                });
+              }
+            } else {
+              // Outros campos na página especificada ou última página
+              const targetPage =
+                field.page && field.page > 0
+                  ? Math.min(field.page, totalPages)
+                  : totalPages;
+
+              uploadData.documents[0].fields.push({
+                name: field.name,
+                type: fieldType,
+                required: field.required || false,
+                areas: [
+                  {
+                    page: targetPage,
+                    x: field.x / 595,
+                    y: field.y / 842,
+                    w: (field.width || 200) / 595,
+                    h: (field.height || 80) / 842,
+                  },
+                ],
+              });
+            }
+          }
+
+          console.log(
+            "Campos formatados para API:",
+            uploadData.documents[0].fields
+          );
+        }
 
         console.log(
           "Dados enviados para DocuSeal:",
@@ -315,7 +338,10 @@ if (fields.length > 0) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       console.error("Detailed error:", errorMessage);
-      console.error("Stack:", error instanceof Error ? error.stack : "No stack");
+      console.error(
+        "Stack:",
+        error instanceof Error ? error.stack : "No stack"
+      );
       return responseWithCors(
         {
           error: "Internal server error",
