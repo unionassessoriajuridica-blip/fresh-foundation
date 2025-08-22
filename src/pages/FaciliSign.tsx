@@ -79,8 +79,8 @@ const modelosAssinatura = {
       type: "date" as const,
       required: true,
       page: 0,
-      x: 100,
-      y: 800,
+      x: 450,
+      y: 700,
       width: 150,
       height: 30,
     }
@@ -92,20 +92,20 @@ const modelosAssinatura = {
       type: "initial" as const, // ← Mantemos "initial" no frontend, será convertido no backend
       required: true,
       page: 0,
-      x: 400,
-      y: 100,
+      x: 515,
+      y: 660,
       width: 60,
-      height: 30,
+      height: 50,
     },
     {
       name: "rubrica_2", 
       type: "initial" as const, // ← Mantemos "initial" no frontend
       required: true,
       page: 0,
-      x: 480,
-      y: 100,
+      x: 515,
+      y: 720,
       width: 60,
-      height: 30,
+      height: 50,
     },
     // Assinaturas no final
     {
@@ -114,8 +114,8 @@ const modelosAssinatura = {
       required: true,
       page: 0,
       x: 100,
-      y: 700,
-      width: 200,
+      y: 95,
+      width: 250,
       height: 80,
     },
     {
@@ -123,9 +123,9 @@ const modelosAssinatura = {
       type: "signature" as const,
       required: true,
       page: 0,
-      x: 350,
-      y: 700,
-      width: 200,
+      x: 100,
+      y: 240,
+      width: 250,
       height: 80,
     },
     {
@@ -133,8 +133,8 @@ const modelosAssinatura = {
       type: "date" as const,
       required: true,
       page: 0,
-      x: 100,
-      y: 800,
+      x: 400,
+      y: 160,
       width: 150,
       height: 30,
     }
@@ -194,7 +194,7 @@ const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
     };
 
     checkAuthAndLoadData();
-  }, []); // Array de dependências VAZIO (executa só no mount)
+  }, []); 
 
   const getStats = () => {
     const assinados = documents.filter(
