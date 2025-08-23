@@ -33,7 +33,7 @@ export const useFileUpload = () => {
 
     try {
       // Verificar tamanho do arquivo (máximo 10MB)
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         throw new Error('Arquivo muito grande. Máximo 10MB.');
       }
 
