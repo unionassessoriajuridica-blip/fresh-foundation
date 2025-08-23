@@ -9,12 +9,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
         ...corsHeaders,
-        "Access-Control-Max-Age": "86400", // Cache por 24 horas
+        "Access-Control-Max-Age": "86400",
       },
     });
   }
@@ -42,11 +41,12 @@ serve(async (req) => {
       });
     }
 
-    const { templateId, signatarios } = await req.json();
-    console.log("Dados recebidos:", { templateId, signatarios });
-    if (!templateId || !signatarios || !Array.isArray(signatarios)) {
+    const { templateId, signatarios, documentoId } = await req.json();
+    console.log("Dados recebidos:", { templateId, signatarios, documentoId });
+    
+    if (!templateId || !signatarios || !Array.isArray(signatarios) || !documentoId) {
       return new Response(
-        JSON.stringify({ error: "Template ID and signatarios are required" }),
+        JSON.stringify({ error: "Template ID, document ID and signatarios are required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -79,15 +79,34 @@ serve(async (req) => {
       );
     }
 
-    // Prepara dados para o DocuSeal
+    console.log("Configurações DocuSeal:", {
+      hasApiKey: !!docusealApiKey,
+      hasBaseUrl: !!docusealBaseUrl,
+      baseUrl: docusealBaseUrl,
+      templateId: templateId,
+    });
+
+    // IMPORTANTE: Verifique no painel do DocuSeal qual é o nome exato da role do template
     const submissionData = {
-      template_id: templateId,
+      template_id: parseInt(templateId),
+      send_email: true,
+      send_sms: false,
+      order: "preserved",
       submitters: validSigners.map((sig, index) => ({
         name: sig.nome,
         email: sig.email,
-        role: sig.role || `signer_${index + 1}`,
+        role: sig.role || "First Party", 
+        metadata: {
+          documento_id: documentoId,
+          user_id: user.id
+        }
       })),
     };
+
+    console.log(
+      "Dados sendo enviados para DocuSeal:",
+      JSON.stringify(submissionData, null, 2)
+    );
 
     const response = await fetch(`${docusealBaseUrl}/submissions`, {
       method: "POST",
@@ -101,31 +120,48 @@ serve(async (req) => {
       throw err;
     });
 
+    console.log("Resposta do DocuSeal - Status:", response.status);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Erro na API DocuSeal:", {
+      const errorText = await response.text();
+      console.error("Erro detalhado do DocuSeal:", {
         status: response.status,
-        error: errorData,
+        statusText: response.statusText,
+        error: errorText,
+        url: `${docusealBaseUrl}/submissions`,
         submissionData,
       });
-      throw new Error(JSON.stringify(errorData));
+
+      throw new Error(
+        `DocuSeal API error: ${response.status} - ${response.statusText} - ${errorText}`
+      );
     }
 
     const docusealResponse = await response.json();
+    console.log("Resposta completa do DocuSeal:", docusealResponse);
 
-    // Atualiza o documento no Supabase
+    // A resposta é um array - pegamos o primeiro submitter para obter o submission_id
+    const firstSubmitter = Array.isArray(docusealResponse) ? docusealResponse[0] : docusealResponse;
+    const submissionId = firstSubmitter?.submission_id;
+
+    if (!submissionId) {
+      throw new Error("No submission ID returned from DocuSeal");
+    }
+
+    // Atualiza o documento no Supabase usando o ID do documento
     const { error: updateError } = await supabaseClient
       .from("documentos_digitais")
       .update({
-        docuseal_submission_id: docusealResponse.id,
+        docuseal_submission_id: submissionId,
         status: "ENVIADO_PARA_ASSINATURA",
         signatarios: validSigners,
         updated_at: new Date().toISOString(),
       })
-      .eq("docuseal_template_id", templateId)
+      .eq("id", documentoId) // Use o ID específico do documento
       .eq("user_id", user.id);
 
     if (updateError) {
+      console.error("Erro ao atualizar banco de dados:", updateError);
       return new Response(
         JSON.stringify({
           error: "Database update failed",
@@ -142,6 +178,9 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         submission: docusealResponse,
+        submissionId: submissionId,
+        message:
+          "Solicitação de assinatura enviada com sucesso. Os signatários receberão emails para assinar.",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

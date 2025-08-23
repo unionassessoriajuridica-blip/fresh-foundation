@@ -171,7 +171,8 @@ export const useDocuSeal = () => {
 
   const sendForSignature = async (
     templateId: string,
-    signatarios: Signatario[]
+    signatarios: Signatario[],
+    documentoId: string // ← Adicione este parâmetro
   ): Promise<boolean> => {
     setLoading(true);
     try {
@@ -190,6 +191,7 @@ export const useDocuSeal = () => {
               email: s.email,
               role: s.role,
             })),
+            documentoId, // ← Adicione esta linha
           },
           headers: {
             Authorization: `Bearer ${session.data.session.access_token}`,
@@ -283,7 +285,7 @@ export const useDocuSeal = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-  
+
   return {
     loading,
     uploading,

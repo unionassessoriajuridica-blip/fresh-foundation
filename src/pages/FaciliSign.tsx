@@ -62,89 +62,89 @@ const FaciliSign = () => {
   const [camposAssinatura, setCamposAssinatura] = useState<DocuSealField[]>([]);
   // Adicione esta função para adicionar campos padrão
   // No FaciliSign.tsx - Adicione estas funções
-const modelosAssinatura = {
-  SIMPLES: [
-    {
-      name: "assinatura",
-      type: "signature" as const,
-      required: true,
-      page: 0,
-      x: 100,
-      y: 700,
-      width: 200,
-      height: 80,
-    },
-    {
-      name: "data",
-      type: "date" as const,
-      required: true,
-      page: 0,
-      x: 450,
-      y: 700,
-      width: 150,
-      height: 30,
-    }
-  ],
-  COMPLETO: [
-    // Rubricas no canto superior direito - tipo CORRETO "initials"
-    {
-      name: "rubrica_1",
-      type: "initial" as const, // ← Mantemos "initial" no frontend, será convertido no backend
-      required: true,
-      page: 0,
-      x: 515,
-      y: 660,
-      width: 60,
-      height: 50,
-    },
-    {
-      name: "rubrica_2", 
-      type: "initial" as const, // ← Mantemos "initial" no frontend
-      required: true,
-      page: 0,
-      x: 515,
-      y: 720,
-      width: 60,
-      height: 50,
-    },
-    // Assinaturas no final
-    {
-      name: "assinatura_1",
-      type: "signature" as const,
-      required: true,
-      page: 0,
-      x: 100,
-      y: 95,
-      width: 250,
-      height: 80,
-    },
-    {
-      name: "assinatura_2",
-      type: "signature" as const,
-      required: true,
-      page: 0,
-      x: 100,
-      y: 240,
-      width: 250,
-      height: 80,
-    },
-    {
-      name: "data",
-      type: "date" as const,
-      required: true,
-      page: 0,
-      x: 400,
-      y: 160,
-      width: 150,
-      height: 30,
-    }
-  ]
-};
+  const modelosAssinatura = {
+    SIMPLES: [
+      {
+        name: "assinatura",
+        type: "signature" as const,
+        required: true,
+        page: 0,
+        x: 100,
+        y: 700,
+        width: 200,
+        height: 80,
+      },
+      {
+        name: "data",
+        type: "date" as const,
+        required: true,
+        page: 0,
+        x: 450,
+        y: 700,
+        width: 150,
+        height: 30,
+      },
+    ],
+    COMPLETO: [
+      // Rubricas no canto superior direito - tipo CORRETO "initials"
+      {
+        name: "rubrica_1",
+        type: "initial" as const, // ← Mantemos "initial" no frontend, será convertido no backend
+        required: true,
+        page: 0,
+        x: 515,
+        y: 660,
+        width: 60,
+        height: 50,
+      },
+      {
+        name: "rubrica_2",
+        type: "initial" as const, // ← Mantemos "initial" no frontend
+        required: true,
+        page: 0,
+        x: 515,
+        y: 720,
+        width: 60,
+        height: 50,
+      },
+      // Assinaturas no final
+      {
+        name: "assinatura_1",
+        type: "signature" as const,
+        required: true,
+        page: 0,
+        x: 100,
+        y: 95,
+        width: 250,
+        height: 80,
+      },
+      {
+        name: "assinatura_2",
+        type: "signature" as const,
+        required: true,
+        page: 0,
+        x: 100,
+        y: 240,
+        width: 250,
+        height: 80,
+      },
+      {
+        name: "data",
+        type: "date" as const,
+        required: true,
+        page: 0,
+        x: 400,
+        y: 160,
+        width: 150,
+        height: 30,
+      },
+    ],
+  };
 
-// Substitua a função adicionarCamposPadrao por:
-const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
-  setCamposAssinatura(modelosAssinatura[modelo]);
-};
+  // Substitua a função adicionarCamposPadrao por:
+  const selecionarModelo = (modelo: "SIMPLES" | "COMPLETO") => {
+    setCamposAssinatura(modelosAssinatura[modelo]);
+  };
 
   const [signatarios, setSignatarios] = useState<Signatario[]>([
     { nome: "", email: "" },
@@ -194,7 +194,7 @@ const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
     };
 
     checkAuthAndLoadData();
-  }, []); 
+  }, []);
 
   const getStats = () => {
     const assinados = documents.filter(
@@ -383,6 +383,9 @@ const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
   const handleSendForSignature = async () => {
     if (!selectedDocument) return;
 
+    console.log("Documento selecionado:", selectedDocument);
+    console.log("ID do documento:", selectedDocument.id);
+
     const validSignatarios = signatarios.filter((sig) => sig.nome && sig.email);
     if (validSignatarios.length === 0) {
       toast({
@@ -395,8 +398,10 @@ const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
 
     const success = await sendForSignature(
       selectedDocument.docuseal_template_id,
-      validSignatarios
+      validSignatarios,
+      selectedDocument.id 
     );
+
     if (success) {
       await loadDocuments();
       setShowSignatureDialog(false);
@@ -474,51 +479,62 @@ const selecionarModelo = (modelo: 'SIMPLES' | 'COMPLETO') => {
                   </Button>
                 </div>
                 <div className="border rounded-md p-4">
-  <div className="flex items-center justify-between mb-2">
-    <Label>Modelo de Assinatura</Label>
-  </div>
-  
-  <div className="grid grid-cols-2 gap-2 mb-3">
-    <Button
-      type="button"
-      variant={camposAssinatura === modelosAssinatura.SIMPLES ? "default" : "outline"}
-      size="sm"
-      onClick={() => selecionarModelo('SIMPLES')}
-    >
-      <FileSignature className="w-4 h-4 mr-1" />
-      Simples
-    </Button>
-    <Button
-      type="button"
-      variant={camposAssinatura === modelosAssinatura.COMPLETO ? "default" : "outline"}
-      size="sm"
-      onClick={() => selecionarModelo('COMPLETO')}
-    >
-      <Users className="w-4 h-4 mr-1" />
-      Completo
-    </Button>
-  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Modelo de Assinatura</Label>
+                  </div>
 
-  <p className="text-sm text-muted-foreground mb-2">
-    {camposAssinatura.length > 0
-      ? `Documento terá ${camposAssinatura.length} campos de assinatura`
-      : "Selecione um modelo ou configure manualmente no DocuSeal"}
-  </p>
-  
-  {camposAssinatura.length > 0 && (
-    <div className="text-xs text-muted-foreground">
-      <p className="font-medium">Campos incluídos:</p>
-      <ul className="list-disc pl-4 mt-1 space-y-1">
-        {camposAssinatura.map((campo, index) => (
-          <li key={index}>
-            <span className="font-medium">{campo.name}</span> 
-            <span className="text-muted-foreground"> ({campo.type})</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )}
-</div>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <Button
+                      type="button"
+                      variant={
+                        camposAssinatura === modelosAssinatura.SIMPLES
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => selecionarModelo("SIMPLES")}
+                    >
+                      <FileSignature className="w-4 h-4 mr-1" />
+                      Simples
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={
+                        camposAssinatura === modelosAssinatura.COMPLETO
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => selecionarModelo("COMPLETO")}
+                    >
+                      <Users className="w-4 h-4 mr-1" />
+                      Completo
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {camposAssinatura.length > 0
+                      ? `Documento terá ${camposAssinatura.length} campos de assinatura`
+                      : "Selecione um modelo ou configure manualmente no DocuSeal"}
+                  </p>
+
+                  {camposAssinatura.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium">Campos incluídos:</p>
+                      <ul className="list-disc pl-4 mt-1 space-y-1">
+                        {camposAssinatura.map((campo, index) => (
+                          <li key={index}>
+                            <span className="font-medium">{campo.name}</span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              ({campo.type})
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             </DialogContent>
           </Dialog>

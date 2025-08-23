@@ -78,7 +78,7 @@ serve(async (req) => {
       .join(', ')
 
     const emailResponse = await resend.emails.send({
-      from: "FacilitaAdv <noreply@noreply.facilita.adv.br>", // Use resend.dev para teste
+      from: "FacilitaAdv <noreply@noreply.facilita.adv.br>", 
       to: [email],
       subject: "Convite para acessar o FacilitaAdv",
       html: `
