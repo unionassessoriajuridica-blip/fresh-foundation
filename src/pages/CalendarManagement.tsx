@@ -52,13 +52,48 @@ const CalendarManagement = () => {
 
   const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
 
+  // Função para atualizar estatísticas
+  const updateStatistics = useCallback((events: any[]) => {
+    const newStats = {
+      hearings: 0,
+      meetings: 0,
+      deadlines: 0,
+      others: 0,
+    };
+
+    events.forEach((event) => {
+      // Verifica se o evento tem a propriedade 'type'
+      if (event.type) {
+        switch (event.type) {
+          case "audiencia":
+            newStats.hearings++;
+            break;
+          case "reuniao":
+            newStats.meetings++;
+            break;
+          case "prazo":
+            newStats.deadlines++;
+            break;
+          default:
+            newStats.others++;
+            break;
+        }
+      } else {
+        // Se não tiver type, conta como "outros"
+        newStats.others++;
+      }
+    });
+
+    setStats(newStats);
+  }, []);
+
   const loadCalendarData = useCallback(async () => {
     if (!googleAuth.isAuthenticated) return;
 
     setIsLoading(true);
     try {
       const events = await googleCalendar.loadEvents();
-      console.log("Eventos carregados:", events); // Adicione este log
+      console.log("Eventos carregados:", events); 
       updateStatistics(events);
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
@@ -70,37 +105,13 @@ const CalendarManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [googleAuth.isAuthenticated, googleCalendar]);
+  }, [googleAuth.isAuthenticated, googleCalendar, updateStatistics]);
 
-  // Atualiza estatísticas baseadas nos eventos
-  const updateStatistics = (events: any[]) => {
-    const newStats = {
-      hearings: 0,
-      meetings: 0,
-      deadlines: 0,
-      others: 0,
-    };
-
-    events.forEach((event) => {
-      // Usa o tipo já categorizado pelo hook useGoogleCalendar
-      switch (event.type) {
-        case "audiencia":
-          newStats.hearings++;
-          break;
-        case "reuniao":
-          newStats.meetings++;
-          break;
-        case "prazo":
-          newStats.deadlines++;
-          break;
-        default:
-          newStats.others++;
-          break;
-      }
-    });
-
-    setStats(newStats);
-  };
+ useEffect(() => {
+    if (googleCalendar.events.length > 0) {
+      updateStatistics(googleCalendar.events);
+    }
+  }, [googleCalendar.events, updateStatistics]);
 
   // Carrega dados quando autenticação muda
   useEffect(() => {
@@ -212,30 +223,31 @@ const CalendarManagement = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {stats.hearings}
-                      </div>
-                      <div className="text-xs text-blue-600">Audiências</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {stats.meetings}
-                      </div>
-                      <div className="text-xs text-green-600">Reuniões</div>
-                    </div>
-                    <div className="text-center p-3 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {stats.deadlines}
-                      </div>
-                      <div className="text-xs text-orange-600">Prazos</div>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {stats.others}
-                      </div>
-                      <div className="text-xs text-purple-600">Outros</div>
-                    </div>
+                    {/* Na seção de estatísticas, substitua por: */}
+        <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <div className="text-2xl font-bold text-blue-600">
+            {stats.hearings}
+          </div>
+          <div className="text-xs text-blue-600">Audiências</div>
+        </div>
+        <div className="text-center p-3 bg-green-50 rounded-lg">
+          <div className="text-2xl font-bold text-green-600">
+            {stats.meetings}
+          </div>
+          <div className="text-xs text-green-600">Reuniões</div>
+        </div>
+        <div className="text-center p-3 bg-orange-50 rounded-lg">
+          <div className="text-2xl font-bold text-orange-600">
+            {stats.deadlines}
+          </div>
+          <div className="text-xs text-orange-600">Prazos</div>
+        </div>
+        <div className="text-center p-3 bg-purple-50 rounded-lg">
+          <div className="text-2xl font-bold text-purple-600">
+            {stats.others}
+          </div>
+          <div className="text-xs text-purple-600">Outros</div>
+        </div>
                   </div>
 
                   <div className="pt-4 border-t">

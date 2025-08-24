@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Swal from 'sweetalert2';
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -926,10 +927,17 @@ const NewProcess = () => {
         }
         console.log("Documentos salvos com sucesso");
       }
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 10000);
+      Swal.fire({
+  title: 'Sucesso!',
+  text: 'Processo salvo com sucesso. Redirecionando para o dashboard...',
+  icon: 'success',
+  timer: 2000, // Display for 2 seconds
+  timerProgressBar: true, // Show a progress bar
+  showConfirmButton: false, // Hide the confirm button
+  willClose: () => {
+    navigate('/dashboard'); // Redirect when the popup closes
+  },
+});
     } catch (error: any) {
       console.error("=== ERRO GERAL ===", error);
       toast({
