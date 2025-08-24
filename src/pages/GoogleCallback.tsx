@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast.ts";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth.ts";

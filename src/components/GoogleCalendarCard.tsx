@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
 import {
   Calendar,
   Clock,
@@ -19,9 +24,9 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { useToast } from "@/hooks/use-toast.ts";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth.ts";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar.ts";
 import {
   Dialog,
   DialogContent,
@@ -30,23 +35,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog.tsx";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select.tsx";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+} from "@/components/ui/popover.tsx";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar.tsx";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils.ts";
 
 interface CalendarEvent {
   id: string;
@@ -64,13 +69,27 @@ interface GoogleCalendarCardProps {
   isConnected?: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
-  calendarId?: string;
+  googleAuth: {
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    signIn: () => Promise<void>;
+    signOut: () => Promise<void>;
+    getAccessToken: () => string | null;
+  };
+  googleCalendar: {
+    events: CalendarEvent[];
+    loading: boolean;
+    loadEvents: (calendarId?: string) => Promise<void>;
+    createEvent: (eventData: any, calendarId?: string) => Promise<any>;
+  };
 }
 
 export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
   isConnected = false,
   onConnect,
   onDisconnect,
+  googleAuth, // ← AGORA RECEBENDO
+  googleCalendar, // ← AGORA RECEBENDO
   calendarId = "primary",
 }) => {
   const { toast } = useToast();
@@ -86,61 +105,11 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     type: "reuniao" as const,
   });
 
-  const clientId = "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com";
-
-  const googleAuth = useGoogleAuth({
-    clientId,
-    scopes: [
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/calendar",
-    ],
-  });
-
-  console.log("Google Client ID googleAuth:", clientId);
-
-  // Hook para integração real com Google Calendar
-  const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
-
-  // Simulação de eventos para demonstração
-  const mockEvents: CalendarEvent[] = [
-    {
-      id: "1",
-      title: "Audiência - Processo 0001234-56.2024.8.26.0100",
-      description: "Audiência de instrução e julgamento",
-      start: new Date(2024, 11, 15, 14, 0),
-      end: new Date(2024, 11, 15, 16, 0),
-      location: "Fórum Central - Sala 301",
-      attendees: ["cliente@email.com"],
-      type: "audiencia",
-      status: "confirmed",
-    },
-    {
-      id: "2",
-      title: "Reunião com Cliente - Mayara Fernandes",
-      description: "Discussão sobre estratégia de defesa",
-      start: new Date(2024, 11, 18, 10, 0),
-      end: new Date(2024, 11, 18, 11, 0),
-      location: "Escritório",
-      type: "reuniao",
-      status: "confirmed",
-    },
-    {
-      id: "3",
-      title: "Prazo Recurso - Processo Criminal",
-      description: "Vencimento prazo para apresentar recurso",
-      start: new Date(2024, 11, 20, 18, 0),
-      end: new Date(2024, 11, 20, 18, 0),
-      type: "prazo",
-      status: "confirmed",
-    },
-  ];
-
   useEffect(() => {
     if (googleAuth.isAuthenticated) {
       googleCalendar.loadEvents(calendarId);
     }
-  }, [googleAuth.isAuthenticated, calendarId, googleCalendar]);
+  }, [googleAuth.isAuthenticated, calendarId]);
 
   const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.start || !newEvent.end) {

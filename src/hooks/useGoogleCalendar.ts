@@ -65,7 +65,8 @@ export const useGoogleCalendar = (accessToken: string | null) => {
       return formattedEvents;
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
-      throw error; // Rejeita a promise para tratamento externo
+      //throw error; // Rejeita a promise para tratamento externo
+      return [];
     } finally {
       setLoading(false);
     }

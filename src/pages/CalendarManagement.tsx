@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
 import { ArrowLeft, Calendar, Clock, Plus, Loader2 } from "lucide-react";
 import { GoogleCalendarCard } from "@/components/GoogleCalendarCard.tsx";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth.ts";
@@ -37,8 +42,7 @@ const CalendarManagement = () => {
 
   // Configuração do Google OAuth
   const googleAuth = useGoogleAuth({
-    clientId:
-      "90141190775-qqgb05aq59fmqegieiguk4gq0u0140sp.apps.googleusercontent.com",
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scopes: [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
@@ -53,8 +57,9 @@ const CalendarManagement = () => {
 
     setIsLoading(true);
     try {
-      await googleCalendar.loadEvents();
-      updateStatistics(googleCalendar.events);
+      const events = await googleCalendar.loadEvents();
+      console.log("Eventos carregados:", events); // Adicione este log
+      updateStatistics(events);
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
       Swal.fire({
@@ -77,12 +82,21 @@ const CalendarManagement = () => {
     };
 
     events.forEach((event) => {
-      if (event.title.toLowerCase().includes("audiência")) newStats.hearings++;
-      else if (event.title.toLowerCase().includes("reunião"))
-        newStats.meetings++;
-      else if (event.title.toLowerCase().includes("prazo"))
-        newStats.deadlines++;
-      else newStats.others++;
+      // Usa o tipo já categorizado pelo hook useGoogleCalendar
+      switch (event.type) {
+        case "audiencia":
+          newStats.hearings++;
+          break;
+        case "reuniao":
+          newStats.meetings++;
+          break;
+        case "prazo":
+          newStats.deadlines++;
+          break;
+        default:
+          newStats.others++;
+          break;
+      }
     });
 
     setStats(newStats);
@@ -181,6 +195,8 @@ const CalendarManagement = () => {
                 isConnected={googleAuth.isAuthenticated}
                 onConnect={handleConnectGoogle}
                 onDisconnect={handleDisconnectGoogle}
+                googleAuth={googleAuth}
+                googleCalendar={googleCalendar}
               />
             </div>
 
