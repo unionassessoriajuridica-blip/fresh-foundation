@@ -82,6 +82,9 @@ interface GoogleCalendarCardProps {
     loadEvents: (calendarId?: string) => Promise<void>;
     createEvent: (eventData: any, calendarId?: string) => Promise<any>;
   };
+  dialogOpen?: boolean;  // New: controlled open state
+  onDialogOpenChange?: (open: boolean) => void;  // New: callback for open changes
+  initialType?: "audiencia" | "reuniao" | "prazo" | "outros" | null;
 }
 
 export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
@@ -91,9 +94,12 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
   googleAuth, // ← AGORA RECEBENDO
   googleCalendar, // ← AGORA RECEBENDO
   calendarId = "primary",
+  dialogOpen = false,
+  onDialogOpenChange,
+  initialType = null,
 }) => {
   const { toast } = useToast();
-  const [showNewEventDialog, setShowNewEventDialog] = useState(false);
+  const [showNewEventDialog, setShowNewEventDialog] =useState(dialogOpen);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -104,6 +110,24 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     attendees: "",
     type: "reuniao" as const,
   });
+
+// Sync internal state with controlled prop
+  useEffect(() => {
+    setShowNewEventDialog(dialogOpen);
+  }, [dialogOpen]);
+
+  // Pre-set type when dialog opens with initialType
+  useEffect(() => {
+    if (dialogOpen && initialType) {
+      setNewEvent((prev) => ({ ...prev, type: initialType }));
+    }
+  }, [dialogOpen, initialType]);
+
+  // Update parent when dialog open changes
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowNewEventDialog(open);
+    if (onDialogOpenChange) onDialogOpenChange(open);
+  };
 
   useEffect(() => {
     if (googleAuth.isAuthenticated) {
@@ -135,6 +159,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
     const success = await googleCalendar.createEvent(eventData, calendarId);
 
     if (success) {
+      handleDialogOpenChange(false);
       setShowNewEventDialog(false);
       setNewEvent({
         title: "",
@@ -282,7 +307,7 @@ export const GoogleCalendarCard: React.FC<GoogleCalendarCardProps> = ({
 
             <Dialog
               open={showNewEventDialog}
-              onOpenChange={setShowNewEventDialog}
+              onOpenChange={handleDialogOpenChange}
             >
               <DialogTrigger asChild>
                 <Button size="sm">

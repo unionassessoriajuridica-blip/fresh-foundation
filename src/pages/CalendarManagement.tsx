@@ -50,6 +50,11 @@ const CalendarManagement = () => {
     ],
   });
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [initialEventType, setInitialEventType] = useState<
+    "audiencia" | "reuniao" | "prazo" | "outros" | null
+  >(null);
+
   const googleCalendar = useGoogleCalendar(googleAuth.getAccessToken());
 
   // Função para atualizar estatísticas
@@ -93,7 +98,7 @@ const CalendarManagement = () => {
     setIsLoading(true);
     try {
       const events = await googleCalendar.loadEvents();
-      console.log("Eventos carregados:", events); 
+      console.log("Eventos carregados:", events);
       updateStatistics(events);
     } catch (error) {
       console.error("Erro ao carregar eventos:", error);
@@ -107,7 +112,25 @@ const CalendarManagement = () => {
     }
   }, [googleAuth.isAuthenticated, googleCalendar, updateStatistics]);
 
- useEffect(() => {
+  // Adicione este useEffect para resetar o initialEventType quando o diálogo fechar
+  useEffect(() => {
+    if (!dialogOpen) {
+      setInitialEventType(null);
+    }
+  }, [dialogOpen]);
+
+  // Modifique o useEffect que pre-seta o tipo para incluir uma verificação adicional
+  useEffect(() => {
+    if (dialogOpen && initialEventType) {
+      // Força um pequeno delay para garantir que o diálogo esteja completamente aberto
+      const timer = setTimeout(() => {
+        setInitialEventType(initialEventType);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [dialogOpen, initialEventType]);
+
+  useEffect(() => {
     if (googleCalendar.events.length > 0) {
       updateStatistics(googleCalendar.events);
     }
@@ -208,6 +231,9 @@ const CalendarManagement = () => {
                 onDisconnect={handleDisconnectGoogle}
                 googleAuth={googleAuth}
                 googleCalendar={googleCalendar}
+                dialogOpen={dialogOpen}
+                onDialogOpenChange={setDialogOpen}
+                initialType={initialEventType}
               />
             </div>
 
@@ -224,30 +250,30 @@ const CalendarManagement = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     {/* Na seção de estatísticas, substitua por: */}
-        <div className="text-center p-3 bg-blue-50 rounded-lg">
-          <div className="text-2xl font-bold text-blue-600">
-            {stats.hearings}
-          </div>
-          <div className="text-xs text-blue-600">Audiências</div>
-        </div>
-        <div className="text-center p-3 bg-green-50 rounded-lg">
-          <div className="text-2xl font-bold text-green-600">
-            {stats.meetings}
-          </div>
-          <div className="text-xs text-green-600">Reuniões</div>
-        </div>
-        <div className="text-center p-3 bg-orange-50 rounded-lg">
-          <div className="text-2xl font-bold text-orange-600">
-            {stats.deadlines}
-          </div>
-          <div className="text-xs text-orange-600">Prazos</div>
-        </div>
-        <div className="text-center p-3 bg-purple-50 rounded-lg">
-          <div className="text-2xl font-bold text-purple-600">
-            {stats.others}
-          </div>
-          <div className="text-xs text-purple-600">Outros</div>
-        </div>
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {stats.hearings}
+                      </div>
+                      <div className="text-xs text-blue-600">Audiências</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats.meetings}
+                      </div>
+                      <div className="text-xs text-green-600">Reuniões</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {stats.deadlines}
+                      </div>
+                      <div className="text-xs text-orange-600">Prazos</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {stats.others}
+                      </div>
+                      <div className="text-xs text-purple-600">Outros</div>
+                    </div>
                   </div>
 
                   <div className="pt-4 border-t">
@@ -291,23 +317,44 @@ const CalendarManagement = () => {
                   <Button
                     className="w-full justify-start"
                     variant="outline"
-                    onClick={() => navigate("/novo-evento?tipo=audiencia")}
+                    onClick={() => {
+                      // Primeiro seta como null para depois setar o valor desejado
+                      setInitialEventType(null);
+                      setTimeout(() => {
+                        setInitialEventType("audiencia");
+                        setDialogOpen(true);
+                      }, 10);
+                    }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Nova Audiência
                   </Button>
+
                   <Button
                     className="w-full justify-start"
                     variant="outline"
-                    onClick={() => navigate("/novo-evento?tipo=reuniao")}
+                    onClick={() => {
+                      setInitialEventType(null);
+                      setTimeout(() => {
+                        setInitialEventType("reuniao");
+                        setDialogOpen(true);
+                      }, 10);
+                    }}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     Agendar Reunião
                   </Button>
+
                   <Button
                     className="w-full justify-start"
                     variant="outline"
-                    onClick={() => navigate("/novo-evento?tipo=prazo")}
+                    onClick={() => {
+                      setInitialEventType(null);
+                      setTimeout(() => {
+                        setInitialEventType("prazo");
+                        setDialogOpen(true);
+                      }, 10);
+                    }}
                   >
                     <Clock className="w-4 h-4 mr-2" />
                     Definir Prazo
