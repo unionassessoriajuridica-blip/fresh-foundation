@@ -222,6 +222,43 @@ export const useDocuSeal = () => {
     }
   };
 
+  const getDocumentViewUrl = async (templateId: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "docuseal-get-view-url",
+        {
+          body: { templateId },
+        }
+      );
+
+      if (error) throw error;
+      return data.url;
+    } catch (error) {
+      console.error("Erro ao obter URL de visualização:", error);
+      throw error;
+    }
+  };
+
+  const getDocumentDownloadUrl = async (
+    templateId: string,
+    submissionId?: string
+  ): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "docuseal-get-download-url",
+        {
+          body: { templateId, submissionId },
+        }
+      );
+
+      if (error) throw error;
+      return data.url;
+    } catch (error) {
+      console.error("Erro ao obter URL de download:", error);
+      throw error;
+    }
+  };
+
   const getDocuments = async (
     page: number = 1,
     pageSize: number = 10
@@ -295,5 +332,7 @@ export const useDocuSeal = () => {
     sendForSignature,
     getDocuments,
     getStatusBadgeColor,
+    getDocumentViewUrl,
+    getDocumentDownloadUrl,
   };
 };

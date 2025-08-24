@@ -43,10 +43,17 @@ serve(async (req) => {
 
     const { templateId, signatarios, documentoId } = await req.json();
     console.log("Dados recebidos:", { templateId, signatarios, documentoId });
-    
-    if (!templateId || !signatarios || !Array.isArray(signatarios) || !documentoId) {
+
+    if (
+      !templateId ||
+      !signatarios ||
+      !Array.isArray(signatarios) ||
+      !documentoId
+    ) {
       return new Response(
-        JSON.stringify({ error: "Template ID, document ID and signatarios are required" }),
+        JSON.stringify({
+          error: "Template ID, document ID and signatarios are required",
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -86,21 +93,49 @@ serve(async (req) => {
       templateId: templateId,
     });
 
-    // IMPORTANTE: Verifique no painel do DocuSeal qual é o nome exato da role do template
+    // IMPORTANTE: Use roles específicas que correspondam às roles dos campos no template
     const submissionData = {
       template_id: parseInt(templateId),
       send_email: true,
       send_sms: false,
       order: "preserved",
-      submitters: validSigners.map((sig, index) => ({
-        name: sig.nome,
-        email: sig.email,
-        role: sig.role || "First Party", 
-        metadata: {
-          documento_id: documentoId,
-          user_id: user.id
+      submitters: validSigners.map((sig, index) => {
+        // Define roles específicas que correspondam aos campos do template
+        let role;
+        let fields = [];
+
+        if (index === 0) {
+          role = "First Party";
+          // Campos para o primeiro signatário (CONTRATANTE)
+          fields = [
+            { name: "rubrica_contratante", required: true },
+            { name: "assinatura_contratante", required: true },
+            { name: "data_contratante", required: true },
+          ];
+        } else if (index === 1) {
+          role = "Segunda Parte"; // ← MUDE PARA "Segunda Parte" (deve corresponder ao template)
+          // Campos para o segundo signatário (CONTRATADO)
+          fields = [
+            { name: "rubrica_contratado", required: true },
+            { name: "assinatura_contratado", required: true },
+            { name: "data_contratado", required: true },
+          ];
+        } else {
+          role = `Party ${index + 1}`;
         }
-      })),
+
+        return {
+          name: sig.nome,
+          email: sig.email,
+          role: role,
+          send_email: true,
+          fields: fields,
+          metadata: {
+            documento_id: documentoId,
+            user_id: user.id,
+          },
+        };
+      }),
     };
 
     console.log(
@@ -141,7 +176,9 @@ serve(async (req) => {
     console.log("Resposta completa do DocuSeal:", docusealResponse);
 
     // A resposta é um array - pegamos o primeiro submitter para obter o submission_id
-    const firstSubmitter = Array.isArray(docusealResponse) ? docusealResponse[0] : docusealResponse;
+    const firstSubmitter = Array.isArray(docusealResponse)
+      ? docusealResponse[0]
+      : docusealResponse;
     const submissionId = firstSubmitter?.submission_id;
 
     if (!submissionId) {

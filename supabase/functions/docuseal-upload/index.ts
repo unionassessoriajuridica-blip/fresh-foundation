@@ -192,12 +192,25 @@ serve(async (req) => {
 
           uploadData.documents[0].fields = [];
 
+          // Mapear tipos de campo para roles
+          const fieldRoleMapping: Record<string, string> = {
+            rubrica_contratante: "First Party",
+            assinatura_contratante: "First Party",
+            data_contratante: "First Party",
+            rubrica_contratado: "Segunda Parte",
+            assinatura_contratado: "Segunda Parte",
+            data_contratado: "Segunda Parte",
+          };
+
           for (const field of fields) {
-            // CORREÇÃO: Mapear "initial" para "initials" (que é o tipo correto do DocuSeal)
+            // Mapear "initial" para "initials" (que é o tipo correto do DocuSeal)
             let fieldType = field.type;
             if (fieldType === "initial") {
-              fieldType = "initials"; // ← TIPO CORRETO PARA RUBRICA
+              fieldType = "initials";
             }
+
+            // Obter a role do mapeamento
+            const role = fieldRoleMapping[field.name] || "First Party"; // ← CORREÇÃO AQUI
 
             if (fieldType === "initials") {
               // Rubricas em todas as páginas
@@ -206,6 +219,7 @@ serve(async (req) => {
                   name: `${field.name}_page_${i}`,
                   type: fieldType, // Agora será "initials"
                   required: field.required || false,
+                  role: role, // ← USANDO A VARIÁVEL role DEFINIDA
                   areas: [
                     {
                       page: i,
@@ -228,6 +242,7 @@ serve(async (req) => {
                 name: field.name,
                 type: fieldType,
                 required: field.required || false,
+                role: role, // ← USANDO A VARIÁVEL role DEFINIDA
                 areas: [
                   {
                     page: targetPage,

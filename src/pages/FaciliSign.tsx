@@ -86,10 +86,10 @@ const FaciliSign = () => {
       },
     ],
     COMPLETO: [
-      // Rubricas no canto superior direito - tipo CORRETO "initials"
+      // CONTRATANTE (Parte 1)
       {
-        name: "rubrica_1",
-        type: "initial" as const, // ← Mantemos "initial" no frontend, será convertido no backend
+        name: "rubrica_contratante",
+        type: "initial" as const,
         required: true,
         page: 0,
         x: 515,
@@ -98,18 +98,7 @@ const FaciliSign = () => {
         height: 50,
       },
       {
-        name: "rubrica_2",
-        type: "initial" as const, // ← Mantemos "initial" no frontend
-        required: true,
-        page: 0,
-        x: 515,
-        y: 720,
-        width: 60,
-        height: 50,
-      },
-      // Assinaturas no final
-      {
-        name: "assinatura_1",
+        name: "assinatura_contratante",
         type: "signature" as const,
         required: true,
         page: 0,
@@ -119,7 +108,29 @@ const FaciliSign = () => {
         height: 80,
       },
       {
-        name: "assinatura_2",
+        name: "data_contratante",
+        type: "date" as const,
+        required: true,
+        page: 0,
+        x: 400,
+        y: 95,
+        width: 150,
+        height: 30,
+      },
+
+      // CONTRATADO (Parte 2)
+      {
+        name: "rubrica_contratado",
+        type: "initial" as const,
+        required: true,
+        page: 0,
+        x: 515,
+        y: 720,
+        width: 60,
+        height: 50,
+      },
+      {
+        name: "assinatura_contratado",
         type: "signature" as const,
         required: true,
         page: 0,
@@ -129,12 +140,12 @@ const FaciliSign = () => {
         height: 80,
       },
       {
-        name: "data",
+        name: "data_contratado",
         type: "date" as const,
         required: true,
         page: 0,
         x: 400,
-        y: 160,
+        y: 240,
         width: 150,
         height: 30,
       },
@@ -155,8 +166,15 @@ const FaciliSign = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
 
-  const { uploadDocument, sendForSignature, getDocuments, loading, uploading } =
-    useDocuSeal();
+  const {
+    uploadDocument,
+    sendForSignature,
+    getDocuments,
+    getDocumentDownloadUrl,
+    getDocumentViewUrl,
+    loading,
+    uploading,
+  } = useDocuSeal();
   const { toast } = useToast();
 
   const loadDocuments = useCallback(async () => {
@@ -383,9 +401,6 @@ const FaciliSign = () => {
   const handleSendForSignature = async () => {
     if (!selectedDocument) return;
 
-    console.log("Documento selecionado:", selectedDocument);
-    console.log("ID do documento:", selectedDocument.id);
-
     const validSignatarios = signatarios.filter((sig) => sig.nome && sig.email);
     if (validSignatarios.length === 0) {
       toast({
@@ -396,10 +411,38 @@ const FaciliSign = () => {
       return;
     }
 
+    // Mapear campos específicos para cada signatário baseado no modelo COMPLETO
+    const signatariosComCampos = validSignatarios.map((signatario, index) => {
+      let camposEspecificos = [];
+
+      if (selectedDocument.metadata?.campos_predefinidos) {
+        if (index === 0) {
+          // Primeiro signatário - campos do CONTRATANTE
+          camposEspecificos = [
+            { name: "rubrica_contratante", required: true },
+            { name: "assinatura_contratante", required: true },
+            { name: "data_contratante", required: true },
+          ];
+        } else if (index === 1) {
+          // Segundo signatário - campos do CONTRATADO
+          camposEspecificos = [
+            { name: "rubrica_contratado", required: true },
+            { name: "assinatura_contratado", required: true },
+            { name: "data_contratado", required: true },
+          ];
+        }
+      }
+
+      return {
+        ...signatario,
+        campos: camposEspecificos,
+      };
+    });
+
     const success = await sendForSignature(
       selectedDocument.docuseal_template_id,
-      validSignatarios,
-      selectedDocument.id 
+      signatariosComCampos,
+      selectedDocument.id
     );
 
     if (success) {
@@ -407,6 +450,70 @@ const FaciliSign = () => {
       setShowSignatureDialog(false);
       setSelectedDocument(null);
       setSignatarios([{ nome: "", email: "" }]);
+    }
+  };
+
+  // Função para visualizar documento
+  const handleViewDocument = async (document: DocumentoDigital) => {
+    try {
+      if (document.status === "ASSINADO" && document.docuseal_submission_id) {
+        // Para documentos assinados
+        const url = await getDocumentDownloadUrl(
+          document.docuseal_template_id,
+          document.docuseal_submission_id
+        );
+        window.open(url, "_blank");
+      } else if (document.docuseal_template_id) {
+        // Para templates
+        const url = await getDocumentViewUrl(document.docuseal_template_id);
+        window.open(url, "_blank");
+      } else {
+        toast({
+          title: "Informação",
+          description: "Documento ainda não está disponível para visualização",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao visualizar documento:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível abrir o documento",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Função para download
+  const handleDownloadDocument = async (document: DocumentoDigital) => {
+    try {
+      if (document.status === "ASSINADO" && document.docuseal_submission_id) {
+        const url = await getDocumentDownloadUrl(
+          document.docuseal_template_id,
+          document.docuseal_submission_id
+        );
+
+        // Criar link temporário para download
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${document.nome}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        toast({
+          title: "Informação",
+          description: "Apenas documentos assinados podem ser baixados",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao baixar documento:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível baixar o documento",
+        variant: "destructive",
+      });
     }
   };
 
@@ -462,22 +569,6 @@ const FaciliSign = () => {
                     placeholder="Digite o título do documento"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleUpload}
-                    disabled={!selectedFile || uploading}
-                    className="flex-1"
-                  >
-                    {uploading ? "Enviando..." : "Fazer Upload"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowUploadDialog(false)}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
                 <div className="border rounded-md p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Label>Modelo de Assinatura</Label>
@@ -495,7 +586,7 @@ const FaciliSign = () => {
                       onClick={() => selecionarModelo("SIMPLES")}
                     >
                       <FileSignature className="w-4 h-4 mr-1" />
-                      Simples
+                      Procuração
                     </Button>
                     <Button
                       type="button"
@@ -508,7 +599,7 @@ const FaciliSign = () => {
                       onClick={() => selecionarModelo("COMPLETO")}
                     >
                       <Users className="w-4 h-4 mr-1" />
-                      Completo
+                      Contrato
                     </Button>
                   </div>
 
@@ -534,6 +625,22 @@ const FaciliSign = () => {
                       </ul>
                     </div>
                   )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUpload}
+                    disabled={!selectedFile || uploading}
+                    className="flex-1"
+                  >
+                    {uploading ? "Enviando..." : "Fazer Upload"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowUploadDialog(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -656,11 +763,13 @@ const FaciliSign = () => {
                             Enviar
                           </Button>
                         )}
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
                         {doc.status === "ASSINADO" && (
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDocument(doc)}
+                          disabled={!doc.docuseal_template_id}
+                          >
                             <Download className="w-4 h-4" />
                           </Button>
                         )}
