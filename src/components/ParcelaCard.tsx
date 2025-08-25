@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { CheckCircle, MessageCircle, Clock, Calendar } from "lucide-react";
+import { CheckCircle, MessageCircle, Clock, Calendar, Trash2 } from "lucide-react";
 import { useCobrancaMessages } from "@/hooks/useCobrancaMessages.ts";
 import { formatCurrency } from "@/utils/currency.ts";
 import {
@@ -26,7 +26,10 @@ interface ParcelaCardProps {
   dataPagamento?: string;
   index?: number;
   onBaixaPagamento: (id: string) => void;
+  onExcluirParcela?: (id: string, clienteNome: string) => void;
+  onExcluirTodasParcelas?: (clienteNome: string) => void;
   showClienteName?: boolean;
+  showExcluirOpcoes?: boolean;
 }
 
 const ParcelaCard = ({
@@ -39,8 +42,14 @@ const ParcelaCard = ({
   dataPagamento,
   index,
   onBaixaPagamento,
+  onExcluirParcela,
+  onExcluirTodasParcelas,
   showClienteName = true,
+  showExcluirOpcoes = false,
 }: ParcelaCardProps) => {
+  const [excluirDialogOpen, setExcluirDialogOpen] = useState(false);
+  const [excluirTodasDialogOpen, setExcluirTodasDialogOpen] = useState(false);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "PAGO":
@@ -92,6 +101,20 @@ const ParcelaCard = ({
       return `Parcela ${index + 1}`;
     }
     return tipo;
+  };
+
+  const handleExcluirParcelaConfirmada = () => {
+    if (onExcluirParcela) {
+      onExcluirParcela(id, clienteNome);
+    }
+    setExcluirDialogOpen(false);
+  };
+
+  const handleExcluirTodasConfirmada = () => {
+    if (onExcluirTodasParcelas) {
+      onExcluirTodasParcelas(clienteNome);
+    }
+    setExcluirTodasDialogOpen(false);
   };
 
   return (
@@ -155,17 +178,19 @@ const ParcelaCard = ({
             )}
           </div>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => enviarMensagemCobranca(id)}
-          disabled={loading}
-          className="flex items-center gap-1"
-        >
-          <MessageCircle className="w-3 h-3" />
-          Enviar Cobrança
-        </Button>
-        <div className="flex items-center gap-2">
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => enviarMensagemCobranca(id)}
+            disabled={loading}
+            className="flex items-center gap-1"
+          >
+            <MessageCircle className="w-3 h-3" />
+            Enviar Cobrança
+          </Button>
+          
           {status === "PENDENTE" && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -199,12 +224,89 @@ const ParcelaCard = ({
                   >
                     Confirmar Pagamento
                   </AlertDialogAction>
+                  
+                  {onExcluirParcela && (
+                    <>
+                      <AlertDialogAction
+                        onClick={() => setExcluirDialogOpen(true)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Excluir Parcela
+                      </AlertDialogAction>
+                      
+                      {showExcluirOpcoes && onExcluirTodasParcelas && (
+                        <AlertDialogAction
+                          onClick={() => setExcluirTodasDialogOpen(true)}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Excluir Todas as Parcelas
+                        </AlertDialogAction>
+                      )}
+                    </>
+                  )}
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}
         </div>
       </div>
+
+      {/* Diálogo de confirmação para excluir parcela individual */}
+      <AlertDialog open={excluirDialogOpen} onOpenChange={setExcluirDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta parcela de{" "}
+              <strong>{formatCurrency(valor)}</strong> do cliente{" "}
+              <strong>{clienteNome}</strong>?
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Esta ação não pode ser desfeita.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleExcluirParcelaConfirmada}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir Parcela
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmação para excluir todas as parcelas */}
+      <AlertDialog open={excluirTodasDialogOpen} onOpenChange={setExcluirTodasDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>TODAS</strong> as parcelas do cliente{" "}
+              <strong>{clienteNome}</strong>?
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Esta ação não pode ser desfeita e removerá todos os registros financeiros deste cliente.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleExcluirTodasConfirmada}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Excluir Todas as Parcelas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

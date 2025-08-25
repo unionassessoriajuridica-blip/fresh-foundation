@@ -1,18 +1,29 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// Financial.tsx - Versão completa com as modificações
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { ArrowLeft, DollarSign, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { formatCurrency } from "@/utils/currency";
-import ParcelaCard from "@/components/ParcelaCard";
-import FinanceiroSummary from "@/components/FinanceiroSummary";
-import { FinancialReports } from "@/components/FinancialReports";
-import { SubtleNotificationBell } from "@/components/SubtleNotificationBell";
-import { ResponsavelFinanceiro } from "@/components/ResponsavelFinanceiro";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useAuth } from "@/hooks/useAuth.ts";
+import { formatCurrency } from "@/utils/currency.ts";
+import ParcelaCard from "@/components/ParcelaCard.tsx";
+import FinanceiroSummary from "@/components/FinanceiroSummary.tsx";
+import { FinancialReports } from "@/components/FinancialReports.tsx";
+import { SubtleNotificationBell } from "@/components/SubtleNotificationBell.tsx";
+import { ResponsavelFinanceiro } from "@/components/ResponsavelFinanceiro.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog.tsx";
 
 interface FinanceiroItem {
   id: string;
@@ -36,6 +47,8 @@ const Financial = () => {
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
   const [filtroMes, setFiltroMes] = useState<string>('TODOS');
   const [filtroCliente, setFiltroCliente] = useState<string>('TODOS');
+  const [excluirDialogOpen, setExcluirDialogOpen] = useState(false);
+  const [parcelaParaExcluir, setParcelaParaExcluir] = useState<{id: string, cliente: string} | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -107,6 +120,66 @@ const Financial = () => {
         description: error.message,
       });
     }
+  };
+
+  const handleExcluirParcela = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('financeiro')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Parcela excluída!",
+        description: "A parcela foi excluída com sucesso.",
+      });
+
+      fetchFinanceiro();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir parcela",
+        description: error.message,
+      });
+    } finally {
+      setExcluirDialogOpen(false);
+      setParcelaParaExcluir(null);
+    }
+  };
+
+  const handleExcluirTodasParcelas = async (clienteNome: string) => {
+    try {
+      const { error } = await supabase
+        .from('financeiro')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('cliente_nome', clienteNome);
+
+      if (error) throw error;
+
+      toast({
+        title: "Parcelas excluídas!",
+        description: `Todas as parcelas de ${clienteNome} foram excluídas.`,
+      });
+
+      fetchFinanceiro();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir parcelas",
+        description: error.message,
+      });
+    } finally {
+      setExcluirDialogOpen(false);
+      setParcelaParaExcluir(null);
+    }
+  };
+
+  const confirmarExclusaoParcela = (id: string, cliente: string) => {
+    setParcelaParaExcluir({ id, cliente });
+    setExcluirDialogOpen(true);
   };
 
   const filteredData = financeiro.filter(item => {
@@ -310,6 +383,13 @@ const Financial = () => {
                                     <Eye className="w-4 h-4 mr-1" />
                                     Ver Todas as Parcelas ({parcelasCliente.length})
                                   </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={() => confirmarExclusaoParcela('all', cliente)}
+                                  >
+                                    Excluir Todas
+                                  </Button>
                                 </div>
                               </div>
                               
@@ -330,6 +410,7 @@ const Financial = () => {
                                       vencimento={item.vencimento}
                                       dataPagamento={item.data_pagamento}
                                       onBaixaPagamento={handleBaixaPagamento}
+                                      onExcluirParcela={confirmarExclusaoParcela}
                                       showClienteName={false}
                                     />
                                   ))}
@@ -365,6 +446,35 @@ const Financial = () => {
             <ResponsavelFinanceiro />
           </TabsContent>
         </Tabs>
+
+        {/* Dialog de confirmação para exclusão */}
+        <AlertDialog open={excluirDialogOpen} onOpenChange={setExcluirDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                {parcelaParaExcluir?.id === 'all' 
+                  ? `Tem certeza que deseja excluir TODAS as parcelas de ${parcelaParaExcluir.cliente}? Esta ação não pode ser desfeita.`
+                  : 'Tem certeza que deseja excluir esta parcela? Esta ação não pode ser desfeita.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  if (parcelaParaExcluir?.id === 'all') {
+                    handleExcluirTodasParcelas(parcelaParaExcluir.cliente);
+                  } else if (parcelaParaExcluir?.id) {
+                    handleExcluirParcela(parcelaParaExcluir.id);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
