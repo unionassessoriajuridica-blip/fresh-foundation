@@ -34,6 +34,7 @@ import {
 import { supabase } from "@/integrations/supabase/client.ts";
 import { useNavigate } from "react-router-dom";
 import { ClienteDataButton } from "@/components/ClienteDataButton.tsx";
+import Swal from 'sweetalert2';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -51,8 +52,6 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Debug para verificar permissões
-  // No Dashboard.tsx, adicione isso no início do componente:
   useEffect(() => {
     console.log("=== DEBUG PERMISSÕES ===");
     console.log("User ID:", user?.id);
@@ -155,11 +154,19 @@ const Dashboard = () => {
   };
 
   const handleDeleteProcesso = async (processoId: string) => {
-    if (
-      confirm(
-        "Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita."
-      )
-    ) {
+    const result = await Swal.fire({
+      title: 'Tem certeza?',
+      text: "Esta ação não pode ser desfeita!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sim, excluir!',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
       try {
         const { error } = await supabase
           .from("processos")
@@ -168,12 +175,94 @@ const Dashboard = () => {
 
         if (error) throw error;
 
+        Swal.fire(
+          'Excluído!',
+          'O processo foi excluído com sucesso.',
+          'success'
+        );
+        
         loadData();
       } catch (error) {
         console.error("Erro ao excluir processo:", error);
-        alert("Erro ao excluir processo");
+        Swal.fire(
+          'Erro!',
+          'Ocorreu um erro ao excluir o processo.',
+          'error'
+        );
       }
     }
+  };
+
+  // Função para formatar a data corretamente (resolvendo o problema do -1 dia)
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    
+    const date = new Date(dateString);
+    // Adiciona um dia para corrigir o problema do fuso horário
+    date.setDate(date.getDate() + 1);
+    
+    return date.toLocaleDateString("pt-BR");
+  };
+
+  // Função para determinar a cor com base na proximidade do prazo
+  const getPrazoColor = (prazo: string) => {
+    if (!prazo) return "default";
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const dataPrazo = new Date(prazo);
+    dataPrazo.setHours(0, 0, 0, 0);
+    
+    const diffTime = dataPrazo.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return "destructive"; // Vencido - vermelho
+    } else if (diffDays === 0) {
+      return "destructive"; // Vence hoje - também vermelho
+    } else if (diffDays <= 5) {
+      return "warning"; // 5 dias ou menos - laranja
+    } else {
+      return "success"; // Em dia - verde
+    }
+  };
+
+  // Função para obter o texto descritivo do prazo
+  const getPrazoText = (prazo: string) => {
+    if (!prazo) return "-";
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const dataPrazo = new Date(prazo);
+    dataPrazo.setHours(0, 0, 0, 0);
+    
+    const diffTime = dataPrazo.getTime() - hoje.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return `Vencido há ${Math.abs(diffDays)} dia(s)`;
+    } else if (diffDays === 0) {
+      return "Vence hoje";
+    } else if (diffDays === 1) {
+      return "Vence amanhã";
+    } else {
+      return `Vence em ${diffDays} dias`;
+    }
+  };
+
+  // Função para determinar a classe CSS da linha com base no prazo
+  const getRowClassName = (prazo: string) => {
+    const color = getPrazoColor(prazo);
+    
+    if (color === "destructive") {
+      return "bg-destructive/10 hover:bg-destructive/20"; // Vermelho para vencidos
+    } else if (color === "warning") {
+      return "bg-warning/10 hover:bg-warning/20"; // Laranja para próximos
+    }
+    
+    return ""; // Sem cor especial para em dia
   };
 
   const statsData = [
@@ -207,54 +296,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  // Função para determinar a cor com base na proximidade do prazo
-const getPrazoColor = (prazo: string) => {
-  if (!prazo) return "default";
-  
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0); // Remove a hora para comparar apenas a data
-  
-  const dataPrazo = new Date(prazo);
-  dataPrazo.setHours(0, 0, 0, 0);
-  
-  const diffTime = dataPrazo.getTime() - hoje.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) {
-    return "destructive"; // Vencido - vermelho
-  } else if (diffDays === 0) {
-    return "destructive"; // Vence hoje - também vermelho
-  } else if (diffDays <= 5) {
-    return "warning"; // 5 dias ou menos - laranja
-  } else {
-    return "success"; // Em dia - verde
-  }
-};
-
-// Função para obter o texto descritivo do prazo
-const getPrazoText = (prazo: string) => {
-  if (!prazo) return "-";
-  
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  
-  const dataPrazo = new Date(prazo);
-  dataPrazo.setHours(0, 0, 0, 0);
-  
-  const diffTime = dataPrazo.getTime() - hoje.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) {
-    return `Vencido há ${Math.abs(diffDays)} dia(s)`;
-  } else if (diffDays === 0) {
-    return "Vence hoje";
-  } else if (diffDays === 1) {
-    return "Vence amanhã";
-  } else {
-    return `Vence em ${diffDays} dias`;
-  }
-};
 
   return (
     <div className="min-h-screen bg-background">
@@ -539,7 +580,10 @@ const getPrazoText = (prazo: string) => {
                   </TableHeader>
                   <TableBody>
                     {currentProcessos.map((processo) => (
-                      <TableRow key={processo.id}>                        
+                      <TableRow 
+                        key={processo.id}
+                        className={getRowClassName(processo.prazo)}
+                      >                        
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -557,7 +601,7 @@ const getPrazoText = (prazo: string) => {
                                   handleDeleteProcesso(processo.id)
                                 }
                               >
-                                <Trash2 className="w-4 h-4 text-warning" />
+                                <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             )}
                           </div>
@@ -589,27 +633,27 @@ const getPrazoText = (prazo: string) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-  {processo.prazo ? (
-    <div className="flex flex-col">
-      <Badge
-        variant={getPrazoColor(processo.prazo)}
-        className="w-fit mb-1"
-      >
-        {getPrazoColor(processo.prazo) === "destructive" && "Vencido"}
-        {getPrazoColor(processo.prazo) === "warning" && "Próximo"}
-        {getPrazoColor(processo.prazo) === "success" && "Em dia"}
-      </Badge>
-      <div className="text-sm">
-        {new Date(processo.prazo).toLocaleDateString("pt-BR")}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {getPrazoText(processo.prazo)}
-      </div>
-    </div>
-  ) : (
-    "-"
-  )}
-</TableCell>
+                          {processo.prazo ? (
+                            <div className="flex flex-col">
+                              <Badge
+                                variant={getPrazoColor(processo.prazo)}
+                                className="w-fit mb-1"
+                              >
+                                {getPrazoColor(processo.prazo) === "destructive" && "Vencido"}
+                                {getPrazoColor(processo.prazo) === "warning" && "Próximo"}
+                                {getPrazoColor(processo.prazo) === "success" && "Em dia"}
+                              </Badge>
+                              <div className="text-sm">
+                                {formatDate(processo.prazo)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getPrazoText(processo.prazo)}
+                              </div>
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

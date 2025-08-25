@@ -44,11 +44,11 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
     const file = event.target.files?.[0];
     if (file) {
       // Verificar tamanho máximo (10MB)
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         toast({
           variant: "destructive",
           title: "Arquivo muito grande",
-          description: "O arquivo deve ter no máximo 10MB.",
+          description: "O arquivo deve ter no máximo 100MB.",
         });
         return;
       }
@@ -219,7 +219,7 @@ const DocumentUpload = ({ clienteNome, documentos, onDocumentosChange }: Documen
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, TXT, ZIP, RAR. Máximo: 10MB
+                Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, TXT, ZIP, RAR. Máximo: 100MB
               </p>
             </div>
 

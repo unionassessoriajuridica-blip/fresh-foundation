@@ -317,6 +317,7 @@
         "npm:tailwind-merge@^2.5.2",
         "npm:tailwindcss-animate@^1.0.7",
         "npm:tailwindcss@^3.4.11",
+        "npm:twilio@^5.8.0",
         "npm:typescript-eslint@^8.0.1",
         "npm:typescript@^5.5.3",
         "npm:vaul@~0.9.3",
