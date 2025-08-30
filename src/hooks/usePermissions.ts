@@ -1,4 +1,4 @@
-// usePermissions.ts - VERSÃO COMPLETAMENTE CORRIGIDA
+// usePermissions.ts - VERSÃO CORRIGIDA
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client.ts';
 import { useToast } from '@/hooks/use-toast.ts';
@@ -16,7 +16,8 @@ export type UserPermission =
   | 'agenda'
   | 'modificar_clientes'
   | 'excluir_processo'
-  | 'user_management';
+  | 'user_management'
+  | 'ver_todos_processos';
 
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState<UserPermission[]>([]);

@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import { ArrowLeft, Edit, User, DollarSign, FileText, Users, Check, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useAuth } from "@/hooks/useAuth.ts";
 
 const ProcessView = () => {
   const { id } = useParams();
@@ -40,7 +40,7 @@ const ProcessView = () => {
           clientes (*)
         `)
         .eq('id', id)
-        .eq('user_id', user?.id)
+        //.eq('user_id', user?.id)
         .single();
 
       if (processoError) {
@@ -61,7 +61,7 @@ const ProcessView = () => {
       const { data: financeiroData, error: financeiroError } = await supabase
         .from('financeiro')
         .select('*')
-        .eq('user_id', user?.id)
+        //.eq('user_id', user?.id)
         .eq('cliente_nome', processoData.clientes?.nome)
         .order('created_at', { ascending: true });
 

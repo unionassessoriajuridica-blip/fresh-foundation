@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { ArrowLeft, DollarSign, FileText, Calendar } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import ParcelaCard from "@/components/ParcelaCard";
-import FinanceiroSummary from "@/components/FinanceiroSummary";
+import { useToast } from "@/hooks/use-toast.ts";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { useAuth } from "@/hooks/useAuth.ts";
+import ParcelaCard from "@/components/ParcelaCard.tsx";
+import FinanceiroSummary from "@/components/FinanceiroSummary.tsx";
 
 interface FinanceiroItem {
   id: string;

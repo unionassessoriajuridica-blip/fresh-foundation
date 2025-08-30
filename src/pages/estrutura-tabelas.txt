@@ -1,0 +1,102 @@
+| table_name             | column_name            | data_type                | is_nullable | column_default          | constraint_type |
+| ---------------------- | ---------------------- | ------------------------ | ----------- | ----------------------- | --------------- |
+| chat_conversations     | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| chat_conversations     | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| chat_conversations     | messages               | jsonb                    | NO          | '[]'::jsonb             | null            |
+| chat_conversations     | mode                   | text                     | NO          | 'chat'::text            | null            |
+| chat_conversations     | title                  | text                     | NO          | null                    | null            |
+| chat_conversations     | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| chat_conversations     | user_id                | uuid                     | NO          | null                    | null            |
+| clientes               | cpf_cnpj               | text                     | YES         | null                    | null            |
+| clientes               | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| clientes               | email                  | text                     | YES         | null                    | null            |
+| clientes               | endereco               | text                     | YES         | null                    | null            |
+| clientes               | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| clientes               | id                     | uuid                     | NO          | gen_random_uuid()       | FOREIGN KEY     |
+| clientes               | nome                   | text                     | NO          | null                    | null            |
+| clientes               | telefone               | text                     | YES         | null                    | null            |
+| clientes               | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| clientes               | user_id                | uuid                     | NO          | null                    | null            |
+| documentos_assinatura  | arquivo_url            | text                     | YES         | null                    | null            |
+| documentos_assinatura  | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_assinatura  | data_assinatura        | timestamp with time zone | YES         | null                    | null            |
+| documentos_assinatura  | data_envio             | timestamp with time zone | YES         | now()                   | null            |
+| documentos_assinatura  | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| documentos_assinatura  | nome                   | text                     | NO          | null                    | null            |
+| documentos_assinatura  | signatarios            | ARRAY                    | YES         | '{}'::uuid[]            | null            |
+| documentos_assinatura  | status                 | text                     | YES         | 'PENDENTE'::text        | null            |
+| documentos_assinatura  | tipo                   | text                     | NO          | null                    | null            |
+| documentos_assinatura  | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_assinatura  | user_id                | uuid                     | NO          | null                    | null            |
+| documentos_digitais    | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_digitais    | data_conclusao         | timestamp with time zone | YES         | null                    | null            |
+| documentos_digitais    | docuseal_submission_id | text                     | YES         | null                    | null            |
+| documentos_digitais    | docuseal_template_id   | text                     | YES         | null                    | null            |
+| documentos_digitais    | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| documentos_digitais    | metadata               | jsonb                    | YES         | '{}'::jsonb             | null            |
+| documentos_digitais    | nome                   | text                     | NO          | null                    | null            |
+| documentos_digitais    | signatarios            | jsonb                    | YES         | null                    | null            |
+| documentos_digitais    | status                 | text                     | NO          | 'TEMPLATE_CRIADO'::text | null            |
+| documentos_digitais    | tamanho                | bigint                   | YES         | null                    | null            |
+| documentos_digitais    | tipo                   | text                     | YES         | null                    | null            |
+| documentos_digitais    | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_digitais    | user_id                | uuid                     | NO          | null                    | null            |
+| documentos_digitais    | webhook_data           | jsonb                    | YES         | null                    | null            |
+| documentos_processo    | cliente_nome           | text                     | NO          | null                    | null            |
+| documentos_processo    | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_processo    | descricao              | text                     | YES         | null                    | null            |
+| documentos_processo    | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| documentos_processo    | nome_arquivo           | text                     | NO          | null                    | null            |
+| documentos_processo    | processo_id            | uuid                     | YES         | null                    | null            |
+| documentos_processo    | tamanho_arquivo        | bigint                   | NO          | null                    | null            |
+| documentos_processo    | tipo_arquivo           | text                     | NO          | null                    | null            |
+| documentos_processo    | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| documentos_processo    | url_arquivo            | text                     | NO          | null                    | null            |
+| documentos_processo    | user_id                | uuid                     | NO          | null                    | null            |
+| financeiro             | cliente_nome           | text                     | NO          | null                    | null            |
+| financeiro             | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| financeiro             | data_pagamento         | date                     | YES         | null                    | null            |
+| financeiro             | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| financeiro             | processo_id            | uuid                     | YES         | null                    | null            |
+| financeiro             | status                 | text                     | YES         | 'PENDENTE'::text        | null            |
+| financeiro             | tentativas_cobranca    | integer                  | YES         | 0                       | null            |
+| financeiro             | tipo                   | text                     | NO          | null                    | null            |
+| financeiro             | ultimo_envio_cobranca  | timestamp with time zone | YES         | null                    | null            |
+| financeiro             | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| financeiro             | user_id                | uuid                     | NO          | null                    | null            |
+| financeiro             | valor                  | numeric                  | NO          | null                    | null            |
+| financeiro             | vencimento             | date                     | YES         | null                    | null            |
+| notificacoes           | cliente_nome           | text                     | YES         | null                    | null            |
+| notificacoes           | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| notificacoes           | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| notificacoes           | lida                   | boolean                  | NO          | false                   | null            |
+| notificacoes           | mensagem               | text                     | NO          | null                    | null            |
+| notificacoes           | tipo                   | text                     | NO          | null                    | null            |
+| notificacoes           | titulo                 | text                     | NO          | null                    | null            |
+| notificacoes           | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| notificacoes           | user_id                | uuid                     | NO          | null                    | null            |
+| observacoes_processo   | cliente_nome           | text                     | NO          | null                    | null            |
+| observacoes_processo   | conteudo               | text                     | NO          | null                    | null            |
+| observacoes_processo   | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| observacoes_processo   | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| observacoes_processo   | processo_id            | uuid                     | YES         | null                    | null            |
+| observacoes_processo   | titulo                 | text                     | NO          | null                    | null            |
+| observacoes_processo   | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| observacoes_processo   | user_id                | uuid                     | NO          | null                    | null            |
+| processos              | cliente_id             | uuid                     | NO          | null                    | null            |
+| processos              | cliente_preso          | boolean                  | YES         | false                   | null            |
+| processos              | created_at             | timestamp with time zone | NO          | now()                   | null            |
+| processos              | descricao              | text                     | YES         | null                    | null            |
+| processos              | id                     | uuid                     | NO          | gen_random_uuid()       | PRIMARY KEY     |
+| processos              | id                     | uuid                     | NO          | gen_random_uuid()       | FOREIGN KEY     |
+| processos              | numero_processo        | text                     | NO          | null                    | null            |
+| processos              | prazo                  | date                     | YES         | null                    | null            |
+| processos              | status                 | text                     | YES         | 'ATIVO'::text           | null            |
+| processos              | tipo_processo          | text                     | NO          | null                    | null            |
+| processos              | updated_at             | timestamp with time zone | NO          | now()                   | null            |
+| processos              | user_id                | uuid                     | NO          | null                    | null            |
+| profiles               | email                  | text                     | NO          | null                    | UNIQUE          |
+| profiles               | id                     | uuid                     | NO          | null                    | PRIMARY KEY     |
+| responsavel_financeiro | cep                    | text                     | NO          | null                    | null            |
+| responsavel_financeiro | cpf                    | text                     | NO          | null                    | null            |
+| responsavel_financeiro | created_at             | timestamp with time zone | NO          | now()                   | null            |

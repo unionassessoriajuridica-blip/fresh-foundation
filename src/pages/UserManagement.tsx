@@ -37,7 +37,8 @@ const AVAILABLE_PERMISSIONS: Permission[] = [
   { key: 'google_integration', label: 'Integração Google', description: 'Acessar integrações Google' },
   { key: 'agenda', label: 'Agenda', description: 'Gerenciar agenda e calendário' },
   { key: 'modificar_clientes', label: 'Modificar Clientes', description: 'Editar dados de clientes' },
-  { key: 'excluir_processo', label: 'Excluir Processo', description: 'Excluir processos do sistema' }
+  { key: 'excluir_processo', label: 'Excluir Processo', description: 'Excluir processos do sistema' },
+  { key: 'ver_todos_processos', label: 'Ver Todos Processos', description: 'Acesso a todos os processos do sistema' }
 ];
 
 const UserManagement = () => {
@@ -91,13 +92,26 @@ const UserManagement = () => {
 
     setLoading(true);
     try {
+      // Adiciona automaticamente ver_todos_processos se tiver permissões de modificação
+      let finalPermissions = [...formData.permissions];
+      const hasModificationPermissions = formData.permissions.some(p => 
+        ['excluir_processo', 'modificar_clientes'].includes(p)
+      );
+      
+      if (hasModificationPermissions && !formData.permissions.includes('ver_todos_processos')) {
+        finalPermissions.push('ver_todos_processos');
+      }
+
       const { data: invitation, error } = await supabase
         .from('user_invitations' as any)
         .insert({
           nome: formData.nome,
           email: formData.email,
-          permissions: formData.permissions,
+          permissions: finalPermissions,
           invited_by: user?.id,
+          token: generateToken(), // Função para gerar token único
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+          status: 'PENDING'
         })
         .select()
         .single();
@@ -137,6 +151,11 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Função para gerar token único
+  const generateToken = () => {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
   };
 
   const handlePermissionChange = (permissionKey: string, checked: boolean) => {

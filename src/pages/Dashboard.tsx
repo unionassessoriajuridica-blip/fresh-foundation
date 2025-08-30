@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth.ts";
 import { usePermissions } from "@/hooks/usePermissions.ts";
+import { useUserRole } from "@/hooks/useUserRole.ts";
 import { Button } from "@/components/ui/button.tsx";
+import {
+  canViewAllProcesses,
+  canViewAllFinancial,
+  useGlobalAccess,
+} from "@/utils/accessUtils.ts";
 import {
   Card,
   CardContent,
@@ -34,8 +40,16 @@ import {
 import { supabase } from "@/integrations/supabase/client.ts";
 import { useNavigate } from "react-router-dom";
 import { ClienteDataButton } from "@/components/ClienteDataButton.tsx";
-import Swal from 'sweetalert2';
-
+import Swal from "sweetalert2";
+declare global {
+  interface Window {
+    __debugPermissions?: {
+      permissions: string[];
+      hasPermission: (perm: string) => boolean;
+      userId: string | undefined;
+    };
+  }
+}
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -44,13 +58,21 @@ const Dashboard = () => {
     permissions,
     loading: permissionsLoading,
   } = usePermissions();
+  const { isMaster, isAdmin } = useUserRole();
   const [processos, setProcessos] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({
     processosAtivos: 0,
     audienciasHoje: 0,
     clientes: 0,
   });
   const [loading, setLoading] = useState(true);
+  const {
+    canViewAllProcesses: hasGlobalProcessAccess,
+    canViewAllFinancial: hasGlobalFinancialAccess,
+    canViewAllClients: hasGlobalClientAccess,
+    permissionsLoading: globalAccessLoading,
+  } = useGlobalAccess();
 
   useEffect(() => {
     console.log("=== DEBUG PERMISSÕES ===");
@@ -70,13 +92,29 @@ const Dashboard = () => {
     console.log("Debug permissions exposed:", window.__debugPermissions);
   }, [permissions, hasPermission, user]);
 
+  // Filtro de processos
+  const filteredProcessos = processos.filter((processo) => {
+    if (!searchTerm) return true;
+
+    const term = searchTerm.toLowerCase();
+    return (
+      processo.numero_processo?.toLowerCase().includes(term) ||
+      processo.clientes?.nome?.toLowerCase().includes(term) ||
+      processo.tipo_processo?.toLowerCase().includes(term)
+    );
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProcessos = processos.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(processos.length / itemsPerPage);
+  // Atualize a paginação para usar os processos filtrados
+  const currentProcessos = filteredProcessos.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredProcessos.length / itemsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -91,10 +129,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !permissionsLoading && !globalAccessLoading) {
       loadData();
     }
-  }, [user]);
+  }, [user, permissionsLoading, globalAccessLoading]);
 
   useEffect(() => {
     const handleFocus = () => {
@@ -108,46 +146,76 @@ const Dashboard = () => {
   }, [user]);
 
   const loadData = async () => {
-    try {
-      const { data: processosData, error: processosError } = await supabase
-        .from("processos")
-        .select(
-          `
-          *,
-          clientes (
-            nome
-          )
+  console.log("=== DEBUG LOAD DATA ===");
+  console.log("Acesso global a processos:", hasGlobalProcessAccess);
+  console.log("Acesso global a clientes:", hasGlobalClientAccess);
+  console.log("User ID:", user?.id);
+  console.log("Permissões:", permissions);
+
+  try {
+    let processosQuery = supabase
+      .from("processos")
+      .select(
         `
-        )
-        .eq("user_id", user?.id || "")
-        .order("created_at", { ascending: false });
+      *,
+      clientes (
+        nome
+      )
+    `
+      )
+      .order("created_at", { ascending: false });
 
-      if (processosError) {
-        console.error("Erro ao carregar processos:", processosError);
-        throw processosError;
-      }
+    // DEBUG: Verificar a query antes de executar
+    console.log(
+      "Query de processos - Filtro aplicado?",
+      !hasGlobalProcessAccess ? "SIM (por user_id)" : "NÃO (todos)"
+    );
 
-      console.log("Processos carregados:", processosData);
-      setProcessos(processosData || []);
+    
 
-      const { data: clientesData, error: clientesError } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("user_id", user?.id || "");
+    const { data: processosData, error: processosError } =
+      await processosQuery;
 
-      if (clientesError) throw clientesError;
-
-      setStats({
-        processosAtivos: processosData?.length || 0,
-        audienciasHoje: 0,
-        clientes: clientesData?.length || 0,
-      });
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-    } finally {
-      setLoading(false);
+    if (processosError) {
+      console.error("Erro ao carregar processos:", processosError);
+      throw processosError;
     }
-  };
+
+    console.log("Processos carregados (quantidade):", processosData?.length);
+    console.log("Processos carregados (dados):", processosData);
+    setProcessos(processosData || []);
+
+    let clientesQuery = supabase.from("clientes").select("id");
+
+    // DEBUG: Verificar a query antes de executar
+    console.log(
+      "Query de clientes - Filtro aplicado?",
+      !hasGlobalClientAccess ? "SIM (por user_id)" : "NÃO (todos)"
+    );
+
+    
+    
+    const { data: clientesData, error: clientesError } = await clientesQuery;
+
+    if (clientesError) throw clientesError;
+
+    setStats({
+      processosAtivos: processosData?.length || 0,
+      audienciasHoje: 0,
+      clientes: clientesData?.length || 0,
+    });
+
+    console.log("Estatísticas atualizadas:", {
+      processosAtivos: processosData?.length || 0,
+      clientes: clientesData?.length || 0,
+    });
+  } catch (error) {
+    console.error("Erro ao carregar dados:", error);
+  } finally {
+    setLoading(false);
+    console.log("Loading finalizado");
+  }
+};
 
   const handleEditProcesso = (processoId: string) => {
     globalThis.location.href = `/processo/${processoId}`;
@@ -155,15 +223,15 @@ const Dashboard = () => {
 
   const handleDeleteProcesso = async (processoId: string) => {
     const result = await Swal.fire({
-      title: 'Tem certeza?',
+      title: "Tem certeza?",
       text: "Esta ação não pode ser desfeita!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Sim, excluir!',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sim, excluir!",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
     });
 
     if (result.isConfirmed) {
@@ -176,19 +244,15 @@ const Dashboard = () => {
         if (error) throw error;
 
         Swal.fire(
-          'Excluído!',
-          'O processo foi excluído com sucesso.',
-          'success'
+          "Excluído!",
+          "O processo foi excluído com sucesso.",
+          "success"
         );
-        
+
         loadData();
       } catch (error) {
         console.error("Erro ao excluir processo:", error);
-        Swal.fire(
-          'Erro!',
-          'Ocorreu um erro ao excluir o processo.',
-          'error'
-        );
+        Swal.fire("Erro!", "Ocorreu um erro ao excluir o processo.", "error");
       }
     }
   };
@@ -196,27 +260,27 @@ const Dashboard = () => {
   // Função para formatar a data corretamente (resolvendo o problema do -1 dia)
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
-    
+
     const date = new Date(dateString);
     // Adiciona um dia para corrigir o problema do fuso horário
     date.setDate(date.getDate() + 1);
-    
+
     return date.toLocaleDateString("pt-BR");
   };
 
   // Função para determinar a cor com base na proximidade do prazo
   const getPrazoColor = (prazo: string) => {
     if (!prazo) return "default";
-    
+
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
+
     const dataPrazo = new Date(prazo);
     dataPrazo.setHours(0, 0, 0, 0);
-    
+
     const diffTime = dataPrazo.getTime() - hoje.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
       return "destructive"; // Vencido - vermelho
     } else if (diffDays === 0) {
@@ -231,16 +295,16 @@ const Dashboard = () => {
   // Função para obter o texto descritivo do prazo
   const getPrazoText = (prazo: string) => {
     if (!prazo) return "-";
-    
+
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
+
     const dataPrazo = new Date(prazo);
     dataPrazo.setHours(0, 0, 0, 0);
-    
+
     const diffTime = dataPrazo.getTime() - hoje.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
       return `Vencido há ${Math.abs(diffDays)} dia(s)`;
     } else if (diffDays === 0) {
@@ -255,13 +319,13 @@ const Dashboard = () => {
   // Função para determinar a classe CSS da linha com base no prazo
   const getRowClassName = (prazo: string) => {
     const color = getPrazoColor(prazo);
-    
+
     if (color === "destructive") {
       return "bg-destructive/10 hover:bg-destructive/20"; // Vermelho para vencidos
     } else if (color === "warning") {
       return "bg-warning/10 hover:bg-warning/20"; // Laranja para próximos
     }
-    
+
     return ""; // Sem cor especial para em dia
   };
 
@@ -286,7 +350,7 @@ const Dashboard = () => {
     },
   ];
 
-  if (permissionsLoading) {
+  if (permissionsLoading || globalAccessLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -303,7 +367,13 @@ const Dashboard = () => {
       <header className="w-full bg-card border-b border-border">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-primary"><img src="/img/logosite.png" alt="FacilitaAdv Logo" className="h-10" /></h1>
+            <h1 className="text-2xl font-bold text-primary">
+              <img
+                src="/img/logosite.png"
+                alt="FacilitaAdv Logo"
+                className="h-10"
+              />
+            </h1>
             <span className="text-muted-foreground">Dashboard</span>
           </div>
 
@@ -461,15 +531,15 @@ const Dashboard = () => {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
           {hasPermission("novo_processo") && (
-          <Button
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => navigate("/novo-processo")}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Processo
-          </Button>
+            <Button
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => navigate("/novo-processo")}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Processo
+            </Button>
           )}
-          
+
           {hasPermission("financeiro") && (
             <Button variant="success" onClick={() => navigate("/financeiro")}>
               <DollarSign className="w-4 h-4 mr-2" />
@@ -531,6 +601,11 @@ const Dashboard = () => {
                   <Input
                     placeholder="Buscar processos ativos..."
                     className="pl-10 w-80"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
                   />
                 </div>
               </div>
@@ -548,6 +623,11 @@ const Dashboard = () => {
                 <Input
                   placeholder="Buscar processos ativos..."
                   className="pl-10 w-80"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
               <span className="text-sm text-muted-foreground">
@@ -580,10 +660,10 @@ const Dashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {currentProcessos.map((processo) => (
-                      <TableRow 
+                      <TableRow
                         key={processo.id}
                         className={getRowClassName(processo.prazo)}
-                      >                        
+                      >
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -636,12 +716,32 @@ const Dashboard = () => {
                           {processo.prazo ? (
                             <div className="flex flex-col">
                               <Badge
-                                variant={getPrazoColor(processo.prazo)}
-                                className="w-fit mb-1"
+                                className={`
+                                  w-fit mb-1 
+                                  ${
+                                    getPrazoColor(processo.prazo) ===
+                                    "destructive"
+                                      ? "bg-destructive text-destructive-foreground"
+                                      : ""
+                                  }
+                                  ${
+                                    getPrazoColor(processo.prazo) === "warning"
+                                      ? "bg-amber-500 text-amber-50"
+                                      : ""
+                                  }
+                                  ${
+                                    getPrazoColor(processo.prazo) === "success"
+                                      ? "bg-green-500 text-green-50"
+                                      : ""
+                                  }
+                                `}
                               >
-                                {getPrazoColor(processo.prazo) === "destructive" && "Vencido"}
-                                {getPrazoColor(processo.prazo) === "warning" && "Próximo"}
-                                {getPrazoColor(processo.prazo) === "success" && "Em dia"}
+                                {getPrazoColor(processo.prazo) ===
+                                  "destructive" && "Vencido"}
+                                {getPrazoColor(processo.prazo) === "warning" &&
+                                  "Próximo"}
+                                {getPrazoColor(processo.prazo) === "success" &&
+                                  "Em dia"}
                               </Badge>
                               <div className="text-sm">
                                 {formatDate(processo.prazo)}

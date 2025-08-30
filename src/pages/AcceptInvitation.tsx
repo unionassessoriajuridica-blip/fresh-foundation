@@ -108,7 +108,6 @@ const AcceptInvitation = () => {
 
       if (acceptError) throw acceptError;
 
-      // Add permissions to user
       if (invitation.permissions && invitation.permissions.length > 0) {
         const permissionsToInsert = invitation.permissions.map(
           (permission: string) => ({
@@ -118,13 +117,29 @@ const AcceptInvitation = () => {
           })
         );
 
+        // Adiciona permissão de ver todos processos se tiver permissões de modificação
+        const hasModificationPermissions = invitation.permissions.some(
+          (p: string) => ["excluir_processo", "modificar_clientes"].includes(p)
+        );
+
+        if (
+          hasModificationPermissions &&
+          !invitation.permissions.includes("ver_todos_processos")
+        ) {
+          permissionsToInsert.push({
+            user_id: user.id,
+            permission: "ver_todos_processos",
+            granted_by: invitation.invited_by,
+          });
+        }
+
         const { error: permissionError } = await supabase
           .from("user_permissions")
           .insert(permissionsToInsert);
 
         if (permissionError) {
           console.error("Permission error:", permissionError);
-          throw permissionError; // Não continuar se as permissões falharem
+          throw permissionError;
         }
       }
 
