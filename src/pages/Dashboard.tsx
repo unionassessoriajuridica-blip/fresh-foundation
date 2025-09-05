@@ -53,11 +53,13 @@ declare global {
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
   const {
     hasPermission,
     permissions,
     loading: permissionsLoading,
   } = usePermissions();
+
   const { isMaster, isAdmin } = useUserRole();
   const [processos, setProcessos] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -146,59 +148,43 @@ const Dashboard = () => {
   }, [user]);
 
 const loadData = async () => {
-  console.log("=== DEBUG LOAD DATA ===");
-  console.log("Acesso global a processos:", hasGlobalProcessAccess);
-  console.log("User ID:", user?.id);
-
   try {
-    let processosQuery = supabase
+    // SEMPRE busca todos os processos
+    const { data: processosData, error: processosError } = await supabase
       .from("processos")
-      .select(
-        `
-      *,
-      clientes (
-        nome
-      )
-    `
-      )
+      .select(`*, clientes (nome)`)
       .order("created_at", { ascending: false });
 
-    // Aplicar filtro apenas se NÃO tiver acesso global
+    if (processosError) throw processosError;
+
+    // Filtra no frontend baseado na permissão
+    let processosFiltrados = processosData || [];
     if (!hasGlobalProcessAccess) {
-      console.log("Aplicando filtro por user_id para processos");
-      processosQuery = processosQuery.eq("user_id", user?.id);
-    } else {
-      console.log("Visualizando todos os processos (acesso global)");
+      processosFiltrados = processosFiltrados.filter(processo => 
+        processo.user_id === user?.id
+      );
     }
 
-    const { data: processosData, error: processosError } = await processosQuery;
+    setProcessos(processosFiltrados);
 
-    if (processosError) {
-      console.error("Erro ao carregar processos:", processosError);
-      throw processosError;
-    }
-
-    console.log("Processos carregados (quantidade):", processosData?.length);
-    setProcessos(processosData || []);
-
-    // 🔥 CORREÇÃO: Usar hasGlobalClientAccess para clientes também
-    let clientesQuery = supabase.from("clientes").select("id");
-    
-    if (!hasGlobalClientAccess) { // 🔥 Use a variável correta aqui
-      console.log("Aplicando filtro por user_id para clientes");
-      clientesQuery = clientesQuery.eq("user_id", user?.id);
-    } else {
-      console.log("Visualizando todos os clientes (acesso global)");
-    }
-
-    const { data: clientesData, error: clientesError } = await clientesQuery;
+    // Mesma lógica para clientes
+    const { data: clientesData, error: clientesError } = await supabase
+      .from("clientes")
+      .select("id, user_id");
 
     if (clientesError) throw clientesError;
 
+    let clientesFiltrados = clientesData || [];
+    if (!hasGlobalClientAccess) {
+      clientesFiltrados = clientesFiltrados.filter(cliente => 
+        cliente.user_id === user?.id
+      );
+    }
+
     setStats({
-      processosAtivos: processosData?.length || 0,
+      processosAtivos: processosFiltrados.length,
       audienciasHoje: 0,
-      clientes: clientesData?.length || 0,
+      clientes: clientesFiltrados.length,
     });
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
