@@ -27,6 +27,8 @@ import {
 import { useToast } from "@/hooks/use-toast.ts";
 import { supabase } from "@/integrations/supabase/client.ts";
 import { useAuth } from "@/hooks/useAuth.ts";
+import { usePermissions } from "@/hooks/usePermissions.ts";
+import { useGlobalAccess } from "@/utils/accessUtils.ts";
 
 const ProcessView = () => {
   const { id } = useParams();
@@ -41,18 +43,32 @@ const ProcessView = () => {
   const [documentos, setDocumentos] = useState<any[]>([]);
   const [responsavel, setResponsavel] = useState<any>(null);
 
+  const {
+    hasPermission,
+    permissions,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  const {
+    canViewAllProcesses: hasGlobalProcessAccess,
+    permissionsLoading: globalAccessLoading,
+  } = useGlobalAccess();
+
   useEffect(() => {
-    if (id && user) {
+    if (id && user && !permissionsLoading && !globalAccessLoading) {
       loadProcessData();
     }
-  }, [id, user]);
+  }, [id, user, permissionsLoading, globalAccessLoading]);
 
   const loadProcessData = async () => {
     try {
       setLoading(true);
 
-      // Carregar dados do processo com cliente
-      const { data: processoData, error: processoError } = await supabase
+      console.log("=== DEBUG PROCESS VIEW ===");
+      console.log("Tem acesso global a processos:", hasGlobalProcessAccess);
+      console.log("User ID:", user?.id);
+
+      let processoQuery = supabase
         .from("processos")
         .select(
           `
@@ -60,16 +76,24 @@ const ProcessView = () => {
           clientes (*)
         `
         )
-        .eq("id", id)
-        //.eq('user_id', user?.id)
-        .single();
+        .eq("id", id);
+
+      // Apenas filtrar por user_id se o usuário NÃO tiver acesso global
+      if (!hasGlobalProcessAccess) {
+        console.log("Aplicando filtro por user_id");
+        processoQuery = processoQuery.eq('user_id', user?.id);
+      } else {
+        console.log("Visualizando todos os processos (acesso global)");
+      }
+
+      const { data: processoData, error: processoError } = await processoQuery.single();
 
       if (processoError) {
         console.error("Erro ao carregar processo:", processoError);
         toast({
           variant: "destructive",
           title: "Erro",
-          description: "Processo não encontrado.",
+          description: "Processo não encontrado ou você não tem permissão para acessá-lo.",
         });
         navigate("/dashboard");
         return;
@@ -82,7 +106,6 @@ const ProcessView = () => {
       const { data: financeiroData, error: financeiroError } = await supabase
         .from("financeiro")
         .select("*")
-        //.eq('user_id', user?.id)
         .eq("cliente_nome", processoData.clientes?.nome)
         .order("created_at", { ascending: true });
 
@@ -94,8 +117,7 @@ const ProcessView = () => {
       const { data: observacoesData, error: observacoesError } = await supabase
         .from("observacoes_processo")
         .select("*")
-        .eq("processo_id", id)
-        .eq("user_id", user?.id);
+        .eq("processo_id", id);
 
       if (!observacoesError && observacoesData) {
         setObservacoes(observacoesData);
@@ -105,8 +127,7 @@ const ProcessView = () => {
       const { data: documentosData, error: documentosError } = await supabase
         .from("documentos_processo")
         .select("*")
-        .eq("processo_id", id)
-        .eq("user_id", user?.id);
+        .eq("processo_id", id);
 
       if (!documentosError && documentosData) {
         setDocumentos(documentosData);
@@ -116,7 +137,6 @@ const ProcessView = () => {
       const { data: responsavelData, error: responsavelError } = await supabase
         .from("responsavel_financeiro")
         .select("*")
-        .eq("user_id", user?.id)
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -202,6 +222,17 @@ const ProcessView = () => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("pt-BR");
   };
+
+  if (permissionsLoading || globalAccessLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando permissões...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -145,12 +145,10 @@ const Dashboard = () => {
     return () => globalThis.removeEventListener("focus", handleFocus);
   }, [user]);
 
-  const loadData = async () => {
+const loadData = async () => {
   console.log("=== DEBUG LOAD DATA ===");
   console.log("Acesso global a processos:", hasGlobalProcessAccess);
-  console.log("Acesso global a clientes:", hasGlobalClientAccess);
   console.log("User ID:", user?.id);
-  console.log("Permissões:", permissions);
 
   try {
     let processosQuery = supabase
@@ -165,16 +163,15 @@ const Dashboard = () => {
       )
       .order("created_at", { ascending: false });
 
-    // DEBUG: Verificar a query antes de executar
-    console.log(
-      "Query de processos - Filtro aplicado?",
-      !hasGlobalProcessAccess ? "SIM (por user_id)" : "NÃO (todos)"
-    );
+    // Aplicar filtro apenas se NÃO tiver acesso global
+    if (!hasGlobalProcessAccess) {
+      console.log("Aplicando filtro por user_id");
+      processosQuery = processosQuery.eq("user_id", user?.id);
+    } else {
+      console.log("Visualizando todos os processos (acesso global)");
+    }
 
-    
-
-    const { data: processosData, error: processosError } =
-      await processosQuery;
+    const { data: processosData, error: processosError } = await processosQuery;
 
     if (processosError) {
       console.error("Erro ao carregar processos:", processosError);
@@ -182,19 +179,15 @@ const Dashboard = () => {
     }
 
     console.log("Processos carregados (quantidade):", processosData?.length);
-    console.log("Processos carregados (dados):", processosData);
     setProcessos(processosData || []);
 
+    // Mesma lógica para clientes
     let clientesQuery = supabase.from("clientes").select("id");
-
-    // DEBUG: Verificar a query antes de executar
-    console.log(
-      "Query de clientes - Filtro aplicado?",
-      !hasGlobalClientAccess ? "SIM (por user_id)" : "NÃO (todos)"
-    );
-
     
-    
+    if (!hasGlobalClientAccess) {
+      clientesQuery = clientesQuery.eq("user_id", user?.id);
+    }
+
     const { data: clientesData, error: clientesError } = await clientesQuery;
 
     if (clientesError) throw clientesError;
@@ -204,16 +197,10 @@ const Dashboard = () => {
       audienciasHoje: 0,
       clientes: clientesData?.length || 0,
     });
-
-    console.log("Estatísticas atualizadas:", {
-      processosAtivos: processosData?.length || 0,
-      clientes: clientesData?.length || 0,
-    });
   } catch (error) {
     console.error("Erro ao carregar dados:", error);
   } finally {
     setLoading(false);
-    console.log("Loading finalizado");
   }
 };
 

@@ -43,6 +43,7 @@ import {
   formatCEP,
   removeMask,
 } from "@/utils/masks.ts";
+import { useGlobalAccess } from "@/utils/accessUtils.ts";
 
 const NewProcess = () => {
   const navigate = useNavigate();
@@ -53,6 +54,11 @@ const NewProcess = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
   const [processoId, setProcessoId] = useState<string | null>(null);
+
+  const {
+    canViewAllProcesses: hasGlobalProcessAccess,
+    permissionsLoading: globalAccessLoading,
+  } = useGlobalAccess();
 
   const [clienteData, setClienteData] = useState({
     nomeCompleto: "",
@@ -144,6 +150,7 @@ const NewProcess = () => {
     setResponsavelData({ ...responsavelData, cep: formatCEP(value) });
   };
 
+  
   // Verificar se está em modo de edição e carregar dados existentes
   useEffect(() => {
     const editId = searchParams.get("edit");
@@ -165,32 +172,37 @@ const NewProcess = () => {
   }, [searchParams, user]);
 
   const loadProcessData = async (id: string) => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Carregar dados do processo com cliente
-      const { data: processo, error: processoError } = await supabase
-        .from("processos")
-        .select(
-          `
-          *,
-          clientes (*)
+    // Carregar dados do processo com cliente
+    let processoQuery = supabase
+      .from("processos")
+      .select(
         `
-        )
-        .eq("id", id)
-        .eq("user_id", user?.id)
-        .single();
+        *,
+        clientes (*)
+      `
+      )
+      .eq("id", id);
 
-      if (processoError) {
-        console.error("Erro ao carregar processo:", processoError);
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: "Processo não encontrado.",
-        });
-        navigate("/dashboard");
-        return;
-      }
+    // Apenas filtrar por user_id se NÃO tiver acesso global
+    if (!hasGlobalProcessAccess) {
+      processoQuery = processoQuery.eq("user_id", user?.id || '');
+    }
+
+    const { data: processo, error: processoError } = await processoQuery.single();
+
+    if (processoError) {
+      console.error("Erro ao carregar processo:", processoError);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Processo não encontrado ou você não tem permissão para editá-lo.",
+      });
+      navigate("/dashboard");
+      return;
+    }
 
       // Preencher dados do cliente
       if (processo.clientes) {

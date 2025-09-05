@@ -24,10 +24,11 @@ import { useToast } from "@/hooks/use-toast.ts";
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signupName, setSignupName] = useState(""); // Novo estado para nome no cadastro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [invitationData, setInvitationData] = useState<any>(null);
-  const [defaultTab, setDefaultTab] = useState("login");
+  const [activeTab, setActiveTab] = useState("login"); // Controle de aba ativa
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -50,12 +51,31 @@ const Auth = () => {
         await validateInvitationToken(invitationToken);
       }
 
-      if (tabParam === "signup" || invitationToken) {
-        setDefaultTab("signup");
+      // Verificar se deve abrir na aba de cadastro
+      const shouldSignUp = searchParams.get('signup') === 'true';
+      const emailParam = searchParams.get('email');
+      const nameParam = searchParams.get('name');
+      
+      if (shouldSignUp || invitationToken) {
+        setActiveTab("signup");
+      }
+      
+      if (tabParam === "signup") {
+        setActiveTab("signup");
+      }
+
+      // Pré-preencher email se vier por parâmetro
+      if (emailParam) {
+        setEmail(decodeURIComponent(emailParam));
+      }
+      
+      // Pré-preencher nome se vier por parâmetro
+      if (nameParam) {
+        setSignupName(decodeURIComponent(nameParam));
       }
     };
     checkUser();
-  }, [navigate, tabParam, invitationToken]);
+  }, [navigate, tabParam, invitationToken, searchParams]);
 
   const validateInvitationToken = async (token: string) => {
     try {
@@ -85,8 +105,9 @@ const Auth = () => {
         return;
       }
 
-      // Preencher email automaticamente
+      // Preencher email e nome automaticamente
       setEmail(invitation.email);
+      setSignupName(invitation.nome);
       setInvitationData(invitation);
     } catch (error: any) {
       console.error("Erro ao validar convite:", error);
@@ -111,7 +132,7 @@ const Auth = () => {
           options: {
             emailRedirectTo: redirectUrl,
             data: {
-              nome: invitationData?.nome || "",
+              nome: signupName || invitationData?.nome || "",
               invited_by: invitationData?.invited_by || null,
             },
           },
@@ -137,7 +158,7 @@ const Auth = () => {
       });
 
       // Redirecionar para login após cadastro bem-sucedido
-      setDefaultTab("login");
+      setActiveTab("login");
     } catch (error: any) {
       setError(error.message || "Erro ao realizar cadastro");
     } finally {
@@ -242,7 +263,11 @@ const Auth = () => {
           </CardHeader>
 
           <CardContent>
-            <Tabs defaultValue={tabParam || "login"} className="w-full">
+            <Tabs 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Cadastro</TabsTrigger>
@@ -293,6 +318,18 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name-signup">Nome Completo</Label>
+                    <Input
+                      id="name-signup"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      required
+                      disabled={!!invitationData}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="email-signup">Email</Label>
                     <Input

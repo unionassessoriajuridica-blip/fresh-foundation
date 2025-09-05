@@ -91,12 +91,34 @@ const AcceptInvitation = () => {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        // Redirect to signup with invitation token
-        navigate(`/auth?invitation_token=${token}`);
+        // Redirect to signup with invitation token and pre-filled data
+        navigate(
+          `/auth?invitation_token=${token}&signup=true&email=${encodeURIComponent(
+            invitation.email
+          )}&name=${encodeURIComponent(invitation.nome)}`
+        );
         return;
       }
 
-      // If user is logged in, accept the invitation directly
+      // Verificar se o convite já foi aceito (para evitar duplicação)
+      const { data: currentInvitation, error: checkError } = await supabase
+        .from("user_invitations")
+        .select("status")
+        .eq("token", token)
+        .single();
+
+      if (checkError) throw checkError;
+
+      if (currentInvitation.status === "ACCEPTED") {
+        toast({
+          title: "Convite já aceito",
+          description: "Este convite já foi aceito anteriormente.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      // Atualizar status do convite para ACCEPTED
       const { error: acceptError } = await supabase
         .from("user_invitations")
         .update({
@@ -104,10 +126,11 @@ const AcceptInvitation = () => {
           accepted_at: new Date().toISOString(),
           user_id: user.id,
         })
-        .eq("token", token); // ← CORRIGIDO: usar token em vez de id
+        .eq("token", token);
 
       if (acceptError) throw acceptError;
 
+      // Adicionar permissões ao usuário
       if (invitation.permissions && invitation.permissions.length > 0) {
         const permissionsToInsert = invitation.permissions.map(
           (permission: string) => ({
@@ -138,8 +161,8 @@ const AcceptInvitation = () => {
           .insert(permissionsToInsert);
 
         if (permissionError) {
-          console.error("Permission error:", permissionError);
-          throw permissionError;
+          console.error("Erro ao adicionar permissões:", permissionError);
+          // Não impedir o sucesso por erro nas permissões, apenas logar
         }
       }
 
