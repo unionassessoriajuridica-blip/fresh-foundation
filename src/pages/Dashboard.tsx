@@ -165,7 +165,7 @@ const loadData = async () => {
 
     // Aplicar filtro apenas se NÃO tiver acesso global
     if (!hasGlobalProcessAccess) {
-      console.log("Aplicando filtro por user_id");
+      console.log("Aplicando filtro por user_id para processos");
       processosQuery = processosQuery.eq("user_id", user?.id);
     } else {
       console.log("Visualizando todos os processos (acesso global)");
@@ -181,11 +181,14 @@ const loadData = async () => {
     console.log("Processos carregados (quantidade):", processosData?.length);
     setProcessos(processosData || []);
 
-    // Mesma lógica para clientes
+    // 🔥 CORREÇÃO: Usar hasGlobalClientAccess para clientes também
     let clientesQuery = supabase.from("clientes").select("id");
     
-    if (!hasGlobalClientAccess) {
+    if (!hasGlobalClientAccess) { // 🔥 Use a variável correta aqui
+      console.log("Aplicando filtro por user_id para clientes");
       clientesQuery = clientesQuery.eq("user_id", user?.id);
+    } else {
+      console.log("Visualizando todos os clientes (acesso global)");
     }
 
     const { data: clientesData, error: clientesError } = await clientesQuery;
