@@ -16,7 +16,7 @@ if (!metaTag) {
 if (import.meta.env.VITE_GOOGLE_CLIENT_ID) {
   metaTag.content = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 } else {
-  console.error('VITE_GOOGLE_CLIENT_ID não está definida no ambiente');
+  console.error('VITE_GOOGLE_CLIENT_ID não está definida no ambiente.');
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

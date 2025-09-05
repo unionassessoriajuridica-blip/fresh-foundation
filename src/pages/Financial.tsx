@@ -72,11 +72,12 @@ const Financial = () => {
   } = useGlobalAccess();
 
   useEffect(() => {
-    if (user) {
-      fetchFinanceiro();
-      fetchClientes();
-    }
-  }, [user]);
+  if (user && !globalAccessLoading) {
+    console.log("Fetching financeiro data. Global access:", hasGlobalFinancialAccess);
+    fetchFinanceiro();
+    fetchClientes();
+  }
+}, [user, hasGlobalFinancialAccess, globalAccessLoading]);
 
   const fetchFinanceiro = async () => {
     try {
