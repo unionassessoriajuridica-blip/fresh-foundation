@@ -17,18 +17,19 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.tsx";
-import { Lock, Shield, AlertCircle, MailCheck } from "lucide-react";
+import { Lock, Shield, AlertCircle, MailCheck, Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import { useToast } from "@/hooks/use-toast.ts";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [signupName, setSignupName] = useState(""); // Novo estado para nome no cadastro
+  const [signupName, setSignupName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [invitationData, setInvitationData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("login"); // Controle de aba ativa
+  const [activeTab, setActiveTab] = useState("login");
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false); // Novo estado
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -46,12 +47,10 @@ const Auth = () => {
         return;
       }
 
-      // Processar token de convite se existir
       if (invitationToken) {
         await validateInvitationToken(invitationToken);
       }
 
-      // Verificar se deve abrir na aba de cadastro
       const shouldSignUp = searchParams.get('signup') === 'true';
       const emailParam = searchParams.get('email');
       const nameParam = searchParams.get('name');
@@ -64,12 +63,10 @@ const Auth = () => {
         setActiveTab("signup");
       }
 
-      // Pré-preencher email se vier por parâmetro
       if (emailParam) {
         setEmail(decodeURIComponent(emailParam));
       }
       
-      // Pré-preencher nome se vier por parâmetro
       if (nameParam) {
         setSignupName(decodeURIComponent(nameParam));
       }
@@ -93,7 +90,6 @@ const Auth = () => {
         return;
       }
 
-      // Verificar se expirou
       const isExpired = new Date(invitation.expires_at) < new Date();
       if (isExpired) {
         setError("Este convite expirou. Solicite um novo convite.");
@@ -105,7 +101,6 @@ const Auth = () => {
         return;
       }
 
-      // Preencher email e nome automaticamente
       setEmail(invitation.email);
       setSignupName(invitation.nome);
       setInvitationData(invitation);
@@ -152,13 +147,14 @@ const Auth = () => {
         await processInvitationAcceptance(signUpData.user.id);
       }
 
+      // MOSTRAR MENSAGEM DE CONFIRMAÇÃO DE EMAIL EM VEZ DE REDIRECIONAR
+      setShowEmailConfirmation(true);
+      
       toast({
         title: "Cadastro realizado!",
         description: "Verifique seu email para confirmar a conta.",
       });
 
-      // Redirecionar para login após cadastro bem-sucedido
-      setActiveTab("login");
     } catch (error: any) {
       setError(error.message || "Erro ao realizar cadastro");
     } finally {
@@ -168,7 +164,6 @@ const Auth = () => {
 
   const processInvitationAcceptance = async (userId: string) => {
     try {
-      // Atualizar status do convite
       const { error: updateError } = await supabase
         .from("user_invitations")
         .update({
@@ -183,7 +178,6 @@ const Auth = () => {
         throw updateError;
       }
 
-      // Copiar permissões do convite para o usuário
       if (invitationData?.permissions?.length > 0) {
         const permissionsToInsert = invitationData.permissions.map(
           (permission: string) => ({
@@ -202,10 +196,8 @@ const Auth = () => {
           throw permError;
         }
       }
-      console.log("Permissões concedidas com sucesso para o usuário:", userId);
     } catch (error) {
       console.error("Erro ao processar aceitação do convite:", error);
-      // Não impedir o cadastro por erro no processamento do convite
     }
   };
 
@@ -229,6 +221,39 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Se mostrar confirmação de email, exibe mensagem especial
+  if (showEmailConfirmation) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Mail className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+            <CardTitle>Verifique seu Email</CardTitle>
+            <CardDescription>
+              Enviamos um link de confirmação para seu email
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <Alert className="bg-blue-50 border-blue-200">
+              <MailCheck className="w-4 h-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Importante:</strong> Acesse seu email <strong>{email}</strong> e clique no link de confirmação para ativar sua conta.
+                <br /><br />
+                Após confirmar, você poderá fazer login normalmente.
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => setShowEmailConfirmation(false)}
+              variant="outline"
+            >
+              Voltar para Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">

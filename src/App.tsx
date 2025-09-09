@@ -25,6 +25,7 @@ import Sobre from "./pages/Sobre.tsx";
 import Servicos from "./pages/Servicos.tsx";
 import { PrivateRoute } from "./components/PrivateRoute.tsx";
 import AcceptInvitation from "./pages/AcceptInvitation.tsx";
+import MigratePermissions from "./pages/MigratePermissions.tsx";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,8 @@ const App = () => (
           {/* Rotas Protegidas */}
           <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            // No App.tsx, adicione temporariamente:
+            <Route path="/migrate-permissions" element={<MigratePermissions />} />
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/novo-processo" element={<NewProcess />} />
             <Route path="/processo/:id" element={<ProcessView />} />

@@ -53,7 +53,6 @@ declare global {
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
   const {
     hasPermission,
     permissions,
@@ -63,18 +62,34 @@ const Dashboard = () => {
   const { isMaster, isAdmin } = useUserRole();
   const [processos, setProcessos] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
   const [stats, setStats] = useState({
     processosAtivos: 0,
     audienciasHoje: 0,
     clientes: 0,
   });
   const [loading, setLoading] = useState(true);
+
   const {
     canViewAllProcesses: hasGlobalProcessAccess,
     canViewAllFinancial: hasGlobalFinancialAccess,
     canViewAllClients: hasGlobalClientAccess,
     permissionsLoading: globalAccessLoading,
   } = useGlobalAccess();
+
+  useEffect(() => {
+    console.log("=== DEBUG GLOBAL ACCESS ===");
+    console.log("hasGlobalProcessAccess:", hasGlobalProcessAccess);
+    console.log("hasGlobalClientAccess:", hasGlobalClientAccess);
+    console.log("hasGlobalFinancialAccess:", hasGlobalFinancialAccess);
+    console.log("globalAccessLoading:", globalAccessLoading);
+  }, [
+    hasGlobalProcessAccess,
+    hasGlobalClientAccess,
+    hasGlobalFinancialAccess,
+    globalAccessLoading,
+  ]);
 
   useEffect(() => {
     console.log("=== DEBUG PERMISSÕES ===");
@@ -94,7 +109,6 @@ const Dashboard = () => {
     console.log("Debug permissions exposed:", window.__debugPermissions);
   }, [permissions, hasPermission, user]);
 
-  // Filtro de processos
   const filteredProcessos = processos.filter((processo) => {
     if (!searchTerm) return true;
 
@@ -111,7 +125,6 @@ const Dashboard = () => {
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  // Atualize a paginação para usar os processos filtrados
   const currentProcessos = filteredProcessos.slice(
     indexOfFirstItem,
     indexOfLastItem
@@ -129,72 +142,92 @@ const Dashboard = () => {
       setCurrentPage(currentPage - 1);
     }
   };
+  
+  // DEBUG URGENTE
+  useEffect(() => {
+    console.log("=== 🚨 DEBUG URGENTE 🚨 ===");
+    console.log("User ID:", user?.id);
+    console.log("Todas Permissões:", permissions);
+    console.log(
+      "Tem 'ver_todos_processos':",
+      permissions.includes("ver_todos_processos")
+    );
+    console.log("Tem 'ADMIN':", permissions.includes("ADMIN"));
+    console.log("hasGlobalProcessAccess:", hasGlobalProcessAccess);
+    console.log("hasGlobalFinancialAccess:", hasGlobalFinancialAccess);
+    console.log("hasGlobalClientAccess:", hasGlobalClientAccess);
+  }, [permissions, hasGlobalProcessAccess, user]);
 
+  // DEBUG da Query
+  console.log("=== 🔍 QUERY DEBUG ===");
+  console.log("Vai aplicar filtro?", !hasGlobalProcessAccess);
+  console.log("User ID para filtro:", user?.id);
+  
   useEffect(() => {
     if (user && !permissionsLoading && !globalAccessLoading) {
       loadData();
     }
   }, [user, permissionsLoading, globalAccessLoading]);
 
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user) {
-        loadData();
-      }
-    };
-
-    globalThis.addEventListener("focus", handleFocus);
-    return () => globalThis.removeEventListener("focus", handleFocus);
-  }, [user]);
-
-const loadData = async () => {
+  const loadData = async () => {
+  console.log("=== 🔍 INICIANDO CARREGAMENTO ===");
+  
   try {
-    // SEMPRE busca todos os processos
-    const { data: processosData, error: processosError } = await supabase
+    // Primeiro, teste se a tabela processos existe
+    const { data: testData, error: testError } = await supabase
+      .from('processos')
+      .select('count')
+      .limit(1);
+
+    if (testError) {
+      console.error("❌ ERRO: Tabela processos não encontrada:", testError);
+      return;
+    }
+
+    console.log("✅ Tabela processos encontrada");
+
+    // Agora faça a query completa
+    let processosQuery = supabase
       .from("processos")
-      .select(`*, clientes (nome)`)
+      .select(`
+        *,
+        clientes (nome)
+      `)
       .order("created_at", { ascending: false });
 
-    if (processosError) throw processosError;
-
-    // Filtra no frontend baseado na permissão
-    let processosFiltrados = processosData || [];
-    if (!hasGlobalProcessAccess) {
-      processosFiltrados = processosFiltrados.filter(processo => 
-        processo.user_id === user?.id
-      );
+    if (!hasGlobalProcessAccess && user?.id) {
+      console.log("🔍 Filtrando por user_id:", user.id);
+      processosQuery = processosQuery.eq("user_id", user.id);
     }
 
-    setProcessos(processosFiltrados);
+    const { data: processosData, error: processosError } = await processosQuery;
 
-    // Mesma lógica para clientes
-    const { data: clientesData, error: clientesError } = await supabase
-      .from("clientes")
-      .select("id, user_id");
-
-    if (clientesError) throw clientesError;
-
-    let clientesFiltrados = clientesData || [];
-    if (!hasGlobalClientAccess) {
-      clientesFiltrados = clientesFiltrados.filter(cliente => 
-        cliente.user_id === user?.id
-      );
+    if (processosError) {
+      console.error("❌ Erro na query:", processosError);
+      return;
     }
 
-    setStats({
-      processosAtivos: processosFiltrados.length,
-      audienciasHoje: 0,
-      clientes: clientesFiltrados.length,
-    });
+    console.log("✅ Processos carregados:", processosData);
+    setProcessos(processosData || []);
+
   } catch (error) {
-    console.error("Erro ao carregar dados:", error);
+    console.error("❌ Erro geral:", error);
   } finally {
     setLoading(false);
   }
 };
 
-  const handleEditProcesso = (processoId: string) => {
-    globalThis.location.href = `/processo/${processoId}`;
+  const handleEditProcesso = (processoId: string, processoUserId: string) => {
+    // 🔥 CORREÇÃO: Permitir editar se tem acesso GLOBAL ou se é o dono
+    if (hasGlobalProcessAccess || processoUserId === user?.id) {
+      navigate(`/processo/${processoId}`);
+    } else {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para editar este processo",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteProcesso = async (processoId: string) => {
@@ -209,6 +242,15 @@ const loadData = async () => {
       cancelButtonText: "Cancelar",
       reverseButtons: true,
     });
+
+    if (!hasGlobalProcessAccess && processoUserId !== user?.id) {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para excluir este processo",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (result.isConfirmed) {
       try {

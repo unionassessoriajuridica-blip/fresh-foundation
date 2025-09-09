@@ -150,13 +150,12 @@ const NewProcess = () => {
     setResponsavelData({ ...responsavelData, cep: formatCEP(value) });
   };
 
-  
   // Verificar se está em modo de edição e carregar dados existentes
   useEffect(() => {
     const editId = searchParams.get("edit");
     const stepParam = searchParams.get("step");
 
-    if (editId && user) {
+    if (editId && user && !globalAccessLoading) {
       setIsEditMode(true);
       setProcessoId(editId);
       loadProcessData(editId);
@@ -169,40 +168,59 @@ const NewProcess = () => {
         }
       }
     }
-  }, [searchParams, user]);
+  }, [searchParams, user, globalAccessLoading]);
 
   const loadProcessData = async (id: string) => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Carregar dados do processo com cliente
-    let processoQuery = supabase
-      .from("processos")
-      .select(
-        `
-        *,
-        clientes (*)
-      `
-      )
-      .eq("id", id);
+      let processoQuery = supabase
+        .from("processos")
+        .select(
+          `
+    *,
+    clientes (*)
+  `
+        )
+        .eq("id", id);
 
-    // Apenas filtrar por user_id se NÃO tiver acesso global
-    if (!hasGlobalProcessAccess) {
-      processoQuery = processoQuery.eq("user_id", user?.id || '');
-    }
+      // Apenas filtrar por user_id se NÃO tiver acesso global
+      // E garantir que hasGlobalProcessAccess está carregado corretamente
+      if (!hasGlobalProcessAccess && user?.id) {
+        console.log("🔍 Filtrando processo por user_id:", user.id);
+        processoQuery = processoQuery.eq("user_id", user.id);
+      } else {
+        console.log("🔍 Visualizando todos os processos (acesso global)");
+      }
 
-    const { data: processo, error: processoError } = await processoQuery.single();
+      const { data: processo, error: processoError } =
+        await processoQuery.single();
 
-    if (processoError) {
-      console.error("Erro ao carregar processo:", processoError);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Processo não encontrado ou você não tem permissão para editá-lo.",
-      });
-      navigate("/dashboard");
-      return;
-    }
+      if (processoError) {
+        console.error("Erro ao carregar processo:", processoError);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description:
+            "Processo não encontrado ou você não tem permissão para editá-lo.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      // Garantir que o usuário tem acesso
+      if (!hasGlobalProcessAccess && processo.user_id !== user?.id) {
+        console.error(
+          "❌ Acesso negado - usuário não tem permissão para editar este processo"
+        );
+        toast({
+          variant: "destructive",
+          title: "Acesso negado",
+          description: "Você não tem permissão para editar este processo.",
+        });
+        navigate("/dashboard");
+        return;
+      }
 
       // Preencher dados do cliente
       if (processo.clientes) {

@@ -42,17 +42,15 @@ const ProcessView = () => {
   const [observacoes, setObservacoes] = useState<any[]>([]);
   const [documentos, setDocumentos] = useState<any[]>([]);
   const [responsavel, setResponsavel] = useState<any>(null);
-
-  const {
-    hasPermission,
-    permissions,
-    loading: permissionsLoading,
-  } = usePermissions();
-
+ 
   const {
     canViewAllProcesses: hasGlobalProcessAccess,
     permissionsLoading: globalAccessLoading,
   } = useGlobalAccess();
+
+  const {
+    loading: permissionsLoading,
+  } = usePermissions();
 
   useEffect(() => {
     if (id && user && !permissionsLoading && !globalAccessLoading) {
@@ -78,22 +76,23 @@ const ProcessView = () => {
         )
         .eq("id", id);
 
-      // Apenas filtrar por user_id se o usuário NÃO tiver acesso global
       if (!hasGlobalProcessAccess) {
         console.log("Aplicando filtro por user_id");
-        processoQuery = processoQuery.eq('user_id', user?.id);
+        processoQuery = processoQuery.eq("user_id", user?.id);
       } else {
         console.log("Visualizando todos os processos (acesso global)");
       }
 
-      const { data: processoData, error: processoError } = await processoQuery.single();
+      const { data: processoData, error: processoError } =
+        await processoQuery.single();
 
       if (processoError) {
         console.error("Erro ao carregar processo:", processoError);
         toast({
           variant: "destructive",
           title: "Erro",
-          description: "Processo não encontrado ou você não tem permissão para acessá-lo.",
+          description:
+            "Processo não encontrado ou você não tem permissão para acessá-lo.",
         });
         navigate("/dashboard");
         return;
