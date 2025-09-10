@@ -142,7 +142,7 @@ const Dashboard = () => {
       setCurrentPage(currentPage - 1);
     }
   };
-  
+
   // DEBUG URGENTE
   useEffect(() => {
     console.log("=== 🚨 DEBUG URGENTE 🚨 ===");
@@ -162,7 +162,7 @@ const Dashboard = () => {
   console.log("=== 🔍 QUERY DEBUG ===");
   console.log("Vai aplicar filtro?", !hasGlobalProcessAccess);
   console.log("User ID para filtro:", user?.id);
-  
+
   useEffect(() => {
     if (user && !permissionsLoading && !globalAccessLoading) {
       loadData();
@@ -170,52 +170,120 @@ const Dashboard = () => {
   }, [user, permissionsLoading, globalAccessLoading]);
 
   const loadData = async () => {
-  console.log("=== 🔍 INICIANDO CARREGAMENTO ===");
-  
-  try {
-    // Primeiro, teste se a tabela processos existe
-    const { data: testData, error: testError } = await supabase
-      .from('processos')
-      .select('count')
-      .limit(1);
+    console.log("=== 🔍 INICIANDO CARREGAMENTO ===");
 
-    if (testError) {
-      console.error("❌ ERRO: Tabela processos não encontrada:", testError);
-      return;
-    }
+    try {
+      // Primeiro, teste se a tabela processos existe
+      const { data: testData, error: testError } = await supabase
+        .from("processos")
+        .select("count")
+        .limit(1);
 
-    console.log("✅ Tabela processos encontrada");
+      if (testError) {
+        console.error("❌ ERRO: Tabela processos não encontrada:", testError);
+        return;
+      }
 
-    // Agora faça a query completa
-    let processosQuery = supabase
-      .from("processos")
-      .select(`
+      console.log("✅ Tabela processos encontrada");
+
+      // Agora faça a query completa
+      let processosQuery = supabase
+        .from("processos")
+        .select(
+          `
         *,
         clientes (nome)
-      `)
-      .order("created_at", { ascending: false });
+      `
+        )
+        .order("created_at", { ascending: false });
 
-    if (!hasGlobalProcessAccess && user?.id) {
-      console.log("🔍 Filtrando por user_id:", user.id);
-      processosQuery = processosQuery.eq("user_id", user.id);
+      if (!hasGlobalProcessAccess && user?.id) {
+        console.log("🔍 Filtrando por user_id:", user.id);
+        processosQuery = processosQuery.eq("user_id", user.id);
+      }
+
+      const { data: processosData, error: processosError } =
+        await processosQuery;
+
+      if (processosError) {
+        console.error("❌ Erro na query:", processosError);
+        return;
+      }
+
+      await loadStats();
+
+      console.log("✅ Processos carregados:", processosData);
+      setProcessos(processosData || []);
+    } catch (error) {
+      console.error("❌ Erro geral:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const { data: processosData, error: processosError } = await processosQuery;
+  const loadStats = async () => {
+    try {
+      // Contar processos ativos
+      let processosCountQuery = supabase
+        .from("processos")
+        .select("id", { count: "exact" })
+        .eq("status", "ATIVO");
 
-    if (processosError) {
-      console.error("❌ Erro na query:", processosError);
-      return;
+      if (!hasGlobalProcessAccess && user?.id) {
+        processosCountQuery = processosCountQuery.eq("user_id", user.id);
+      }
+
+      const { count: processosAtivos, error: processosError } =
+        await processosCountQuery;
+
+      // Contar clientes
+      let clientesQuery = supabase
+        .from("clientes")
+        .select("id", { count: "exact" });
+
+      if (!hasGlobalClientAccess && user?.id) {
+        clientesQuery = clientesQuery.eq("user_id", user.id);
+      }
+
+      const { count: clientes, error: clientesError } = await clientesQuery;
+
+      // Contar audiências para hoje (assumindo que audiências estão na tabela processos com campo prazo)
+      const hoje = new Date().toISOString().split("T")[0];
+
+      let audienciasQuery = supabase
+        .from("processos")
+        .select("id", { count: "exact" })
+        .eq("prazo", hoje);
+
+      if (!hasGlobalProcessAccess && user?.id) {
+        audienciasQuery = audienciasQuery.eq("user_id", user.id);
+      }
+
+      const { count: audienciasHoje, error: audienciasError } =
+        await audienciasQuery;
+
+      // Atualizar estatísticas
+      setStats({
+        processosAtivos: processosAtivos || 0,
+        clientes: clientes || 0,
+        audienciasHoje: audienciasHoje || 0,
+      });
+
+      console.log("✅ Estatísticas carregadas:", {
+        processosAtivos,
+        clientes,
+        audienciasHoje,
+      });
+    } catch (error) {
+      console.error("❌ Erro ao carregar estatísticas:", error);
+      // Definir valores padrão em caso de erro
+      setStats({
+        processosAtivos: 0,
+        clientes: 0,
+        audienciasHoje: 0,
+      });
     }
-
-    console.log("✅ Processos carregados:", processosData);
-    setProcessos(processosData || []);
-
-  } catch (error) {
-    console.error("❌ Erro geral:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleEditProcesso = (processoId: string, processoUserId: string) => {
     // 🔥 CORREÇÃO: Permitir editar se tem acesso GLOBAL ou se é o dono
