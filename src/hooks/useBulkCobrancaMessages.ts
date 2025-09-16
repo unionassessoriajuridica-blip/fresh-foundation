@@ -43,11 +43,19 @@ export const useBulkCobrancaMessages = () => {
           (vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        // Verificar se deve enviar baseado nos critérios
-        const deveEnviar = 
-          (diffDias === 3) || // 3 dias antes
-          (diffDias === 0) || // No dia do vencimento
-          (diffDias < 0 && Math.abs(diffDias) % 5 === 0); // A cada 5 dias após vencimento
+        const deveEnviar = (() => {
+          if (diffDias > 0) {
+            // parcelas futuras: envia nos 3 dias anteriores
+            return diffDias <= 3;
+          } else if (diffDias === 0) {
+            // vence hoje: sempre envia
+            return true;
+          } else {
+            // atrasadas: envia a cada 3 dias
+            const diasAtraso = Math.abs(diffDias);
+            return diasAtraso % 3 === 0; // a cada 3 dias
+          }
+        })();
 
         if (deveEnviar) {
           // Buscar telefone do cliente
