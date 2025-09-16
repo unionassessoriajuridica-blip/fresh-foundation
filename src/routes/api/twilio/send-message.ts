@@ -1,55 +1,53 @@
-// src/routes/api/twilio/send-message.ts
+// src/routes/api/whatsapp/send-message.ts
 import { Handlers } from '$fresh/server.ts';
 
 export const handler: Handlers = {
   async POST(req) {
     try {
-      const { to, body } = await req.json();
+      const { phone, message } = await req.json();
       
-      const accountSid = Deno.env.get('VITE_TWILIO_ACCOUNT_SID');
-      const authToken = Deno.env.get('VITE_TWILIO_AUTH_TOKEN');
-      const fromNumber = Deno.env.get('VITE_TWILIO_WHATSAPP_FROM');
+      const apiUrl = Deno.env.get('WHATSAPP_API_URL');
+      const apiToken = Deno.env.get('WHATSAPP_API_TOKEN');
 
-      if (!accountSid || !authToken || !fromNumber) {
-        return new Response(JSON.stringify({ error: 'Twilio credentials not configured' }), {
+      if (!apiUrl || !apiToken) {
+        return new Response(JSON.stringify({ error: 'WhatsApp API credentials not configured' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      // Chamada para a API não oficial de WhatsApp
+      const response = await fetch(`${apiUrl}/send-message`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          From: fromNumber,
-          To: to,
-          Body: body
+        body: JSON.stringify({
+          phone,
+          message
         })
       });
 
-      const responseText = await response.text();
+      const responseData = await response.json();
 
       if (!response.ok) {
         return new Response(JSON.stringify({ 
-          error: `Twilio API error: ${response.status}`,
-          details: responseText 
+          error: `WhatsApp API error: ${response.status}`,
+          details: responseData 
         }), {
           status: response.status,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      const data = JSON.parse(responseText);
-      return new Response(JSON.stringify(data), {
+      return new Response(JSON.stringify(responseData), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
 
     } catch (error) {
-      console.error('Error in Twilio proxy:', error);
+      console.error('Error in WhatsApp proxy:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

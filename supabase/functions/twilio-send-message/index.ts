@@ -4,87 +4,84 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET, PUT, DELETE',
 };
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { to, body } = await req.json();
+    // Verificar se é uma requisição de preflight CORS
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    const { phone, message } = await req.json();
     
-    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const fromNumber = Deno.env.get('TWILIO_WHATSAPP_FROM');
+    const apiUrl = Deno.env.get('WHATSAPP_API_URL');
+    const apiToken = Deno.env.get('WHATSAPP_API_TOKEN');
 
-    console.log('Twilio credentials check:', {
-      hasAccountSid: !!accountSid,
-      hasAuthToken: !!authToken,
-      hasFromNumber: !!fromNumber,
-      fromNumber
-    });
-
-    if (!accountSid || !authToken || !fromNumber) {
+    if (!apiUrl || !apiToken) {
       return new Response(JSON.stringify({ 
-        error: 'Twilio credentials not configured',
-        missing: {
-          accountSid: !accountSid,
-          authToken: !authToken,
-          fromNumber: !fromNumber
-        }
+        error: 'WhatsApp API credentials not configured'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+    // Validar e formatar o telefone
+    const formattedPhone = phone.replace(/\D/g, '');
+    if (!formattedPhone) {
+      return new Response(JSON.stringify({ 
+        error: 'Número de telefone inválido'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Enviando mensagem para:', formattedPhone);
+
+    const response = await fetch(`${apiUrl}/send-message`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        From: fromNumber,
-        To: to,
-        Body: body
+      body: JSON.stringify({
+        phone: formattedPhone,
+        message
       })
     });
 
-    const responseText = await response.text();
-    console.log('Twilio API response:', response.status, responseText);
+    const responseData = await response.json();
 
     if (!response.ok) {
-      let errorDetails;
-      try {
-        errorDetails = JSON.parse(responseText);
-      } catch {
-        errorDetails = responseText;
-      }
-      
+      console.error('Erro da API WhatsApp:', responseData);
       return new Response(JSON.stringify({ 
-        error: `Twilio API error: ${response.status}`,
-        details: errorDetails,
-        credentials: {
-          accountSid: accountSid ? `${accountSid.substring(0, 4)}...` : 'missing',
-          fromNumber
-        }
+        error: `WhatsApp API error: ${response.status}`,
+        details: responseData
       }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const data = JSON.parse(responseText);
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Mensagem enviada com sucesso',
+      data: responseData
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('Error in Twilio function:', error);
+    console.error('Error in WhatsApp function:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
       message: error.message 

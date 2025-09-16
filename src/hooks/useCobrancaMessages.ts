@@ -1,8 +1,8 @@
 // src/hooks/useCobrancaMessages.ts
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client.ts';
-import { twilioService } from '@/services/twilioService.ts';
-import { useToast } from '@/hooks/use-toast.ts';
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client.ts";
+import { whatsappService } from "@/services/whatsappService.ts";
+import { useToast } from "@/hooks/use-toast.ts";
 
 export const useCobrancaMessages = () => {
   const [loading, setLoading] = useState(false);
@@ -11,37 +11,39 @@ export const useCobrancaMessages = () => {
   const enviarMensagemCobranca = async (financeiroId: string) => {
     setLoading(true);
     try {
-      // Buscar dados do financeiro e depois do cliente separadamente
+      // Buscar dados do financeiro
       const { data: financeiroData, error: financeiroError } = await supabase
-        .from('financeiro')
-        .select('*')
-        .eq('id', financeiroId)
+        .from("financeiro")
+        .select("*")
+        .eq("id", financeiroId)
         .single();
 
       if (financeiroError) throw financeiroError;
-      if (!financeiroData) throw new Error('Registro financeiro não encontrado');
+      if (!financeiroData) throw new Error("Registro financeiro não encontrado");
 
-      // Buscar dados do cliente separadamente
+      // Buscar dados do cliente separadamente - CORREÇÃO AQUI
       const { data: clienteData, error: clienteError } = await supabase
-        .from('clientes')
-        .select('telefone, nome')
-        .eq('nome', financeiroData.cliente_nome)
-        .eq('user_id', financeiroData.user_id)
+        .from("clientes")
+        .select("telefone, nome")
+        .eq("nome", financeiroData.cliente_nome)
+        .eq("user_id", financeiroData.user_id)
         .single();
 
       if (clienteError) throw clienteError;
 
       const telefone = clienteData?.telefone;
       if (!telefone) {
-        throw new Error('Cliente não possui telefone cadastrado');
+        throw new Error("Cliente não possui telefone cadastrado");
       }
 
       const vencimento = new Date(financeiroData.vencimento);
       const hoje = new Date();
-      const diffDias = Math.floor((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDias = Math.floor(
+        (vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-      await twilioService.sendCobrancaMessage(
-        telefone,
+      await whatsappService.sendCobrancaMessage(
+        telefone, // AGORA telefone está definido
         financeiroData.cliente_nome,
         Number(financeiroData.valor),
         financeiroData.vencimento,
@@ -51,12 +53,12 @@ export const useCobrancaMessages = () => {
 
       // Registrar o envio da mensagem
       const { error: updateError } = await supabase
-        .from('financeiro')
-        .update({ 
+        .from("financeiro")
+        .update({
           ultimo_envio_cobranca: new Date().toISOString(),
-          tentativas_cobranca: (financeiroData.tentativas_cobranca || 0) + 1
+          tentativas_cobranca: (financeiroData.tentativas_cobranca || 0) + 1,
         })
-        .eq('id', financeiroId);
+        .eq("id", financeiroId);
 
       if (updateError) throw updateError;
 
@@ -66,7 +68,7 @@ export const useCobrancaMessages = () => {
       });
 
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error("Erro ao enviar mensagem:", error);
       toast({
         variant: "destructive",
         title: "Erro ao enviar mensagem",

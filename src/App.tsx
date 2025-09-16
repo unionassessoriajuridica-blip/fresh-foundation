@@ -26,6 +26,7 @@ import Servicos from "./pages/Servicos.tsx";
 import { PrivateRoute } from "./components/PrivateRoute.tsx";
 import AcceptInvitation from "./pages/AcceptInvitation.tsx";
 import MigratePermissions from "./pages/MigratePermissions.tsx";
+import WhatsAppManagement from "./pages/WhatsAppManagement.tsx";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/google-integration" element={<GoogleIntegration />} />
             <Route path="/google-integration/callback" element={<GoogleCallback />} />
             <Route path="/calendar" element={<CalendarManagement />} />
+            <Route path="/whatsapp" element={<WhatsAppManagement />} />
           </Route>
 
           {/* Outras Rotas */}

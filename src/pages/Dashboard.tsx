@@ -36,6 +36,7 @@ import {
   Bell,
   User,
   Settings,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client.ts";
 import { useNavigate } from "react-router-dom";
@@ -520,6 +521,21 @@ const Dashboard = () => {
                 <h3 className="font-semibold">Novo Processo</h3>
                 <p className="text-sm text-muted-foreground">
                   Criar processo judicial
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {hasPermission("financeiro") && (
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate("/whatsapp")}
+            >
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <MessageCircle className="w-12 h-12 text-green-600 mb-4" />
+                <h3 className="font-semibold">WhatsApp</h3>
+                <p className="text-sm text-muted-foreground">
+                  Enviar cobranças e gerenciar conexão
                 </p>
               </CardContent>
             </Card>
