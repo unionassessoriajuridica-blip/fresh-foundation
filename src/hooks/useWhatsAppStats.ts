@@ -20,10 +20,11 @@ export const useWhatsAppStats = () => {
 
   const apiUrl = import.meta.env.VITE_WHATSAPP_API_URL;
   const apiToken = import.meta.env.VITE_WHATSAPP_API_TOKEN;
-  console.log('Variáveis de ambiente:', {
-  apiUrl : import.meta.env.VITE_WHATSAPP_API_URL,
-  apiToken: import.meta.env.VVITE_WHATSAPP_API_TOKEN
-});
+  
+  console.log("Variáveis de ambiente:", {
+    apiUrl: import.meta.env.VITE_WHATSAPP_API_URL,
+    apiToken: import.meta.env.VITE_WHATSAPP_API_TOKEN,
+  });
 
   const fetchStats = async () => {
     try {
@@ -75,7 +76,7 @@ export const useWhatsAppStats = () => {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 15000); 
+    const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
   }, []);
 
