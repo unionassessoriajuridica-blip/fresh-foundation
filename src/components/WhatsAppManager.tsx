@@ -70,6 +70,8 @@ const WhatsAppManager = () => {
           description: "Serviço WhatsApp está sendo reiniciado...",
         });
 
+        window.location.reload();
+
         // Aguardar um pouco e verificar status
         setTimeout(() => {
           checkStatus();

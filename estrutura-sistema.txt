@@ -1,10 +1,10 @@
 ├── facilita-adv/
 ├── dist/
 │     ├─── assets/
-│     │     ├─ index-6VfYjiEG.js
-│     │     ├─ index-BI8xNwor.css
-│     │     ├─ index.es-CSEW3y2q.js
-│     │     └─ purify.es-BFmJLeH.js
+│     │     ├─ index-
+│     │     ├─ index-
+│     │     ├─ index.es-
+│     │     └─ purify.es-
 │     │
 │     ├─── favicon.ico
 │     ├─── google200261c3d0adc1a6.html
@@ -30,20 +30,30 @@
 │     │    ├─ ClienteDataCard.tsx  
 │     │    ├─ DocumentUpload.tsx 
 │     │    ├─ FeatureCard.tsx  
+│     │    ├─ FeatureGrid.tsx  
 │     │    ├─ FileUpload.tsx     
 │     │    ├─ FinanceiroSummary.tsx  
-│     │    ├─ FinancialReports.tsx  
+│     │    ├─ FinancialReports.tsx 
+│     │    ├─ Footer.tsx 
+│     │    ├─ FrontendLayout.tsx    
 │     │    ├─ GmailSender.tsx
 │     │    ├─ GoogleCalendarCard.tsx  
 │     │    ├─ GoogleIntegrationCard.tsx  
 │     │    ├─ GooglePermissionsDialog.tsx  
-│     │    ├─ Header.tsx       
-│     │    ├─ NotificationCenter.tsx     
-│     │    ├─ ParcelaCard.tsx  
+│     │    ├─ Header.tsx  
+│     │    ├─ ImageHeader.tsx  
+│     │    ├─ ImageTextSection.tsx 
+│     │    ├─ Menu.tsx        
+│     │    ├─ NotificationCenter.tsx   
+│     │    ├─ Parallax.tsx    
+│     │    ├─ ParcelaCard.tsx 
+│     │    ├─ PrivateRoute.tsx   
 │     │    ├─ ProcessNotes.tsx  
 │     │    ├─ ResponsavelFinanceiro.tsx
-│     │    ├─ SSLBadge.tsx   
-│     │    └─ SubtleNotificationBell.tsx  
+│     │    ├─ SSLBadge.tsx 
+│     │    ├─ SubtleNotificationBell.tsx   
+│     │    ├─ WhatsAppManager.tsx    
+│     │    └─ WhitResourceAccess.tsx  
 │     │                    
 │     ├─ content/   
 │     │    ├─ politica-privacidade.md  
@@ -53,6 +63,7 @@
 │     │    ├─ use-mobile.tsx  
 │     │    ├─ use-toast.ts  
 │     │    ├─ useAuth.ts
+│     │    ├─ useBulkCobrancaMessages.ts 
 │     │    ├─ useClienteExcel.ts  
 │     │    ├─ useDocuSeal.ts  
 │     │    ├─ useEmailService.ts       
@@ -60,8 +71,10 @@
 │     │    ├─ useGmail.ts  
 │     │    ├─ useGoogleAuth.ts  
 │     │    ├─ useGoogleCalendar.ts
-│     │    ├─ usePermissions.ts   
-│     │    └─ useUserRole.ts  
+│     │    ├─ usePermissions.ts  
+│     │    ├─ useTemplateId.ts  
+│     │    ├─ useUserRole.ts 
+│     │    └─ useWhatsAppStats.ts  
 │     │    
 │     ├─ integration/ 
 │     │    └─ supabase/
@@ -75,12 +88,13 @@
 │     │   │   └─ auth/   
 │     │   │       └─ [...nextauth].js 
 │     │   │
+│     │   ├─ AcceptInvitation.tsx
 │     │   ├─ Auth.tsx
 │     │   ├─ CalendarManagement.tsx
+│     │   ├─ Contato.tsx
 │     │   ├─ Dashboard.tsx
 │     │   ├─ FaciliSign.tsx
 │     │   ├─ Financial.tsx
-│     │   ├─ FrontendLayout.tsx
 │     │   ├─ GoogleCallback.tsx
 │     │   ├─ GoogleIntegration.tsx
 │     │   ├─ IAFacilita.tsx
@@ -90,12 +104,25 @@
 │     │   ├─ PoliticaPrivacidade.tsx
 │     │   ├─ ProcessFinancial.tsx
 │     │   ├─ ProcessView.tsx
+│     │   ├─ Servicos.tsx
+│     │   ├─ Sobre.tsx
 │     │   ├─ TermosServico.tsx
-│     │   └─ UserManagement.tsx
+│     │   ├─ UserManagement.tsx
+│     │   └─ WhatsAppManagement.tsx
+│     │          
+│     ├─ routes/api/twilio
+│     │   └─ send-message.ts    
+│     │             
+│     ├─ services/ 
+│     │   ├─ cobrancaScheduler.ts
+│     │   └─ whatsappService.ts
 │     │          
 │     ├─ utils/ 
-│     │   ├─ currency.tsx
-│     │   └─ dataValidation.tsx
+│     │   ├─ accessUtils.ts
+│     │   ├─ currency.ts
+│     │   ├─ dataValidation.ts
+│     │   ├─ mask.ts
+│     │   └─ resourceAccessUtils.ts
 │     │   
 │     ├─ App.css
 │     ├─ App.tsx
