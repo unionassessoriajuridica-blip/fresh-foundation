@@ -255,7 +255,6 @@ const NewProcess = () => {
       const { data: financeiroData, error: financeiroError } = await supabase
         .from("financeiro")
         .select("*")
-        .eq("user_id", user?.id)
         .eq("cliente_nome", processo.clientes?.nome)
         .order("created_at", { ascending: true });
 
