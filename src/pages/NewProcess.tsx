@@ -252,11 +252,19 @@ const NewProcess = () => {
       });
 
       // Carregar dados financeiros
-      const { data: financeiroData, error: financeiroError } = await supabase
+      let financeiroQuery = supabase
         .from("financeiro")
         .select("*")
         .eq("cliente_nome", processo.clientes?.nome)
         .order("created_at", { ascending: true });
+
+      // Apenas filtrar por user_id se NÃO tiver acesso global
+      if (!hasGlobalProcessAccess && user?.id) {
+        financeiroQuery = financeiroQuery.eq("user_id", user.id);
+      }
+
+      const { data: financeiroData, error: financeiroError } =
+        await financeiroQuery;
 
       if (!financeiroError && financeiroData && financeiroData.length > 0) {
         // Processar dados financeiros para reconstruir os valores originais
@@ -885,7 +893,7 @@ const NewProcess = () => {
                       valor: valorTMP,
                       tipo: "TMP",
                       status: "PENDENTE",
-                      vencimento: dataVencimentoTMP.toISOString(), // CORRIGIDO
+                      vencimento: dataVencimentoTMP.toISOString(),
                     },
                   ]);
 
