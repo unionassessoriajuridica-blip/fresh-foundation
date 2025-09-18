@@ -328,21 +328,19 @@ const NewProcess = () => {
       const { data: responsavelData, error: responsavelError } = await supabase
         .from("responsavel_financeiro")
         .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .eq("processo_id", id) // Buscar pelo ID do processo específico
+        .single(); // Usar single pois deve haver apenas um por processo
 
-      if (!responsavelError && responsavelData && responsavelData.length > 0) {
-        const resp = responsavelData[0];
+      if (!responsavelError && responsavelData) {
         setResponsavelData({
-          nome: resp.nome || "",
-          rg: resp.rg || "",
-          cpf: resp.cpf || "",
-          data_nascimento: resp.data_nascimento || "",
-          telefone: resp.telefone || "",
-          email: resp.email || "",
-          endereco_completo: resp.endereco_completo || "",
-          cep: resp.cep || "",
+          nome: responsavelData.nome || "",
+          rg: responsavelData.rg || "",
+          cpf: responsavelData.cpf || "",
+          data_nascimento: responsavelData.data_nascimento || "",
+          telefone: responsavelData.telefone || "",
+          email: responsavelData.email || "",
+          endereco_completo: responsavelData.endereco_completo || "",
+          cep: responsavelData.cep || "",
         });
       }
     } catch (error) {
@@ -480,19 +478,8 @@ const NewProcess = () => {
         processoCreatedId = processoId;
 
         // 🔥 ADICIONE ESTA PARTE - LIMPAR E RECRIAR DADOS FINANCEIROS
-        console.log("=== ATUALIZANDO REGISTROS FINANCEIROS ===");
+        console.log("=== ATUALIZANDO REGISTROS FINANCEIROS ===");        
 
-        // Primeiro limpar os registros financeiros existentes
-        const { error: deleteFinanceError } = await supabase
-          .from("financeiro")
-          .delete()
-          .eq("cliente_nome", clienteData.nomeCompleto)
-          .eq("user_id", user.id);
-
-        if (deleteFinanceError) {
-          console.error("Erro ao limpar financeiro:", deleteFinanceError);
-          throw deleteFinanceError;
-        }
         console.log("✅ Registros financeiros antigos removidos");
 
         try {
@@ -622,24 +609,18 @@ const NewProcess = () => {
         // 🔥 TAMBÉM ATUALIZE O RESPONSÁVEL FINANCEIRO
         console.log("=== ATUALIZANDO RESPONSÁVEL FINANCEIRO ===");
 
-        // Primeiro limpar responsável existente (ou atualizar)
-        const { error: deleteRespError } = await supabase
+        const { data: existingResponsavel, error: checkError } = await supabase
           .from("responsavel_financeiro")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("cpf", removeMask(responsavelData.cpf));
-
-        if (deleteRespError) {
-          console.error("Erro ao limpar responsável:", deleteRespError);
-          // Não precisa parar o processo por isso, só logar
-        }
+          .select("id")
+          .eq("processo_id", processoId)
+          .maybeSingle();
 
         if (responsavelData.nome && responsavelData.cpf) {
-          const { error: respError } = await supabase
-            .from("responsavel_financeiro")
-            .insert([
-              {
-                user_id: user.id,
+          if (existingResponsavel) {
+            // Atualizar responsável existente
+            const { error: respError } = await supabase
+              .from("responsavel_financeiro")
+              .update({
                 nome: responsavelData.nome,
                 rg: removeMask(responsavelData.rg),
                 cpf: removeMask(responsavelData.cpf),
@@ -648,14 +629,55 @@ const NewProcess = () => {
                 email: responsavelData.email,
                 endereco_completo: responsavelData.endereco_completo,
                 cep: removeMask(responsavelData.cep),
-              },
-            ]);
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existingResponsavel.id);
 
-          if (respError) {
-            console.error("Erro ao salvar responsável financeiro:", respError);
-            throw respError;
+            if (respError) {
+              console.error(
+                "Erro ao atualizar responsável financeiro:",
+                respError
+              );
+              throw respError;
+            }
+          } else {
+            // Criar novo responsável
+            const { error: respError } = await supabase
+              .from("responsavel_financeiro")
+              .insert([
+                {
+                  user_id: user.id,
+                  processo_id: processoId, // 🔥 AGORA VINCULADO AO PROCESSO
+                  nome: responsavelData.nome,
+                  rg: removeMask(responsavelData.rg),
+                  cpf: removeMask(responsavelData.cpf),
+                  data_nascimento: responsavelData.data_nascimento,
+                  telefone: removeMask(responsavelData.telefone),
+                  email: responsavelData.email,
+                  endereco_completo: responsavelData.endereco_completo,
+                  cep: removeMask(responsavelData.cep),
+                },
+              ]);
+
+            if (respError) {
+              console.error(
+                "Erro ao salvar responsável financeiro:",
+                respError
+              );
+              throw respError;
+            }
           }
           console.log("✅ Responsável financeiro atualizado com sucesso");
+        } else if (existingResponsavel) {
+          // Se não há dados de responsável mas existe um registro, remover
+          const { error: deleteError } = await supabase
+            .from("responsavel_financeiro")
+            .delete()
+            .eq("id", existingResponsavel.id);
+
+          if (deleteError) {
+            console.error("Erro ao remover responsável:", deleteError);
+          }
         }
 
         toast({
@@ -885,12 +907,13 @@ const NewProcess = () => {
         }
 
         console.log("=== SALVANDO RESPONSÁVEL FINANCEIRO ===");
-        if (responsavelData.nome && responsavelData.cpf) {
+        if (responsavelData.nome && responsavelData.cpf && processoCreatedId) {
           const { error: respError } = await supabase
             .from("responsavel_financeiro")
             .insert([
               {
                 user_id: user.id,
+                processo_id: processoCreatedId, // 🔥 VINCULAR AO NOVO PROCESSO
                 nome: responsavelData.nome,
                 rg: removeMask(responsavelData.rg),
                 cpf: removeMask(responsavelData.cpf),
