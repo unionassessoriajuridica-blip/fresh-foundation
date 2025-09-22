@@ -162,7 +162,6 @@ const AcceptInvitation = () => {
 
         if (permissionError) {
           console.error("Erro ao adicionar permissões:", permissionError);
-          // Não impedir o sucesso por erro nas permissões, apenas logar
         }
       }
 

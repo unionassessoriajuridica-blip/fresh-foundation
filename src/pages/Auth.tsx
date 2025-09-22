@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -51,14 +52,14 @@ const Auth = () => {
         await validateInvitationToken(invitationToken);
       }
 
-      const shouldSignUp = searchParams.get('signup') === 'true';
-      const emailParam = searchParams.get('email');
-      const nameParam = searchParams.get('name');
-      
+      const shouldSignUp = searchParams.get("signup") === "true";
+      const emailParam = searchParams.get("email");
+      const nameParam = searchParams.get("name");
+
       if (shouldSignUp || invitationToken) {
         setActiveTab("signup");
       }
-      
+
       if (tabParam === "signup") {
         setActiveTab("signup");
       }
@@ -66,7 +67,7 @@ const Auth = () => {
       if (emailParam) {
         setEmail(decodeURIComponent(emailParam));
       }
-      
+
       if (nameParam) {
         setSignupName(decodeURIComponent(nameParam));
       }
@@ -149,12 +150,11 @@ const Auth = () => {
 
       // MOSTRAR MENSAGEM DE CONFIRMAÇÃO DE EMAIL EM VEZ DE REDIRECIONAR
       setShowEmailConfirmation(true);
-      
+
       toast({
         title: "Cadastro realizado!",
         description: "Verifique seu email para confirmar a conta.",
       });
-
     } catch (error: any) {
       setError(error.message || "Erro ao realizar cadastro");
     } finally {
@@ -238,12 +238,15 @@ const Auth = () => {
             <Alert className="bg-blue-50 border-blue-200">
               <MailCheck className="w-4 h-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>Importante:</strong> Acesse seu email <strong>{email}</strong> e clique no link de confirmação para ativar sua conta.
-                <br /><br />
+                <strong>Importante:</strong> Acesse seu email{" "}
+                <strong>{email}</strong> e clique no link de confirmação para
+                ativar sua conta.
+                <br />
+                <br />
                 Após confirmar, você poderá fazer login normalmente.
               </AlertDescription>
             </Alert>
-            <Button 
+            <Button
               onClick={() => setShowEmailConfirmation(false)}
               variant="outline"
             >
@@ -288,8 +291,8 @@ const Auth = () => {
           </CardHeader>
 
           <CardContent>
-            <Tabs 
-              value={activeTab} 
+            <Tabs
+              value={activeTab}
               onValueChange={setActiveTab}
               className="w-full"
             >
@@ -321,9 +324,8 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-login">Senha</Label>
-                    <Input
+                    <PasswordInput
                       id="password-login"
-                      type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -369,9 +371,8 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-signup">Senha</Label>
-                    <Input
+                    <PasswordInput
                       id="password-signup"
-                      type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
